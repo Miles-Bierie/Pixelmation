@@ -31,10 +31,6 @@ class Main:
 
         self.showUpdatesVar = tk.BooleanVar()
         self.showGridVar.set(True)
-        self.drawSizeVar = tk.StringVar()
-        self.drawSizeVar.set("1")
-        self.drawSizeDisplayVar = tk.StringVar()
-        self.drawSizeDisplayVar.set("Radius:" + self.drawSizeVar.get())
         self.isPlaying = False
         self.control = False
 
@@ -206,9 +202,6 @@ class Main:
         self.colorPickerData = ['None'] # Add a placeholder item
         self.colorPickerData.append(self.canvas.itemcget(self.selectedPixel, option='fill') if self.canvas.itemcget(self.selectedPixel, option='fill') != 'white' else '#ffffff')
         self.colorPickerFrame.config(highlightbackground = self.colorPickerData[1])
-
-    def setDrawSize(self, size):
-        self.drawSizeDisplayVar.set("Radius:" + self.drawSizeVar.get())
 
     def toolSelect(self, tool):
         for frame in self.toolsFrame.winfo_children():
