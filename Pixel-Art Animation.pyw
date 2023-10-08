@@ -20,7 +20,7 @@ class Main:
         self.currentFrame.set('1')
         self.currentFrame_mem = 1
         self.frameDelayVar = tk.StringVar()
-        self.frameDelayVar.set(0.041667)
+        self.frameDelayVar.set(0.041667) # 24-fps
 
         self.clickCoords = {}
 
@@ -56,9 +56,6 @@ class Main:
         self.load()
 
     def load(self):
-        # Load images
-        self.loadingImage = tk.PhotoImage(file='images/Loading.png')
-
         # Add the menubar:
         self.menubar = tk.Menu(root) # Main menubar
         root.config(menu=self.menubar)
@@ -444,8 +441,6 @@ class Main:
         self.canvas = tk.Canvas(self.frameMiddle, height=1026-160, width=1026-160)
         self.canvas.pack(pady=(20, 0))
 
-        self.canvas.create_image(540, 540, image=self.loadingImage)
-
         # Create pixels
         self.toY = int(self.res.get())
         self.posX = 2
@@ -458,8 +453,8 @@ class Main:
             self.pixel = self.canvas.create_rectangle(self.posX, self.posY, self.posX + self.pixelate, self.posY + self.pixelate, fill='white')
 
             #self.canvas.tag_bind(f'{pixel + 2}', "<ButtonPress-1>", lambda event: self.on_press(event))
-            self.canvas.tag_bind(f'{pixel + 2}', "<ButtonPress-1>", lambda event: self.on_press(event))
-            self.canvas.tag_bind(f'{pixel + 2}', "<B1-Motion>", lambda event: self.on_press(event))
+            self.canvas.tag_bind(f'{pixel + 1}', "<ButtonPress-1>", lambda event: self.on_press(event))
+            self.canvas.tag_bind(f'{pixel + 1}', "<B1-Motion>", lambda event: self.on_press(event))
 
             self.pixels.append(self.pixel)
 
@@ -559,9 +554,9 @@ class Main:
             if self.canvas.itemcget(pixel, option='fill') == self.selectedColor:
                 self.canvas.itemconfig(pixel, fill=self.colorPickerData[1])
 
-        self.colorPickerData[1] = self.colorPickerData[1]
+        self.colorPickerData[1] = self.colorPickerData[1] # Needed for some reason idk
 
-    def undoLimit(self) -> None:
+    def undoLimit(self) -> None: # Unused
         self.undoFrame = tk.Toplevel(height=10, width=20)
         self.undoEntry = tk.Entry(self.undoFrame, textvariable=self.undoLimitVar)
 
