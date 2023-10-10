@@ -76,7 +76,7 @@ class Main:
         self.fileMenu.add_command(label="Save As", command=self.saveAs, state=tk.DISABLED)
         self.fileMenu.add_command(label="Export", command=self.exportDisplay, state=tk.DISABLED)
         self.fileMenu.add_separator()
-        self.fileMenu.add_command(label="Open Directory in Explorer", command=openDir)
+        self.fileMenu.add_command(label="Open Directory in Explorer", command=openDir, state=tk.DISABLED)
         self.fileMenu.add_command(label="Quit", command=self.quit)
 
         # Setup edit cascade
@@ -267,6 +267,8 @@ class Main:
         self.fileMenu.entryconfig('Save As', state='active')
         self.fileMenu.entryconfig('Export', state='active')
 
+        self.fileMenu.entryconfig('Open Directory in Explorer', state='active')
+
         self.editMenu.entryconfig('Clear', state='active')
         self.editMenu.entryconfig('Fill', state='active')
        
@@ -442,7 +444,7 @@ class Main:
         # Update the title
         self.updateTitle()
 
-        # Delete any prvious canvases
+        # Delete any previous canvases
         [canvas.destroy() for canvas in self.frameMiddle.winfo_children()]
         self.pixels.clear()
 
@@ -454,6 +456,8 @@ class Main:
         self.posX = 2
         self.posY = 2
 
+        loading = tk.Label(self.canvas, text='Loading...', font=('Default', 32))
+        loading.pack() # Display the loading screen
         root.update()
        
         for pixel in range(int(self.res.get())**2):
@@ -499,6 +503,8 @@ class Main:
         self.setGridColor(False)
         self.updateGrid(False)
         self.unlockButtons()
+        
+        loading.destroy()
 
     def on_press(self, event: dict):
         self.getClickCoords(event)
