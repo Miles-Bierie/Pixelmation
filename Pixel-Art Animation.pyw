@@ -456,8 +456,8 @@ class Main:
         self.posX = 2
         self.posY = 2
 
-        loading = tk.Label(self.canvas, text='Loading...', font=('Default', 32))
-        loading.pack() # Display the loading screen
+        loading = tk.Label(root, text='Loading...', font=('Default', 100))
+        loading.place(x=root.winfo_width()/4, y=root.winfo_height()/2 - 64) # Display the loading screen
         root.update()
        
         for pixel in range(int(self.res.get())**2):
@@ -504,7 +504,7 @@ class Main:
         self.updateGrid(False)
         self.unlockButtons()
         
-        loading.destroy()
+        loading.destroy() # Remove the loading text
 
     def on_press(self, event: dict):
         self.getClickCoords(event)
