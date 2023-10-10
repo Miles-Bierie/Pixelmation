@@ -38,7 +38,8 @@ class Main:
         self.projectFileSample = {
             "data": {
             "resolution": 16,
-            "gridcolor": "#000000"
+            "gridcolor": "#000000",
+            "audio": None
             },
             "frames": [
                 {
@@ -52,10 +53,16 @@ class Main:
         root.bind('<Command-s>', lambda event: self.save())
         root.bind('<Control-z>', lambda event: self.loadFrame())
         root.bind('<Command-z>', lambda event: self.loadFrame())
-       
+
         self.load()
 
     def load(self):
+        def openDir(): # Opens the project directory
+            loc = os.getcwd()
+            os.chdir(self.projectDir[0:self.projectDir.rfind('/')])
+            os.system(f'Explorer .')
+            os.chdir(loc)
+
         # Add the menubar:
         self.menubar = tk.Menu(root) # Main menubar
         root.config(menu=self.menubar)
@@ -69,6 +76,7 @@ class Main:
         self.fileMenu.add_command(label="Save As", command=self.saveAs, state=tk.DISABLED)
         self.fileMenu.add_command(label="Export", command=self.exportDisplay, state=tk.DISABLED)
         self.fileMenu.add_separator()
+        self.fileMenu.add_command(label="Open Directory in Explorer", command=openDir)
         self.fileMenu.add_command(label="Quit", command=self.quit)
 
         # Setup edit cascade
@@ -649,9 +657,10 @@ class Main:
 
     def increaseFrame(self) -> None:
         # Get frame count
-        with open(self.projectDir, 'r') as self.fileOpen:
-            self.jsonFile = json.load(self.fileOpen)
-            self.json_Frames = self.jsonFile['frames']
+        if not self.isPlaying: # If we do not already have the file open; for performance so we don't have to open and close the file for every frame
+            with open(self.projectDir, 'r') as self.fileOpen:
+                self.jsonFile = json.load(self.fileOpen)
+                self.json_Frames = self.jsonFile['frames']
 
         if int(self.currentFrame.get()) != int(len(self.json_Frames[0])):
             self.currentFrame.set(str(int(self.currentFrame.get()) + 1))
@@ -854,6 +863,8 @@ class Main:
                 self.currentFrame.set(self.currentFrame_mem)
                 self.loadFrame()
                 self.isPlaying = False
+
+        self.fileOpen = open(self.projectDir, 'r') # Open the file
 
         self.currentFrame_mem = save
         self.isPlaying = not self.isPlaying
