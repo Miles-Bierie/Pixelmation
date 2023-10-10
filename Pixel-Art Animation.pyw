@@ -7,6 +7,9 @@ import os
 import json
 import copy
 import time
+import playsound
+#import numba as nb
+
 
 class Main:
     def __init__(self):
@@ -256,8 +259,8 @@ class Main:
         except:
             pass
 
-        if len(self.res.get()) > 0 and int(self.res.get()) > 32:
-            self.res.set(32)
+        if len(self.res.get()) > 0 and int(self.res.get()) > 64:
+            self.res.set(64)
         if len(self.res.get()) > 0 and int(self.res.get()) == 0:
             self.res.set(1)
 
@@ -715,26 +718,28 @@ class Main:
         self.loadFrame()
 
     def loadFrame(self) -> None: # Display the frame
-        with open(self.projectDir, 'r') as self.fileOpen:
-            self.json_readFile = json.load(self.fileOpen)
-            self.json_Frames = self.json_readFile['frames']
-            if len(self.json_Frames[0][f'frame_' + self.currentFrame.get()]) == 0: # If the frame is empty
-                for pixel in range(int(self.res.get())**2):
-                    self.canvas.itemconfig(self.pixels[pixel], fill='white') # Fill pixels with white (0 alpha)
-                return None
+        if not self.isPlaying:
+            with open(self.projectDir, 'r') as self.fileOpen:
+                self.json_readFile = json.load(self.fileOpen)
+                self.json_Frames = self.json_readFile['frames']
 
+        if len(self.json_Frames[0][f'frame_' + self.currentFrame.get()]) == 0: # If the frame is empty
             for pixel in range(int(self.res.get())**2):
-                try:
-                    if self.json_Frames[0].get(f'frame_' + self.currentFrame.get()):
-                        self.savedPixelColor = self.json_Frames[0][f'frame_' + self.currentFrame.get()]
+                self.canvas.itemconfig(self.pixels[pixel], fill='white') # Fill pixels with white (0 alpha)
+            return None
 
-                    if self.showAlphaVar.get(): # If show alpha is selected
-                        self.displayAlpha(False)
-                    else:
-                        self.canvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColor[str(self.pixels[pixel])])
+        for pixel in range(int(self.res.get())**2):
+            try:
+                if self.json_Frames[0].get(f'frame_' + self.currentFrame.get()):
+                    self.savedPixelColor = self.json_Frames[0][f'frame_' + self.currentFrame.get()]
 
-                except KeyError: # If the pixel is not present within the json file
-                    self.canvas.itemconfig(self.pixels[pixel], fill='white') # Fill pixels with white (0 alpha)
+                if self.showAlphaVar.get(): # If show alpha is selected
+                    self.displayAlpha(False)
+                else:
+                    self.canvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColor[str(self.pixels[pixel])])
+
+            except KeyError: # If the pixel is not present within the json file
+                self.canvas.itemconfig(self.pixels[pixel], fill='white') # Fill pixels with white (0 alpha)
 
     def loadFrom(self, frame: int) -> None:
         for pixel in range(int(self.res.get())**2):
@@ -750,7 +755,7 @@ class Main:
                     self.canvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColor[str(self.pixels[pixel])])
                 except:
                     self.canvas.itemconfig(self.pixels[pixel], fill='white')
-   
+
     def displayAlpha(self, triggered):
         if triggered and self.showAlphaVar.get(): #If this was triggered by pressing the show alpha button
             self.saveFrame() # Save the current image
@@ -854,7 +859,8 @@ class Main:
     def play_init(self, stopMode):
         loop = False
         if stopMode and not self.isPlaying:
-            loop = False
+            #loop = False
+            pass
         elif not self.isPlaying:
             loop = True
         if not self.isPlaying:
@@ -865,6 +871,7 @@ class Main:
     def play(self, stopMode, save, loop):
         def end():
             self.playButton.config(text="Play")
+            self.fileOpen.close()
             if stopMode:
                 self.currentFrame.set(self.currentFrame_mem)
                 self.loadFrame()
