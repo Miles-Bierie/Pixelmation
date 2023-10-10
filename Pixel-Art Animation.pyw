@@ -8,6 +8,7 @@ import json
 import copy
 import time
 import playsound
+import timeit
 #import numba as nb
 
 
@@ -885,6 +886,7 @@ class Main:
             self.playButton.config(text="Stop")
 
         while self.isPlaying:
+            time1 = timeit.default_timer()
             self.increaseFrame()
             root.update()
             if not loop:
@@ -892,7 +894,10 @@ class Main:
                     end()
                     return None
             try:
-                time.sleep(float(self.frameDelayVar.get()))
+                time2 = timeit.default_timer()
+                time_total = time2 - time1
+                time_total = float(self.frameDelayVar.get()) - time_total
+                time.sleep(max(time_total, 0))
             except:
                 return None
         end()
