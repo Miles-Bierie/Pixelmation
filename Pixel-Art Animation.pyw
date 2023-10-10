@@ -7,8 +7,9 @@ import os
 import json
 import copy
 import time
-import playsound
+from pygame import mixer
 import timeit
+from threading import Thread
 #import numba as nb
 
 
@@ -17,6 +18,10 @@ class Main:
         self.projectDir = ''
         self.extension = 'pxproj' # Project file name extension
         self.pixels = [] # Contains a list of the pixels on the screen (so they can be referanced)
+        self.audioFile = None
+        
+        self.paused = False
+        self.playback = 0.0
 
         self.res = tk.StringVar() # The project resolution
         self.res.set(8)
@@ -66,6 +71,8 @@ class Main:
             os.chdir(self.projectDir[0:self.projectDir.rfind('/')])
             os.system(f'Explorer .')
             os.chdir(loc)
+            
+        mixer.init()
 
         # Add the menubar:
         self.menubar = tk.Menu(root) # Main menubar
@@ -81,6 +88,8 @@ class Main:
         self.fileMenu.add_command(label="Export", command=self.exportDisplay, state=tk.DISABLED)
         self.fileMenu.add_separator()
         self.fileMenu.add_command(label="Open Directory in Explorer", command=openDir, state=tk.DISABLED)
+        self.fileMenu.add_command(label="Audio", command=self.openAudio)
+        self.fileMenu.add_separator()
         self.fileMenu.add_command(label="Quit", command=self.quit)
 
         # Setup edit cascade
@@ -372,11 +381,25 @@ class Main:
                 self.res.set(self.projectData['data']['resolution']) # Load resolution
                 self.showGridVar.set(self.projectData['data']['showgrid']) # Load grid state
                 self.gridColor = self.projectData['data']['gridcolor'] # Load grid color
+                self.audioFile = self.projectData['data']['audio'] # Load grid color
+                
+                if self.audioFile != None:
+                    mixer.music.load(self.audioFile)
 
                 self.file.close()
             except:
                 return False
             self.addCanvas(True)
+            
+    def openAudio(self):
+        audioPath = fd.askopenfilename(
+            title="Open audio file",
+            filetypes=(("mp3", '*.mp3'),("wav", '*.wav'))
+        )
+        
+        if len(audioPath) > 1:
+            self.audioFile = audioPath
+            mixer.music.load(self.audioFile)
 
     def save(self) -> None:
         if not self.showAlphaVar.get(): # If show alpha is not toggled
@@ -386,6 +409,7 @@ class Main:
                     self.json_projectFile['data']['resolution'] = self.res.get()
                     self.json_projectFile['data']['gridcolor'] = self.gridColor
                     self.json_projectFile['data']['showgrid'] = int(self.showGridVar.get())
+                    self.json_projectFile['data']['audio'] = self.audioFile
                     self.jsonSampleDump = json.dumps(self.json_projectFile, indent=4, separators=(',', ':')) # Read the project data as json text
                     self.fileOpen.seek(0)
                     self.fileOpen.truncate(0)
@@ -860,7 +884,6 @@ class Main:
     def play_init(self, stopMode):
         loop = False
         if stopMode and not self.isPlaying:
-            #loop = False
             pass
         elif not self.isPlaying:
             loop = True
@@ -877,6 +900,18 @@ class Main:
                 self.currentFrame.set(self.currentFrame_mem)
                 self.loadFrame()
                 self.isPlaying = False
+                mixer.music.set_pos(0) # Restart the song (TODO: Sync audio)
+                self.paused = False
+            else:
+                self.paused = True
+                mixer.music.pause()
+        
+        def play_audio():
+            if self.audioFile != None:
+                if self.paused:
+                    mixer.music.unpause()
+                else:
+                    mixer.music.play()
 
         self.fileOpen = open(self.projectDir, 'r') # Open the file
 
@@ -884,6 +919,8 @@ class Main:
         self.isPlaying = not self.isPlaying
         if self.isPlaying:
             self.playButton.config(text="Stop")
+            audioThread = Thread(target=play_audio)
+            audioThread.run()
 
         while self.isPlaying:
             time1 = timeit.default_timer()
