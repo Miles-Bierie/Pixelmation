@@ -706,13 +706,10 @@ class Main:
         if int(self.currentFrame.get()) != int(len(self.json_Frames[0])):
             self.currentFrame.set(str(int(self.currentFrame.get()) + 1))
         else:
-            #mixer.music.play()
             self.currentFrame.set(1)
-            mixer.music.set_pos(0.001)
-            #mixer.music.pause()
-            #self.playback = 10
-            #self.getPlaybackPos()
-
+            if self.audioFile != None:
+                mixer.music.set_pos(0.001)
+            
         self.loadFrame()
        
     def decreaseFrame(self) -> None:
@@ -726,7 +723,9 @@ class Main:
         if int(self.currentFrame.get()) < 1:
             self.currentFrame.set(int(len(self.json_Frames[0])))
 
-        self.getPlaybackPos()
+        if self.audioFile != None:
+            self.getPlaybackPos()
+
         self.loadFrame()
 
     def frameSkip(self, mode: bool) -> None: # Displays the '→←' text or the '+-' text, depending on current functionality
@@ -779,10 +778,8 @@ class Main:
             except KeyError: # If the pixel is not present within the json file
                 self.canvas.itemconfig(self.pixels[pixel], fill='white') # Fill pixels with white (0 alpha)
 
-        self.getPlaybackPos()
-        #self.playback = 0
-        #if self.currentFrame.get() == '1':
-            #self.playback = 0
+        if self.audioFile  != None:
+            self.getPlaybackPos()
 
     def loadFrom(self, frame: int) -> None:
         for pixel in range(int(self.res.get())**2):
@@ -890,10 +887,11 @@ class Main:
         
     def getPlaybackPos(self):
         self.playback = max(float(self.frameDelayVar.get()) * float(self.currentFrame.get()) - float(self.frameDelayVar.get()), 0.0001)  # Get the audio position
-        mixer.music.play()
-        mixer.music.set_pos(self.playback)
-        if not self.isPlaying:
-            mixer.music.pause()
+        if self.audioFile != None:
+            mixer.music.play()
+            mixer.music.set_pos(self.playback)
+            if not self.isPlaying:
+                mixer.music.pause()
 
     def playSpace(self):
         if self.control:
@@ -927,12 +925,14 @@ class Main:
                 self.loadFrame()
                 self.isPlaying = False
 
-                mixer.music.rewind() # Restart the song
-                #mixer.music.set_pos(self.playback) # Set the location of the song
+                if self.audioFile != None:
+                    mixer.music.rewind() # Restart the song
+                    #mixer.music.set_pos(self.playback) # Set the location of the song
                 self.paused = False
             else:
                 self.paused = True
-                mixer.music.pause()
+                if self.audioFile != None:
+                    mixer.music.pause()
                 print(self.playback)
                 
             self.getPlaybackPos()
