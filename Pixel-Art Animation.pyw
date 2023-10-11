@@ -22,6 +22,7 @@ class Main:
         
         self.paused = False
         self.playback = 0.0
+        self.playOffset = 0
 
         self.res = tk.StringVar() # The project resolution
         self.res.set(8)
@@ -29,7 +30,7 @@ class Main:
         self.currentFrame.set('1')
         self.currentFrame_mem = 1
         self.frameDelayVar = tk.StringVar()
-        self.frameDelayVar.set(0.041667) # 24-fps
+        self.frameDelayVar.set(0.05)
 
         self.clickCoords = {}
 
@@ -73,6 +74,8 @@ class Main:
             os.chdir(loc)
             
         mixer.init()
+        mixer.set_num_channels(1)
+        
 
         # Add the menubar:
         self.menubar = tk.Menu(root) # Main menubar
@@ -384,6 +387,7 @@ class Main:
                 self.audioFile = self.projectData['data']['audio'] # Load grid color
                 
                 if self.audioFile != None:
+                    mixer.music.queue(self.audioFile)
                     mixer.music.load(self.audioFile)
 
                 self.file.close()
@@ -399,7 +403,12 @@ class Main:
         
         if len(audioPath) > 1:
             self.audioFile = audioPath
+            mixer.music.unload()
+            self.paused = False
             mixer.music.load(self.audioFile)
+            mixer.music.play()
+            mixer.music.rewind()
+            root.title("Pixel-Art Animator-" + self.projectDir + '*')
 
     def save(self) -> None:
         if not self.showAlphaVar.get(): # If show alpha is not toggled
@@ -700,6 +709,8 @@ class Main:
             self.currentFrame.set(str(int(self.currentFrame.get()) + 1))
         else:
             self.currentFrame.set(1)
+            mixer.music.set_pos(0)
+            self.playback = 0
 
         self.loadFrame()
        
@@ -714,6 +725,7 @@ class Main:
         if int(self.currentFrame.get()) < 1:
             self.currentFrame.set(int(len(self.json_Frames[0])))
 
+        self.getPlaybackPos()
         self.loadFrame()
 
     def frameSkip(self, mode: bool) -> None: # Displays the '→←' text or the '+-' text, depending on current functionality
@@ -748,6 +760,8 @@ class Main:
                 self.json_readFile = json.load(self.fileOpen)
                 self.json_Frames = self.json_readFile['frames']
 
+            self.getPlaybackPos()
+
         if len(self.json_Frames[0][f'frame_' + self.currentFrame.get()]) == 0: # If the frame is empty
             for pixel in range(int(self.res.get())**2):
                 self.canvas.itemconfig(self.pixels[pixel], fill='white') # Fill pixels with white (0 alpha)
@@ -765,6 +779,11 @@ class Main:
 
             except KeyError: # If the pixel is not present within the json file
                 self.canvas.itemconfig(self.pixels[pixel], fill='white') # Fill pixels with white (0 alpha)
+
+        self.getPlaybackPos()
+        #self.playback = 0
+        #if self.currentFrame.get() == '1':
+            #self.playback = 0
 
     def loadFrom(self, frame: int) -> None:
         for pixel in range(int(self.res.get())**2):
@@ -869,6 +888,15 @@ class Main:
         if len(output) > 1:
             self.outputDirectory.set(output)
         self.exportTL.attributes("-topmost", True)
+        
+    def getPlaybackPos(self):
+        #0.05 == 400
+        #0.1 == 1000
+        #0.08 ~= 165
+        self.playback = (float(self.frameDelayVar.get())) * float(self.currentFrame.get())  # Get the audio position
+        mixer.music.play()
+        mixer.music.set_pos(self.playback)
+        mixer.music.pause()
 
     def playSpace(self):
         if self.control:
@@ -891,7 +919,8 @@ class Main:
             self.currentFrame_mem = int(self.currentFrame.get())
     
         self.play(stopMode, self.currentFrame_mem, loop)
-   
+    
+
     def play(self, stopMode, save, loop):
         def end():
             self.playButton.config(text="Play")
@@ -900,18 +929,25 @@ class Main:
                 self.currentFrame.set(self.currentFrame_mem)
                 self.loadFrame()
                 self.isPlaying = False
-                mixer.music.set_pos(0) # Restart the song (TODO: Sync audio)
+
+                mixer.music.rewind() # Restart the song
+                mixer.music.set_pos(self.playback) # Set the location of the song
                 self.paused = False
             else:
                 self.paused = True
                 mixer.music.pause()
+                print(self.playback)
+                
+            self.getPlaybackPos()
         
-        def play_audio():
+        def play_audio(): # Plays the audio, if there is any
+            self.getPlaybackPos()
+
             if self.audioFile != None:
                 if self.paused:
                     mixer.music.unpause()
                 else:
-                    mixer.music.play()
+                    mixer.music.play(start=self.playback)
 
         self.fileOpen = open(self.projectDir, 'r') # Open the file
 
