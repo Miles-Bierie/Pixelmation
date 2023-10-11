@@ -11,6 +11,93 @@ from pygame import mixer
 import timeit
 #import numba as nb
 
+class CustomScale(tk.Canvas):
+    def __init__(self, master=None, *, command=None, to=100,from_=0,**kwargs):
+        super().__init__(master, **kwargs)
+        self.min_value = from_
+        self.max_value = to
+        self.value = 0
+        self.master = master
+        self.slider_width = 20
+        self.command_flag = 0
+        self.buffer_value = 0
+        self.command = command
+        self.height = 20  
+        self.configure(height=self.height)
+        self.set_real_value()   
+        self.set_resolution()
+        self.slider = self.create_rectangle(self.value, 0, self.value + self.slider_width, self.height, fill='gray', tags='slider')
+        self.left_side = self.create_rectangle(0, 0, self.value,self.height, fill='green', tags='left_side')        
+        self.right_side = self.create_rectangle(self.value + self.slider_width, 0, self.winfo_width(), self.height, fill='black', tags='right_side')
+        self.buffer = self.create_rectangle(self.value + self.slider_width, 2,self.value + self.slider_width + self.buffer_value , self.height-2, fill='blue', tags='buffer')
+        self.bind('<Configure>', self.set_resolution)
+        self.bind('<Button-1>', self.on_event)
+        self.bind('<B1-Motion>', self.on_event)
+
+    def set_real_value(self):
+        relation = self.value / (self.winfo_width()-self.slider_width)
+        self.real_value = self.min_value + relation * (self.max_value-self.min_value) 
+
+    def set_resolution(self, event = None):
+        self.value = (self.real_value / (self.max_value-self.min_value)) * (self.winfo_width()-self.slider_width)
+        self.value= max(0, min(self.winfo_width()-self.slider_width, self.value))
+        self.set_coords()
+
+    def set_slider(self):
+        self.set_coords()
+        self.set_real_value()   
+
+    def set_coords(self):
+        self.coords('slider', self.value, 0, self.value + self.slider_width, self.height)
+        self.coords('left_side', 0,0,self.value,self.height)
+        self.coords('right_side', self.value + self.slider_width,0,self.winfo_width(),self.height)
+        self.coords('buffer', self.value + self.slider_width, 2,self.value + self.slider_width + self.buffer_value , self.height-2)
+
+    def on_event(self, event):
+        self.value = max(0, min(self.winfo_width()-self.slider_width, event.x))
+        self.set_slider()
+        if self.command and self.command_flag == 0:
+            self.command_flag = 1
+            self.after(200, self.execute_command)
+
+    def execute_command(self):
+        self.command()
+        self.set_real_value()
+        print(self.real_value)
+        self.command_flag = 0
+
+
+
+    def get(self):
+        relation = self.value / (self.winfo_width()-self.slider_width)
+        return relation * (self.max_value-self.min_value)
+
+    def set(self, value = False, buffer = 0):
+        if buffer:
+            self.buffer_value = buffer
+            relation = buffer / (self.max_value-self.min_value)
+            buffer = relation * (self.winfo_width()-self.slider_width)
+            self.buffer_value= max(0, min(self.winfo_width()-self.slider_width, self.value))
+        if value:
+            relation = value / (self.max_value-self.min_value)
+            self.value = relation * (self.winfo_width()-self.slider_width)
+            self.value= max(0, min(self.winfo_width()-self.slider_width, self.value))
+        if value or buffer:
+            self.set_slider()
+
+    def config(self, **kwargs):
+        self.set_real_value()   
+        for key, value in kwargs.items():
+            if key == 'from_':
+                self.min_value = value
+            elif key == 'to':
+                self.max_value = value
+            elif key == 'value':
+                self.real_value = value
+        self.value = (self.real_value / (self.max_value-self.min_value)) * (self.winfo_width()-self.slider_width)
+        self.value= max(0, min(self.winfo_width()-self.slider_width, self.value))
+        self.set_coords()
+
 
 class Main:
     def __init__(self):
@@ -187,13 +274,15 @@ class Main:
         self.increaseFrameButton.pack(side=tk.LEFT, pady=(10, 0))
 
         # Add delay input
-        self.frameDelay = tk.Entry(self.frameBottom, width=4, textvariable=self.frameDelayVar, font=('Calibri', 16)).pack(side=tk.LEFT)
+        self.frameDelay = tk.Entry(self.frameBottom, width=4, textvariable=self.frameDelayVar, font=('Calibri', 16)).pack(side=tk.LEFT, padx=(300,0))
+        self.volumeSlider = CustomScale(self.frameBottom, width=200).pack(side=tk.RIGHT, anchor=tk.SE)
 
         # Add play button
         self.playButton = tk.Button(self.frameBottom, text="Play", height=2, width=32, command=lambda: self.play_init(False))
-        self.playButton.pack()
+        self.playButton.pack(side=tk.BOTTOM, padx=(0, 100), anchor=tk.CENTER)
         root.bind_all('<KeyPress-Control_L>', lambda event: self.playButtonMode(True))
         root.bind_all('<KeyRelease-Control_L>', lambda event: self.playButtonMode(False))
+        
 
         # Add the frame button dropdown
         self.frameDisplayButton.menu = tk.Menu(self.frameDisplayButton, tearoff=0)
