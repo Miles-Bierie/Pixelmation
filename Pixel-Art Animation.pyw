@@ -9,7 +9,6 @@ import copy
 import time
 from pygame import mixer
 import timeit
-from threading import Thread
 #import numba as nb
 
 
@@ -68,10 +67,8 @@ class Main:
 
     def load(self):
         def openDir(): # Opens the project directory
-            loc = os.getcwd()
             os.chdir(self.projectDir[0:self.projectDir.rfind('/')])
             os.system(f'Explorer .')
-            os.chdir(loc)
             
         mixer.init()
         mixer.set_num_channels(1)
@@ -708,9 +705,12 @@ class Main:
         if int(self.currentFrame.get()) != int(len(self.json_Frames[0])):
             self.currentFrame.set(str(int(self.currentFrame.get()) + 1))
         else:
+            #mixer.music.play()
             self.currentFrame.set(1)
-            mixer.music.set_pos(0)
-            self.playback = 0
+            mixer.music.set_pos(0.001)
+            #mixer.music.pause()
+            #self.playback = 10
+            #self.getPlaybackPos()
 
         self.loadFrame()
        
@@ -759,8 +759,6 @@ class Main:
             with open(self.projectDir, 'r') as self.fileOpen:
                 self.json_readFile = json.load(self.fileOpen)
                 self.json_Frames = self.json_readFile['frames']
-
-            self.getPlaybackPos()
 
         if len(self.json_Frames[0][f'frame_' + self.currentFrame.get()]) == 0: # If the frame is empty
             for pixel in range(int(self.res.get())**2):
@@ -890,13 +888,11 @@ class Main:
         self.exportTL.attributes("-topmost", True)
         
     def getPlaybackPos(self):
-        #0.05 == 400
-        #0.1 == 1000
-        #0.08 ~= 165
-        self.playback = (float(self.frameDelayVar.get())) * float(self.currentFrame.get())  # Get the audio position
+        self.playback = float(self.frameDelayVar.get()) * float(self.currentFrame.get()) - float(self.currentFrame.get()) / 1000  # Get the audio position
         mixer.music.play()
         mixer.music.set_pos(self.playback)
-        mixer.music.pause()
+        if not self.isPlaying:
+            mixer.music.pause()
 
     def playSpace(self):
         if self.control:
@@ -931,7 +927,7 @@ class Main:
                 self.isPlaying = False
 
                 mixer.music.rewind() # Restart the song
-                mixer.music.set_pos(self.playback) # Set the location of the song
+                #mixer.music.set_pos(self.playback) # Set the location of the song
                 self.paused = False
             else:
                 self.paused = True
@@ -955,8 +951,7 @@ class Main:
         self.isPlaying = not self.isPlaying
         if self.isPlaying:
             self.playButton.config(text="Stop")
-            audioThread = Thread(target=play_audio)
-            audioThread.run()
+            play_audio()
 
         while self.isPlaying:
             time1 = timeit.default_timer()
@@ -997,3 +992,5 @@ m_cls = Main()
 root.protocol("WM_DELETE_WINDOW", m_cls.quit) # Open the quit dialogue when closing
 
 root.mainloop()
+
+# TODO: Fix the thing where the audio doesn't loop.
