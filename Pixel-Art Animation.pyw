@@ -88,7 +88,7 @@ class Main:
         self.fileMenu.add_command(label="Export", command=self.exportDisplay, state=tk.DISABLED)
         self.fileMenu.add_separator()
         self.fileMenu.add_command(label="Open Directory in Explorer", command=openDir, state=tk.DISABLED)
-        self.fileMenu.add_command(label="Audio", command=self.openAudio)
+        self.fileMenu.add_command(label="Load Audio", command=self.openAudio, state=tk.DISABLED)
         self.fileMenu.add_separator()
         self.fileMenu.add_command(label="Quit", command=self.quit)
 
@@ -275,18 +275,19 @@ class Main:
             self.res.set(1)
 
     def unlockButtons(self):
-        self.fileMenu.entryconfig('Rename', state='active')
-        self.fileMenu.entryconfig('Save', state='active')
-        self.fileMenu.entryconfig('Save As', state='active')
-        self.fileMenu.entryconfig('Export', state='active')
+        self.fileMenu.entryconfig('Rename', state=tk.ACTIVE)
+        self.fileMenu.entryconfig('Save', state=tk.ACTIVE)
+        self.fileMenu.entryconfig('Save As', state=tk.ACTIVE)
+        self.fileMenu.entryconfig('Export', state=tk.ACTIVE)
 
-        self.fileMenu.entryconfig('Open Directory in Explorer', state='active')
+        self.fileMenu.entryconfig('Open Directory in Explorer', state=tk.ACTIVE)
+        self.fileMenu.entryconfig('Load Audio', state=tk.ACTIVE)
 
-        self.editMenu.entryconfig('Clear', state='active')
-        self.editMenu.entryconfig('Fill', state='active')
+        self.editMenu.entryconfig('Clear', state=tk.ACTIVE)
+        self.editMenu.entryconfig('Fill', state=tk.ACTIVE)
        
-        self.displayMenu.entryconfig('Show Grid', state='active')
-        self.displayMenu.entryconfig('Grid Color', state='active')
+        self.displayMenu.entryconfig('Show Grid', state=tk.ACTIVE)
+        self.displayMenu.entryconfig('Grid Color', state=tk.ACTIVE)
 
         self.increaseFrameButton['state'] = "normal"
         self.frameDisplayButton['state'] = "normal"
@@ -888,7 +889,7 @@ class Main:
         self.exportTL.attributes("-topmost", True)
         
     def getPlaybackPos(self):
-        self.playback = float(self.frameDelayVar.get()) * float(self.currentFrame.get()) - float(self.currentFrame.get()) / 1000  # Get the audio position
+        self.playback = max(float(self.frameDelayVar.get()) * float(self.currentFrame.get()) - float(self.frameDelayVar.get()), 0.001)  # Get the audio position
         mixer.music.play()
         mixer.music.set_pos(self.playback)
         if not self.isPlaying:
