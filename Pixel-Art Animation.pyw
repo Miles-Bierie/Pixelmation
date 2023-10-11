@@ -889,7 +889,11 @@ class Main:
         self.exportTL.attributes("-topmost", True)
         
     def getPlaybackPos(self):
+<<<<<<< HEAD
         self.playback = max(float(self.frameDelayVar.get()) * float(self.currentFrame.get()) - float(self.frameDelayVar.get()), 0.0001)  # Get the audio position
+=======
+        self.playback = max(float(self.frameDelayVar.get()) * float(self.currentFrame.get()) - float(self.frameDelayVar.get()), 0.001)  # Get the audio position
+>>>>>>> e09c11c33f079a771673053f5d8735133c5882c0
         mixer.music.play()
         mixer.music.set_pos(self.playback)
         if not self.isPlaying:
