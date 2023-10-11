@@ -9,6 +9,7 @@ import copy
 import time
 from pygame import mixer
 import timeit
+from math import trunc
 #import numba as nb
 
 class CustomScale(tk.Canvas):
@@ -275,7 +276,9 @@ class Main:
 
         # Add delay input
         self.frameDelay = tk.Entry(self.frameBottom, width=4, textvariable=self.frameDelayVar, font=('Calibri', 16)).pack(side=tk.LEFT, padx=(300,0))
-        self.volumeSlider = CustomScale(self.frameBottom, width=200).pack(side=tk.RIGHT, anchor=tk.SE)
+        self.volumeSlider = CustomScale(self.frameBottom, width=200, from_= 0, to=1, command=lambda: self.changeVolume())
+        self.volumeSlider.config(value=0.8)
+        self.volumeSlider.pack(side=tk.RIGHT, anchor=tk.SE)
 
         # Add play button
         self.playButton = tk.Button(self.frameBottom, text="Play", height=2, width=32, command=lambda: self.play_init(False))
@@ -981,6 +984,9 @@ class Main:
             mixer.music.set_pos(self.playback)
             if not self.isPlaying:
                 mixer.music.pause()
+    
+    def changeVolume(self):
+        mixer.music.set_volume(self.volumeSlider.get())
 
     def playSpace(self):
         if self.control:
