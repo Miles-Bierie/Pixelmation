@@ -64,10 +64,7 @@ class CustomScale(tk.Canvas):
     def execute_command(self):
         self.command()
         self.set_real_value()
-        print(self.real_value)
         self.command_flag = 0
-
-
 
     def get(self):
         relation = self.value / (self.winfo_width()-self.slider_width)
@@ -111,13 +108,16 @@ class Main:
         self.playback = 0.0
         self.playOffset = 0
 
+        self.VOLUME = 0.8 # Default volume
+
         self.res = tk.StringVar() # The project resolution
         self.res.set(8)
         self.currentFrame = tk.StringVar()
         self.currentFrame.set('1')
         self.currentFrame_mem = 1
         self.frameDelayVar = tk.StringVar()
-        self.frameDelayVar.set(0.05)
+        self.frameDelayVar.set(20)
+        self.framerate = 0.05
 
         self.clickCoords = {}
 
@@ -276,16 +276,16 @@ class Main:
 
         # Add delay input
         self.frameDelay = tk.Entry(self.frameBottom, width=4, textvariable=self.frameDelayVar, font=('Calibri', 16)).pack(side=tk.LEFT, padx=(300,0))
+        self.frameDelayVar.trace('w', lambda e1, e2, e3: self.delay(float(self.frameDelayVar.get())))
         self.volumeSlider = CustomScale(self.frameBottom, width=200, from_= 0, to=1, command=lambda: self.changeVolume())
-        self.volumeSlider.config(value=0.8)
-        self.volumeSlider.pack(side=tk.RIGHT, anchor=tk.SE)
+        self.volumeSlider.config(value=self.VOLUME)
+        self.volumeSlider.pack(side=tk.RIGHT, anchor=tk.SE, pady=10)
 
         # Add play button
         self.playButton = tk.Button(self.frameBottom, text="Play", height=2, width=32, command=lambda: self.play_init(False))
         self.playButton.pack(side=tk.BOTTOM, padx=(0, 100), anchor=tk.CENTER)
         root.bind_all('<KeyPress-Control_L>', lambda event: self.playButtonMode(True))
         root.bind_all('<KeyRelease-Control_L>', lambda event: self.playButtonMode(False))
-        
 
         # Add the frame button dropdown
         self.frameDisplayButton.menu = tk.Menu(self.frameDisplayButton, tearoff=0)
@@ -978,7 +978,7 @@ class Main:
         self.exportTL.attributes("-topmost", True)
         
     def getPlaybackPos(self):
-        self.playback = max(float(self.frameDelayVar.get()) * float(self.currentFrame.get()) - float(self.frameDelayVar.get()), 0.0001)  # Get the audio position
+        self.playback = max(self.framerate * float(self.currentFrame.get()) - self.framerate, 0.0001)  # Get the audio position
         if self.audioFile != None:
             mixer.music.play()
             mixer.music.set_pos(self.playback)
@@ -1028,7 +1028,6 @@ class Main:
                 self.paused = True
                 if self.audioFile != None:
                     mixer.music.pause()
-                print(self.playback)
                 
             self.getPlaybackPos()
         
@@ -1060,7 +1059,7 @@ class Main:
             try:
                 time2 = timeit.default_timer()
                 time_total = time2 - time1
-                time_total = float(self.frameDelayVar.get()) - time_total
+                time_total = self.framerate - time_total
                 time.sleep(max(time_total, 0))
             except:
                 return None
@@ -1075,7 +1074,10 @@ class Main:
 
     def delay(self, delay):
         if float(self.frameDelayVar.get()) > -1:
-            self.frameDelayVar.set(float(self.frameDelayVar.get()) + delay if float(self.frameDelayVar.get()) + delay > 0 else 0)
+            self.frameDelayVar.set(float(self.frameDelayVar.get())if float(self.frameDelayVar.get()) > 0 else 0)
+            self.framerate = 1 / float(self.frameDelayVar.get())
+            print(self.framerate)
+
 
 
 #-----====Main Program Start====-----#
