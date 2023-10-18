@@ -115,9 +115,7 @@ class Main:
         self.currentFrame = tk.StringVar()
         self.currentFrame.set('1')
         self.currentFrame_mem = 1
-        self.frameDelayVar = tk.StringVar()
-        self.frameDelayVar.set(20)
-        self.framerate = 0.05
+        self.framerate = 1
 
         self.clickCoords = {}
 
@@ -184,8 +182,21 @@ class Main:
         self.editMenu = tk.Menu(self.menubar, tearoff=0)
         self.editMenu.add_command(label="Clear", command=self.canvasClear, state=tk.DISABLED)
         self.editMenu.add_command(label="Fill", command=self.canvasFill, state=tk.DISABLED)
-        #self.editMenu.add_separator()
-        #self.editMenu.add_command(label="Set Undo-Limit", command=self.undoLimit)
+        self.editMenu.add_separator()
+        
+        
+        self.framerateMenu = tk.Menu(self.editMenu, tearoff=0)
+        self.framerateMenu.add_radiobutton(label='1', command=lambda: self.delay(1))
+        self.framerateMenu.add_radiobutton(label='3', command=lambda: self.delay(3))
+        self.framerateMenu.add_radiobutton(label='8', command=lambda: self.delay(8))
+        self.framerateMenu.add_radiobutton(label='10', command=lambda: self.delay(10))
+        self.framerateMenu.add_radiobutton(label='12', command=lambda: self.delay(12))
+        self.framerateMenu.add_radiobutton(label='15', command=lambda: self.delay(15))
+        self.framerateMenu.add_radiobutton(label='20', command=lambda: self.delay(20))
+        self.framerateMenu.add_radiobutton(label='24', command=lambda: self.delay(24))
+        self.framerateMenu.add_radiobutton(label='30', command=lambda: self.delay(30))
+        self.framerateMenu.add_radiobutton(label='48', command=lambda: self.delay(48))
+        self.framerateMenu.add_radiobutton(label='60', command=lambda: self.delay(60))
 
         # Setup display cascasde
         self.displayMenu = tk.Menu(self.menubar, tearoff=0)
@@ -198,6 +209,7 @@ class Main:
         self.menubar.add_cascade(label="File", menu=self.fileMenu)
         self.menubar.add_cascade(label="Edit", menu=self.editMenu)
         self.menubar.add_cascade(label="Display", menu=self.displayMenu)
+        self.editMenu.add_cascade(label="Set Framerate", menu=self.framerateMenu)
 
         # Frames:
 
@@ -275,8 +287,7 @@ class Main:
         self.increaseFrameButton.pack(side=tk.LEFT, pady=(10, 0))
 
         # Add delay input
-        self.frameDelay = tk.Entry(self.frameBottom, width=4, textvariable=self.frameDelayVar, font=('Calibri', 16)).pack(side=tk.LEFT, padx=(300,0))
-        self.frameDelayVar.trace('w', lambda e1, e2, e3: self.delay(float(self.frameDelayVar.get())))
+        #self.frameDelay = tk.Entry(self.frameBottom, width=4, textvariable=self.frameDelayVar, font=('Calibri', 16)).pack(side=tk.LEFT, padx=(300,0))
         self.volumeSlider = CustomScale(self.frameBottom, width=200, from_= 0, to=1, command=lambda: self.changeVolume())
         self.volumeSlider.config(value=self.VOLUME)
         self.volumeSlider.pack(side=tk.RIGHT, anchor=tk.SE, pady=10)
@@ -870,7 +881,7 @@ class Main:
             except KeyError: # If the pixel is not present within the json file
                 self.canvas.itemconfig(self.pixels[pixel], fill='white') # Fill pixels with white (0 alpha)
 
-        if self.audioFile  != None:
+        if self.audioFile != None:
             self.getPlaybackPos()
 
     def loadFrom(self, frame: int) -> None:
@@ -1009,7 +1020,6 @@ class Main:
             self.currentFrame_mem = int(self.currentFrame.get())
     
         self.play(stopMode, self.currentFrame_mem, loop)
-    
 
     def play(self, stopMode, save, loop):
         def end():
@@ -1022,15 +1032,14 @@ class Main:
 
                 if self.audioFile != None:
                     mixer.music.rewind() # Restart the song
-                    #mixer.music.set_pos(self.playback) # Set the location of the song
                 self.paused = False
             else:
                 self.paused = True
                 if self.audioFile != None:
                     mixer.music.pause()
-                
+
             self.getPlaybackPos()
-        
+
         def play_audio(): # Plays the audio, if there is any
             self.getPlaybackPos()
 
@@ -1047,6 +1056,8 @@ class Main:
         if self.isPlaying:
             self.playButton.config(text="Stop")
             play_audio()
+            
+            time.sleep(self.framerate)
 
         while self.isPlaying:
             time1 = timeit.default_timer()
@@ -1057,10 +1068,11 @@ class Main:
                     end()
                     return None
             try:
-                time2 = timeit.default_timer()
-                time_total = time2 - time1
-                time_total = self.framerate - time_total
-                time.sleep(max(time_total, 0))
+                if self.isPlaying:
+                    time2 = timeit.default_timer()
+                    time_total = time2 - time1
+                    time_total = self.framerate - time_total
+                    time.sleep(max(time_total, 0))
             except:
                 return None
         end()
@@ -1073,10 +1085,8 @@ class Main:
             self.playButton.config(command=lambda: self.play_init(False))
 
     def delay(self, delay):
-        if float(self.frameDelayVar.get()) > -1:
-            self.frameDelayVar.set(float(self.frameDelayVar.get())if float(self.frameDelayVar.get()) > 0 else 0)
-            self.framerate = 1 / float(self.frameDelayVar.get())
-            print(self.framerate)
+        self.framerate = 1 / float(delay)
+        print(self.framerate)
 
 
 
