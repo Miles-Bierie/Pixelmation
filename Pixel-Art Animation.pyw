@@ -9,8 +9,6 @@ import copy
 import time
 from pygame import mixer
 import timeit
-from math import trunc
-#import numba as nb
 
 class VolumeSlider(tk.Canvas):
     def __init__(self, master=None, *, command=None, to=100,from_=0,**kwargs):
@@ -133,6 +131,7 @@ class Main:
         self.projectFileSample = {
             "data": {
             "resolution": 16,
+            "showgrid": 1,
             "gridcolor": "#000000",
             "audio": None,
             "framerate": 10
@@ -145,10 +144,11 @@ class Main:
             ]
         }
 
-        root.bind('<Control-s>', lambda event: self.save())
-        root.bind('<Command-s>', lambda event: self.save())
+        root.bind('<Control-s>', lambda event: self.save(True))
+        root.bind('<Command-s>', lambda event: self.save(True))
         root.bind('<Control-z>', lambda event: self.loadFrame())
         root.bind('<Command-z>', lambda event: self.loadFrame())
+        root.bind('<`>', lambda event: self.save(False))
 
         self.load()
 
@@ -156,7 +156,8 @@ class Main:
         def openDir(): # Opens the project directory
             os.chdir(self.projectDir[:self.projectDir.rfind('/')])
             os.system(f'Explorer .')
-            
+        
+        mixer.pre_init(buffer=4096)
         mixer.init()
         mixer.set_num_channels(1)
         
@@ -232,6 +233,8 @@ class Main:
 
         root.bind('<Return>', lambda event: root.focus())
         root.bind('<Escape>', lambda event: self.esc())
+        
+        root.bind('<p>', lambda event: mixer.music.play())
 
         # Frame
         self.toolsFrame = tk.LabelFrame(self.frameTop, text="Tools", height=60, width=266, bg='white')
@@ -454,7 +457,7 @@ class Main:
         if '*' in root.title():
             self.saveMode = mb.askyesno(title="Unsaved Changes", message="Would you like to save the current project?")
             if self.saveMode:
-                self.save()
+                self.save(True)
 
         self.fileOpen = fd.askopenfilename(
             title="Open Project File",
@@ -466,6 +469,7 @@ class Main:
                 self.projectDir = self.fileOpen
                 self.file = open(f'{self.projectDir}', 'r')
                 self.projectData = json.load(self.file)
+                self.file.close()
                 
                 if self.framerateNum == -1: # Add the framerate menu cascade, before self.framerateNum is assigned
                         self.editMenu.add_cascade(label="Set Framerate", menu=self.framerateMenu)
@@ -475,9 +479,10 @@ class Main:
                 self.gridColor = self.projectData['data']['gridcolor'] # Load grid color
                 self.audioFile = self.projectData['data']['audio'] # Load audio
                 self.framerateNum = self.projectData['data']['framerate'] # Load framerate
-                
+
                 self.delay(self.framerateNum) # Set the framerate to the saved framerate
                 
+
                 # Add framerate menu
                 var = tk.BooleanVar(value=True)
                 self.framerateMenu.delete('0', tk.LAST)
@@ -492,7 +497,7 @@ class Main:
                     if self.framerateNum == i:
                         var.set(True)
                         root.update()
-                
+
                 if self.audioFile != None:
                     mixer.music.queue(self.audioFile)
                     mixer.music.load(self.audioFile)
@@ -514,27 +519,31 @@ class Main:
             mixer.music.unload()
             self.paused = False
             mixer.music.load(self.audioFile)
-            mixer.music.play()
-            mixer.music.rewind()
-            mixer.music.stop()
+            #mixer.music.play()
+            #mixer.music.rewind()
+            #mixer.music.stop()
             root.title("Pixel-Art Animator-" + self.projectDir + '*')
 
-    def save(self) -> None:
+    def save(self, all) -> None:
         if not self.showAlphaVar.get(): # If show alpha is not toggled
             try:
-                with open(self.projectDir, 'r+') as self.fileOpen:
-                    self.json_projectFile = json.load(self.fileOpen)
-                    self.json_projectFile['data']['resolution'] = self.res.get()
-                    self.json_projectFile['data']['gridcolor'] = self.gridColor
-                    self.json_projectFile['data']['showgrid'] = int(self.showGridVar.get())
-                    self.json_projectFile['data']['audio'] = self.audioFile
-                    self.json_projectFile['data']['framerate'] = self.framerateNum
-                    self.jsonSampleDump = json.dumps(self.json_projectFile, indent=4, separators=(',', ':')) # Read the project data as json text
-                    self.fileOpen.seek(0)
-                    self.fileOpen.truncate(0)
-                    self.fileOpen.write(self.jsonSampleDump)
+                if '*' == root.title()[-1]:
+                    with open(self.projectDir, 'r+') as self.fileOpen:
+                        self.json_projectFile = json.load(self.fileOpen)
+                        self.json_projectFile['data']['resolution'] = self.res.get()
+                        self.json_projectFile['data']['gridcolor'] = self.gridColor
+                        self.json_projectFile['data']['showgrid'] = int(self.showGridVar.get())
+                        self.json_projectFile['data']['audio'] = self.audioFile
+                        self.json_projectFile['data']['framerate'] = self.framerateNum
+                        self.jsonSampleDump = json.dumps(self.json_projectFile, indent=4, separators=(',', ':')) # Read the project data as json text
+                        self.fileOpen.seek(0)
+                        self.fileOpen.truncate(0)
+                        self.fileOpen.write(self.jsonSampleDump)
+                    
+                    root.title(''.join([i for i in root.title() if i != '*'])) # Remove the star in the project title
 
-                self.saveFrame()
+                if all:
+                    self.saveFrame()
             except: # In case a project is not open
                 pass
 
@@ -584,7 +593,7 @@ class Main:
             self.renameTL.destroy()
 
             self.updateTitle()
-            self.save()
+            self.save(False)
 
     def addCanvas(self, readPixels):
         self.returnData = False
@@ -606,7 +615,11 @@ class Main:
         loading = tk.Label(root, text='Loading...', font=('Default', 100))
         loading.place(x=root.winfo_width()/4, y=root.winfo_height()/2 - 64) # Display the loading screen
         root.update()
-       
+
+        self.fileOpen = open(self.projectDir, 'r')
+        if readPixels:
+                self.json_readFile = json.load(self.fileOpen)
+
         for pixel in range(int(self.res.get())**2):
             self.pixelate = (self.canvas.winfo_width()-5)/int(self.res.get())
             self.pixel = self.canvas.create_rectangle(self.posX, self.posY, self.posX + self.pixelate, self.posY + self.pixelate, fill='white')
@@ -618,21 +631,20 @@ class Main:
             self.pixels.append(self.pixel)
 
                 # Set the pixel color
-            with open(self.projectDir, 'r') as self.fileOpen:
-                if readPixels:
-                    self.json_readFile = json.load(self.fileOpen)
+            if readPixels:
 
-                    self.json_Frames = self.json_readFile['frames']
-                    try:
-                        self.savedPixelColor = self.json_Frames[0][f'frame_'+self.currentFrame.get()]
+                self.json_Frames = self.json_readFile['frames']
+                try:
+                    self.savedPixelColor = self.json_Frames[0][f'frame_'+self.currentFrame.get()]
 
-                        if self.showAlphaVar.get(): # If show alpha is selected
-                            self.displayAlpha(False)
-                        else:
-                            self.canvas.itemconfig(self.pixel, fill=self.savedPixelColor[str(self.pixel)])
+                    if self.showAlphaVar.get(): # If show alpha is selected
+                        self.displayAlpha(False)
+                    else:
+                        self.canvas.itemconfig(self.pixel, fill=self.savedPixelColor[str(self.pixel)])
 
-                    except KeyError: # If the pixel is not present within the json file
-                        self.canvas.itemconfig(self.pixel, fill='white') # Fill pixels with white (0 alpha)
+                except KeyError: # If the pixel is not present within the json file
+                    self.canvas.itemconfig(self.pixel, fill='white') # Fill pixels with white (0 alpha)
+                    
 
             self.posX += self.pixelate
             self.toY -= 1
@@ -644,6 +656,8 @@ class Main:
 
                 if self.showUpdatesVar.get(): root.update_idletasks()
 
+        self.fileOpen.close()
+        
         # Add the popup color picker
         self.canvas.bind('<Button-3>', self.pickColor)
 
@@ -1001,9 +1015,9 @@ class Main:
     def getPlaybackPos(self):
         self.playback = max(self.framerate * float(self.currentFrame.get()) - self.framerate, 0.0001)  # Get the audio position
         if self.audioFile != None:
-            mixer.music.play()
-            mixer.music.set_pos(self.playback)
-            if not self.isPlaying:
+            if not mixer.music.get_busy():
+                mixer.music.play()
+                mixer.music.set_pos(self.playback)
                 mixer.music.pause()
     
     def changeVolume(self):
@@ -1097,7 +1111,6 @@ class Main:
     def delay(self, delay):
         self.framerateNum = delay
         self.framerate = 1 / float(delay)
-        print(self.framerate)
 
 
 
