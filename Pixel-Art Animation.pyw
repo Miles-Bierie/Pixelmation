@@ -12,7 +12,7 @@ import timeit
 from math import trunc
 #import numba as nb
 
-class CustomScale(tk.Canvas):
+class VolumeSlider(tk.Canvas):
     def __init__(self, master=None, *, command=None, to=100,from_=0,**kwargs):
         super().__init__(master, **kwargs)
         self.min_value = from_
@@ -109,23 +109,23 @@ class Main:
         self.playOffset = 0
 
         self.VOLUME = 0.8 # Default volume
+        self.FRAMERATES = (1, 3, 8, 10, 12, 15, 20, 24, 30, 60)
 
         self.res = tk.StringVar() # The project resolution
         self.res.set(8)
-        self.currentFrame = tk.StringVar()
-        self.currentFrame.set('1')
+        self.currentFrame = tk.StringVar(value='1')
         self.currentFrame_mem = 1
-        self.framerate = 1
+        self.framerate = -1 # Default value (Unasigned)
+        self.framerateNum = -1
 
         self.clickCoords = {}
 
         self.showAlphaVar = tk.BooleanVar()
-        self.showGridVar = tk.BooleanVar()
+        self.showGridVar = tk.BooleanVar(value=True)
         self.gridColor = '#000000'
         self.colorPickerData = ('0,0,0', '#000000') #Stores the data from the color picker
 
         self.showUpdatesVar = tk.BooleanVar()
-        self.showGridVar.set(True)
         self.isPlaying = False
         self.control = False
 
@@ -134,7 +134,8 @@ class Main:
             "data": {
             "resolution": 16,
             "gridcolor": "#000000",
-            "audio": None
+            "audio": None,
+            "framerate": 10
             },
             "frames": [
                 {
@@ -153,7 +154,7 @@ class Main:
 
     def load(self):
         def openDir(): # Opens the project directory
-            os.chdir(self.projectDir[0:self.projectDir.rfind('/')])
+            os.chdir(self.projectDir[:self.projectDir.rfind('/')])
             os.system(f'Explorer .')
             
         mixer.init()
@@ -184,20 +185,6 @@ class Main:
         self.editMenu.add_command(label="Fill", command=self.canvasFill, state=tk.DISABLED)
         self.editMenu.add_separator()
         
-        
-        self.framerateMenu = tk.Menu(self.editMenu, tearoff=0)
-        self.framerateMenu.add_radiobutton(label='1', command=lambda: self.delay(1))
-        self.framerateMenu.add_radiobutton(label='3', command=lambda: self.delay(3))
-        self.framerateMenu.add_radiobutton(label='8', command=lambda: self.delay(8))
-        self.framerateMenu.add_radiobutton(label='10', command=lambda: self.delay(10))
-        self.framerateMenu.add_radiobutton(label='12', command=lambda: self.delay(12))
-        self.framerateMenu.add_radiobutton(label='15', command=lambda: self.delay(15))
-        self.framerateMenu.add_radiobutton(label='20', command=lambda: self.delay(20))
-        self.framerateMenu.add_radiobutton(label='24', command=lambda: self.delay(24))
-        self.framerateMenu.add_radiobutton(label='30', command=lambda: self.delay(30))
-        self.framerateMenu.add_radiobutton(label='48', command=lambda: self.delay(48))
-        self.framerateMenu.add_radiobutton(label='60', command=lambda: self.delay(60))
-
         # Setup display cascasde
         self.displayMenu = tk.Menu(self.menubar, tearoff=0)
         self.displayMenu.add_checkbutton(label="Show Grid", variable=self.showGridVar, command=lambda: self.updateGrid(True), state=tk.DISABLED)
@@ -209,7 +196,8 @@ class Main:
         self.menubar.add_cascade(label="File", menu=self.fileMenu)
         self.menubar.add_cascade(label="Edit", menu=self.editMenu)
         self.menubar.add_cascade(label="Display", menu=self.displayMenu)
-        self.editMenu.add_cascade(label="Set Framerate", menu=self.framerateMenu)
+
+        self.framerateMenu = tk.Menu(self.editMenu, tearoff=0)
 
         # Frames:
 
@@ -288,13 +276,13 @@ class Main:
 
         # Add delay input
         #self.frameDelay = tk.Entry(self.frameBottom, width=4, textvariable=self.frameDelayVar, font=('Calibri', 16)).pack(side=tk.LEFT, padx=(300,0))
-        self.volumeSlider = CustomScale(self.frameBottom, width=200, from_= 0, to=1, command=lambda: self.changeVolume())
+        self.volumeSlider = VolumeSlider(self.frameBottom, width=200, from_= 0, to=1, command=lambda: self.changeVolume())
         self.volumeSlider.config(value=self.VOLUME)
         self.volumeSlider.pack(side=tk.RIGHT, anchor=tk.SE, pady=10)
 
         # Add play button
         self.playButton = tk.Button(self.frameBottom, text="Play", height=2, width=32, command=lambda: self.play_init(False))
-        self.playButton.pack(side=tk.BOTTOM, padx=(0, 100), anchor=tk.CENTER)
+        self.playButton.pack(side=tk.BOTTOM, padx=(320, 100), anchor=tk.CENTER)
         root.bind_all('<KeyPress-Control_L>', lambda event: self.playButtonMode(True))
         root.bind_all('<KeyRelease-Control_L>', lambda event: self.playButtonMode(False))
 
@@ -405,9 +393,6 @@ class Main:
         root.bind('<space>', lambda event: self.playSpace())
         root.bind('<Left>', lambda event: self.decreaseFrame())
 
-        root.bind('<Up>', lambda event: self.delay(.05))
-        root.bind('<Down>', lambda event: self.delay(-.05))
-
     def newFileDialogue(self):
         #Add the toplevel window
         self.newFileTL = tk.Toplevel(width=128, height=200)
@@ -481,18 +466,40 @@ class Main:
                 self.projectDir = self.fileOpen
                 self.file = open(f'{self.projectDir}', 'r')
                 self.projectData = json.load(self.file)
+                
+                if self.framerateNum == -1: # Add the framerate menu cascade, before self.framerateNum is assigned
+                        self.editMenu.add_cascade(label="Set Framerate", menu=self.framerateMenu)
 
                 self.res.set(self.projectData['data']['resolution']) # Load resolution
                 self.showGridVar.set(self.projectData['data']['showgrid']) # Load grid state
                 self.gridColor = self.projectData['data']['gridcolor'] # Load grid color
-                self.audioFile = self.projectData['data']['audio'] # Load grid color
+                self.audioFile = self.projectData['data']['audio'] # Load audio
+                self.framerateNum = self.projectData['data']['framerate'] # Load framerate
+                
+                self.delay(self.framerateNum) # Set the framerate to the saved framerate
+                
+                # Add framerate menu
+                var = tk.BooleanVar(value=True)
+                self.framerateMenu.delete('0', tk.LAST)
+                for i in self.FRAMERATES:
+                    if self.framerateNum == i:
+                        self.framerateMenu.add_radiobutton(label=str(i), variable=var, command=lambda delay = i: self.delay(delay))
+                    else:
+                        self.framerateMenu.add_radiobutton(label=str(i), command=lambda delay = i: self.delay(delay))
+                    root.update()
+                    var.set(True)
+                    root.update()
+                    if self.framerateNum == i:
+                        var.set(True)
+                        root.update()
                 
                 if self.audioFile != None:
                     mixer.music.queue(self.audioFile)
                     mixer.music.load(self.audioFile)
 
                 self.file.close()
-            except:
+            except Exception as e:
+                print(e)
                 return False
             self.addCanvas(True)
             
@@ -509,6 +516,7 @@ class Main:
             mixer.music.load(self.audioFile)
             mixer.music.play()
             mixer.music.rewind()
+            mixer.music.stop()
             root.title("Pixel-Art Animator-" + self.projectDir + '*')
 
     def save(self) -> None:
@@ -520,6 +528,7 @@ class Main:
                     self.json_projectFile['data']['gridcolor'] = self.gridColor
                     self.json_projectFile['data']['showgrid'] = int(self.showGridVar.get())
                     self.json_projectFile['data']['audio'] = self.audioFile
+                    self.json_projectFile['data']['framerate'] = self.framerateNum
                     self.jsonSampleDump = json.dumps(self.json_projectFile, indent=4, separators=(',', ':')) # Read the project data as json text
                     self.fileOpen.seek(0)
                     self.fileOpen.truncate(0)
@@ -805,6 +814,7 @@ class Main:
             with open(self.projectDir, 'r') as self.fileOpen:
                 self.jsonFile = json.load(self.fileOpen)
                 self.json_Frames = self.jsonFile['frames']
+                
 
         if int(self.currentFrame.get()) != int(len(self.json_Frames[0])):
             self.currentFrame.set(str(int(self.currentFrame.get()) + 1))
@@ -1085,6 +1095,7 @@ class Main:
             self.playButton.config(command=lambda: self.play_init(False))
 
     def delay(self, delay):
+        self.framerateNum = delay
         self.framerate = 1 / float(delay)
         print(self.framerate)
 
