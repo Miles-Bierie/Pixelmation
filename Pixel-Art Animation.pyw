@@ -146,11 +146,15 @@ class Main:
 
         root.bind('<Control-s>', lambda event: self.save(True))
         root.bind('<Command-s>', lambda event: self.save(True))
-        root.bind('<Control-z>', lambda event: self.loadFrame())
-        root.bind('<Command-z>', lambda event: self.loadFrame())
+        root.bind('<Control-z>', lambda event: self.undo())
+        root.bind('<Command-z>', lambda event: self.undo())
         root.bind('<`>', lambda event: self.save(False))
 
         self.load()
+        
+    def undo(self):
+        self.loadFrame()
+        root.title(''.join([i for i in root.title() if i != '*'])) # Remove the star in the project title
 
     def load(self):
         def openDir(): # Opens the project directory
@@ -942,16 +946,17 @@ class Main:
 
         for pixel in self.pixels:
             if self.showAlphaVar.get():
-                self.canvas.itemconfig(pixel, fill=['#000000' if self.canvas.itemcget(pixel, option='fill') == 'white' else 'white']) # Show the alpha
+                self.canvas.itemconfig(pixel, fill=['black' if self.canvas.itemcget(pixel, option='fill') == 'white' else 'white']) # Show the alpha
             else: # Reload the colors from the file
-                with open(self.projectDir, 'r') as self.fileOpen:
-                    self.json_readFile = json.load(self.fileOpen)
-                    self.json_Frames = self.json_readFile['frames']
-                    self.savedPixelColor = self.json_Frames[0][f'frame_'+self.currentFrame.get()]
-                    try:
-                        self.canvas.itemconfig(pixel, fill=self.savedPixelColor[str(pixel)])
-                    except:
-                        self.canvas.itemconfig(pixel, fill='white')
+                self.loadFrame()
+                # with open(self.projectDir, 'r') as self.fileOpen:
+                #     self.json_readFile = json.load(self.fileOpen)
+                #     self.json_Frames = self.json_readFile['frames']
+                #     self.savedPixelColor = self.json_Frames[0][f'frame_'+self.currentFrame.get()]
+                #     try:
+                #         self.canvas.itemconfig(pixel, fill=self.savedPixelColor[str(pixel)])
+                #     except:
+                #         self.canvas.itemconfig(pixel, fill='white')
 
     def quit(self):
         if '*' in root.title(): # If the file is not saved...
