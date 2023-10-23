@@ -416,6 +416,21 @@ class Main:
         tk.Label(self.newFileFrame, text="Project Resolution:", font=('Courier New', 12)).pack(side=tk.BOTTOM, pady=4)
 
         self.res.trace('w', lambda event1, event2, event3: self.newProjectNameFilter())
+        
+    def addFramerates(self):
+        self.framerateMenu.delete('0', tk.LAST)
+        var = tk.BooleanVar(value=True)
+        for i in self.FRAMERATES:
+                if self.framerateNum == i:
+                    self.framerateMenu.add_radiobutton(label=str(i), variable=var, command=lambda delay = i: self.delay(delay))
+                else:
+                    self.framerateMenu.add_radiobutton(label=str(i), command=lambda delay = i: self.delay(delay))
+                root.update()
+                var.set(True)
+                root.update()
+                if self.framerateNum == i:
+                    var.set(True)
+                    root.update()
        
     def createNewFile(self):
         self.newFileTL.attributes("-topmost", False)
@@ -433,6 +448,7 @@ class Main:
             self.projectFileSample['data']['resolution'] = self.res.get() # Write the file resolution
             self.projectFileSample['data']['gridcolor'] = self.gridColor
             self.projectFileSample['data']['showgrid'] = int(self.showGridVar.get())
+            self.projectFileSample['data']['framerate'] = 10
 
             self.jsonSampleDump = json.dumps(self.projectFileSample, indent=4, separators=(',', ':')) # Read the project data as json text
 
@@ -440,6 +456,12 @@ class Main:
             self.settingsFile = open(self.projectDir, 'w')
             self.settingsFile.write(self.jsonSampleDump)
             self.settingsFile.close()
+            
+            if self.framerateNum == -1: # Add the framerate menu cascade, before self.framerateNum is assigned
+                        self.editMenu.add_cascade(label="Set Framerate", menu=self.framerateMenu)
+            
+            self.addFramerates()
+
 
             try:
                 self.newFileTL.destroy()
@@ -484,19 +506,7 @@ class Main:
                 
 
                 # Add framerate menu
-                var = tk.BooleanVar(value=True)
-                self.framerateMenu.delete('0', tk.LAST)
-                for i in self.FRAMERATES:
-                    if self.framerateNum == i:
-                        self.framerateMenu.add_radiobutton(label=str(i), variable=var, command=lambda delay = i: self.delay(delay))
-                    else:
-                        self.framerateMenu.add_radiobutton(label=str(i), command=lambda delay = i: self.delay(delay))
-                    root.update()
-                    var.set(True)
-                    root.update()
-                    if self.framerateNum == i:
-                        var.set(True)
-                        root.update()
+                self.addFramerates()
 
                 if self.audioFile != None:
                     mixer.music.queue(self.audioFile)
@@ -835,7 +845,10 @@ class Main:
         else:
             self.currentFrame.set(1)
             if self.audioFile != None:
-                mixer.music.set_pos(0.001)
+                if mixer.music.get_busy():
+                    mixer.music.set_pos(0.001)
+                else:
+                    mixer.music.play()
             
         self.loadFrame()
        
@@ -1095,7 +1108,7 @@ class Main:
                 if self.isPlaying:
                     time2 = timeit.default_timer()
                     time_total = time2 - time1
-                    time_total = self.framerate - time_total
+                    time_total = self.framerate - time_total - 0.0004 # Remove frame desyncing
                     time.sleep(max(time_total, 0))
             except:
                 return None
