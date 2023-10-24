@@ -99,6 +99,7 @@ class Main:
     def __init__(self):
         self.projectDir = ''
         self.extension = 'pxproj' # Project file name extension
+        self.jsonReadFile = {} # Loads the project file into json format
         self.pixels = [] # Contains a list of the pixels on the screen (so they can be referanced)
         self.audioFile = None
         
@@ -123,7 +124,6 @@ class Main:
         self.gridColor = '#000000'
         self.colorPickerData = ('0,0,0', '#000000') #Stores the data from the color picker
 
-        self.showUpdatesVar = tk.BooleanVar()
         self.isPlaying = False
         self.control = False
 
@@ -153,7 +153,7 @@ class Main:
         self.load()
         
     def undo(self):
-        self.loadFrame()
+        self.loadFrame(True)
         root.title(''.join([i for i in root.title() if i != '*'])) # Remove the star in the project title
 
     def load(self):
@@ -175,7 +175,7 @@ class Main:
         self.fileMenu.add_command(label="New", command=self.newFileDialogue)
         self.fileMenu.add_command(label="Open", command=self.openFile)
         self.fileMenu.add_command(label="Rename", command=self.renameDialogue, state=tk.DISABLED)
-        self.fileMenu.add_command(label="Save", command=self.save, state=tk.DISABLED)
+        self.fileMenu.add_command(label="Save", command=lambda: self.save(True), state=tk.DISABLED)
         self.fileMenu.add_command(label="Save As", command=self.saveAs, state=tk.DISABLED)
         self.fileMenu.add_command(label="Export", command=self.exportDisplay, state=tk.DISABLED)
         self.fileMenu.add_separator()
@@ -195,7 +195,6 @@ class Main:
         self.displayMenu.add_checkbutton(label="Show Grid", variable=self.showGridVar, command=lambda: self.updateGrid(True), state=tk.DISABLED)
         self.displayMenu.add_command(label="Grid Color", command=lambda: self.setGridColor(True), state=tk.DISABLED)
         self.displayMenu.add_checkbutton(label="Show Alpha", variable=self.showAlphaVar, command=lambda: self.displayAlpha(True))
-        self.displayMenu.add_checkbutton(label="Show Updates", variable=self.showUpdatesVar)
 
         # Add the file cascades
         self.menubar.add_cascade(label="File", menu=self.fileMenu)
@@ -340,12 +339,10 @@ class Main:
             for pixel in self.pixels:
                 self.canvas.itemconfig(str(pixel), outline=self.gridColor)
 
-                if self.showUpdatesVar.get(): root.update_idletasks()
         else:
             for pixel in self.pixels:
                 self.canvas.itemconfig(str(pixel), outline='')
 
-                if self.showUpdatesVar.get(): root.update_idletasks()
        
         if triggered:
             root.title("Pixel-Art Animator-" + self.projectDir + '*')
@@ -359,11 +356,15 @@ class Main:
             for pixel in self.pixels:
                     self.canvas.itemconfig(str(pixel), outline=self.gridColor)
 
-                    if self.showUpdatesVar.get(): root.update_idletasks()
 
-    def newProjectNameFilter(self):
+    def newProjectNameFilter(self, res):
         try:
-            self.res.set(''.join([i for i in self.newFileSetResolutionEntry.get() if i.isdigit()]))
+            mem = 64
+            res.set(''.join([i for i in self.newFileSetResolutionEntry.get() if i.isdigit()]))
+            if int(res.get()) <= 64:
+                mem = res.get()
+            else:
+                res.set(mem)
         except:
             pass
 
@@ -401,6 +402,8 @@ class Main:
         root.bind('<Left>', lambda event: self.decreaseFrame())
 
     def newFileDialogue(self):
+        newRes = tk.StringVar(value=self.res.get())
+        
         #Add the toplevel window
         self.newFileTL = tk.Toplevel(width=128, height=200)
         self.newFileTL.attributes("-topmost", True)
@@ -414,12 +417,12 @@ class Main:
         self.newFileFrame.pack()
         self.newFileFrame.pack_propagate(False)
 
-        self.newFileOpenDirectoyButton = tk.Button(self.newFileFrame, text="Open Directory", command=self.createNewFile, font=('Calibri', 12)).pack(side=tk.TOP)
-        self.newFileSetResolutionEntry = tk.Entry(self.newFileFrame, textvariable=self.res, width=3, font=('Courier New', 15))
+        self.newFileOpenDirectoyButton = tk.Button(self.newFileFrame, text="Open Directory", command=lambda: self.createNewFile(newRes), font=('Calibri', 12)).pack(side=tk.TOP)
+        self.newFileSetResolutionEntry = tk.Entry(self.newFileFrame, textvariable=newRes, width=3, font=('Courier New', 15))
         self.newFileSetResolutionEntry.pack(side=tk.BOTTOM)
         tk.Label(self.newFileFrame, text="Project Resolution:", font=('Courier New', 12)).pack(side=tk.BOTTOM, pady=4)
 
-        self.res.trace('w', lambda event1, event2, event3: self.newProjectNameFilter())
+        newRes.trace('w', lambda event1, event2, event3: self.newProjectNameFilter(newRes))
         
     def addFramerates(self):
         self.framerateMenu.delete('0', tk.LAST)
@@ -436,7 +439,8 @@ class Main:
                     var.set(True)
                     root.update()
        
-    def createNewFile(self):
+    def createNewFile(self, res):
+        self.res.set(res.get()) # Set project resolution to the new resolution
         self.newFileTL.attributes("-topmost", False)
         self.newDir = fd.asksaveasfilename(
             title="Choose Directory",
@@ -447,6 +451,12 @@ class Main:
         if len(self.newDir) > 0:
             self.projectDir = self.newDir
             self.currentFrame.set(1) # Reset the current frame
+            self.audioFile = None
+            self.playback = 0
+            if self.isPlaying:
+                self.isPlaying= False
+                if mixer.music.get_busy():
+                    mixer.music.stop()
 
             # Create the data files for the project
             self.projectFileSample['data']['resolution'] = self.res.get() # Write the file resolution
@@ -461,12 +471,13 @@ class Main:
             self.settingsFile.write(self.jsonSampleDump)
             self.settingsFile.close()
             
+            self.jsonReadFile = self.projectFileSample
+            self.jsonFrames = self.jsonReadFile['frames']
+            
             if self.framerateNum == -1: # Add the framerate menu cascade, before self.framerateNum is assigned
                         self.editMenu.add_cascade(label="Set Framerate", menu=self.framerateMenu)
             
             self.addFramerates()
-
-
             try:
                 self.newFileTL.destroy()
             except:
@@ -491,6 +502,9 @@ class Main:
         if len(self.fileOpen) > 0:
             try:
                 self.currentFrame.set(1) # Reset the current frame
+                self.audioFile = None
+                self.playback = 0
+                self.isPlaying = False
 
                 self.projectDir = self.fileOpen
                 self.file = open(f'{self.projectDir}', 'r')
@@ -632,7 +646,7 @@ class Main:
 
         self.fileOpen = open(self.projectDir, 'r')
         if readPixels:
-                self.json_readFile = json.load(self.fileOpen)
+                self.jsonReadFile = json.load(self.fileOpen)
 
         for pixel in range(int(self.res.get())**2):
             self.pixelate = (self.canvas.winfo_width()-5)/int(self.res.get())
@@ -647,9 +661,9 @@ class Main:
                 # Set the pixel color
             if readPixels:
 
-                self.json_Frames = self.json_readFile['frames']
+                self.jsonFrames = self.jsonReadFile['frames']
                 try:
-                    self.savedPixelColor = self.json_Frames[0][f'frame_'+self.currentFrame.get()]
+                    self.savedPixelColor = self.jsonFrames[0][f'frame_'+self.currentFrame.get()]
 
                     if self.showAlphaVar.get(): # If show alpha is selected
                         self.displayAlpha(False)
@@ -668,7 +682,6 @@ class Main:
                 self.posY += self.pixelate
                 self.posX = 2
 
-                if self.showUpdatesVar.get(): root.update_idletasks()
 
         self.fileOpen.close()
         
@@ -719,13 +732,11 @@ class Main:
         for pixel in self.pixels:
             self.canvas.itemconfig(pixel, fill='white')
 
-            if self.showUpdatesVar.get(): root.update_idletasks()
     def canvasFill(self) -> None:
         self.fillColor = ch.askcolor()
         for pixel in self.pixels:
             self.canvas.itemconfig(pixel, fill=self.fillColor[1])
 
-            if self.showUpdatesVar.get(): root.update_idletasks()
 
     def canvasRemoveColor(self) -> None:
         self.selectedPixel = self.canvas.find_closest(self.clickCoords.x, self.clickCoords.y)
@@ -753,18 +764,18 @@ class Main:
         root.title(''.join([i for i in root.title() if i != '*'])) # Remove the star in the project title
 
         with open(self.projectDir, 'r+') as self.fileOpen:
-            self.jsonFile = json.load(self.fileOpen)
+            self.jsonReadFile = json.load(self.fileOpen)
 
             # Clear the project file
             self.fileOpen.seek(0)
             self.fileOpen.truncate(0)
 
-            self.json_Frames = self.jsonFile['frames']
+            self.jsonFrames = self.jsonReadFile['frames']
 
-            if not f'frame_{self.currentFrame.get()}' in self.json_Frames[0]: # If the current frame is not stored in the project file, append it
-                self.json_Frames[0][f'frame_{self.currentFrame.get()}'] = {}
+            if not f'frame_{self.currentFrame.get()}' in self.jsonFrames[0]: # If the current frame is not stored in the project file, append it
+                self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = {}
            
-            self.json_Frames[0][f'frame_{self.currentFrame.get()}'] = {}
+            self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = {}
 
             self.color_Frame_Dict = {}
             for pixel in self.pixels:
@@ -772,65 +783,69 @@ class Main:
 
                 if self.pixelColor != 'white': # If the frame is not transparent
                     self.color_Frame_Dict[pixel] = self.pixelColor
-                    self.json_Frames[0][f'frame_{self.currentFrame.get()}'] = self.color_Frame_Dict
+                    self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = self.color_Frame_Dict
 
-            self.jsonSampleDump = json.dumps(self.jsonFile, indent=4, separators=(',', ':'))
+            self.jsonSampleDump = json.dumps(self.jsonReadFile, indent=4, separators=(',', ':'))
 
             self.fileOpen.write(self.jsonSampleDump)
+            
+            # Load new file data
+            self.jsonReadFile = json.loads(self.jsonSampleDump)
+            self.jsonFrames = self.jsonReadFile['frames']
 
     def insertFrame(self) -> None: # Inserts a frame after the current frame
         self.currentFrame_mem = int(self.currentFrame.get())
 
         # Create a new frame at the end of the sequance
         with open(self.projectDir, 'r+') as self.fileOpen:
-            self.jsonFile = json.load(self.fileOpen)
+            self.jsonReadFile = json.load(self.fileOpen)
 
             # Get the number of frames
-            self.json_Frames = self.jsonFile['frames']
-            self.json_Frames[0][f'frame_{int(len(self.json_Frames[0])) + 1}'] = {}      
+            self.jsonFrames = self.jsonReadFile['frames']
+            self.jsonFrames[0][f'frame_{int(len(self.jsonFrames[0])) + 1}'] = {}      
 
-            for loop in range(int(len(self.json_Frames[0])) - self.currentFrame_mem):
+            for loop in range(int(len(self.jsonFrames[0])) - self.currentFrame_mem):
                 # Get the data from the previous frame and copy it to the current frame
-                self.json_Frames[0][f'frame_{int(len(self.json_Frames[0])) - loop}'] = self.json_Frames[0][f'frame_{int(len(self.json_Frames[0])) - loop - 1}']
+                self.jsonFrames[0][f'frame_{int(len(self.jsonFrames[0])) - loop}'] = self.jsonFrames[0][f'frame_{int(len(self.jsonFrames[0])) - loop - 1}']
            
             self.currentFrame.set(self.currentFrame_mem + 1)
 
         self.fileOpen = open(self.projectDir, 'r+')
         self.fileOpen.seek(0)
         self.fileOpen.truncate(0)
-        self.jsonSampleDump = json.dumps(self.jsonFile, indent=4, separators=(',', ':'))
+        self.jsonSampleDump = json.dumps(self.jsonReadFile, indent=4, separators=(',', ':'))
         self.fileOpen.write(self.jsonSampleDump)
         self.fileOpen.close()
 
     def deleteFrame(self) -> None:
         with open(self.projectDir, 'r+') as self.fileOpen:
-            self.jsonFile = json.load(self.fileOpen)
-            self.json_Frames = self.jsonFile['frames'][0]
-            self.newData = copy.deepcopy(self.json_Frames) # Create a copy of the frame list (as to not change the original durring iteration)
+            self.jsonReadFile = json.load(self.fileOpen)
+            self.jsonFrames = self.jsonReadFile['frames'][0]
+            self.newData = copy.deepcopy(self.jsonFrames) # Create a copy of the frame list (as to not change the original durring iteration)
             
             i = int(self.currentFrame.get())
-            for frame in range(int(self.currentFrame.get()), len(self.json_Frames) + 1):
-                if i != len(self.json_Frames): # If the frame is not the last frame, copy the data from the next frame
-                    self.newData[f'frame_{i}'] = self.json_Frames[f'frame_{i + 1}']
+            for frame in range(int(self.currentFrame.get()), len(self.jsonFrames) + 1):
+                if i != len(self.jsonFrames): # If the frame is not the last frame, copy the data from the next frame
+                    self.newData[f'frame_{i}'] = self.jsonFrames[f'frame_{i + 1}']
                     i += 1
                 else: # Remove the last frame
-                    for loop, frame in enumerate(self.json_Frames):
-                        if loop + 1 == len(self.json_Frames):
+                    for loop, frame in enumerate(self.jsonFrames):
+                        if loop + 1 == len(self.jsonFrames):
                             self.newData.pop(frame)
 
-            self.jsonFile['frames'][0] = self.newData # Set the frames to the new data
+            self.jsonReadFile['frames'][0] = self.newData # Set the frames to the new data
             
-            self.jsonDump = json.dumps(self.jsonFile, indent=4, separators=(',', ':'))
+            self.jsonDump = json.dumps(self.jsonReadFile, indent=4, separators=(',', ':'))
             self.fileOpen.seek(0)
             self.fileOpen.truncate(0)
             self.fileOpen.writelines(self.jsonDump)
 
-        if int(self.currentFrame.get()) - 1 == len(self.json_Frames) - 1 and self.currentFrame.get() != "0": # If you are on the previous last frame, move back one frame
+        if int(self.currentFrame.get()) - 1 == len(self.jsonFrames) - 1 and self.currentFrame.get() != "0": # If you are on the previous last frame, move back one frame
             self.currentFrame.set(int(self.currentFrame.get()) - 1)
         else:
             pass
         try:
-            self.loadFrame()  
+            self.loadFrame(True)  
         except KeyError:
             self.currentFrame.set(1)
             self.canvasClear()
@@ -838,13 +853,7 @@ class Main:
 
     def increaseFrame(self) -> None:
         # Get frame count
-        if not self.isPlaying: # If we do not already have the file open; for performance so we don't have to open and close the file for every frame
-            with open(self.projectDir, 'r') as self.fileOpen:
-                self.jsonFile = json.load(self.fileOpen)
-                self.json_Frames = self.jsonFile['frames']
-                
-
-        if int(self.currentFrame.get()) != int(len(self.json_Frames[0])):
+        if int(self.currentFrame.get()) != int(len(self.jsonFrames[0])):
             self.currentFrame.set(str(int(self.currentFrame.get()) + 1))
         else:
             self.currentFrame.set(1)
@@ -854,23 +863,18 @@ class Main:
                 else:
                     mixer.music.play()
             
-        self.loadFrame()
+        self.loadFrame(False)
        
     def decreaseFrame(self) -> None:
-        # Get frame count
-        with open(self.projectDir, 'r') as self.fileOpen:
-            self.jsonFile = json.load(self.fileOpen)
-            self.json_Frames = self.jsonFile['frames']
-
         self.currentFrame.set(str(int(self.currentFrame.get()) - 1))
 
         if int(self.currentFrame.get()) < 1:
-            self.currentFrame.set(int(len(self.json_Frames[0])))
+            self.currentFrame.set(int(len(self.jsonFrames[0])))
 
         if self.audioFile != None:
             self.getPlaybackPos()
 
-        self.loadFrame()
+        self.loadFrame(False)
 
     def frameSkip(self, mode: bool) -> None: # Displays the '→←' text or the '+-' text, depending on current functionality
         if mode == True:
@@ -888,31 +892,31 @@ class Main:
 
     def toFirst(self): # Go to first frame
         self.currentFrame.set(1)
-        self.loadFrame()
+        self.loadFrame(False)
 
     def toLast(self): # Go to last frame
         with open(self.projectDir, 'r') as self.fileOpen:
-            self.jsonFile = json.load(self.fileOpen)
-            self.json_Frames = self.jsonFile['frames']
+            self.jsonReadFile = json.load(self.fileOpen)
+            self.jsonFrames = self.jsonReadFile['frames']
 
-        self.currentFrame.set(int(len(self.json_Frames[0])))
-        self.loadFrame()
+        self.currentFrame.set(int(len(self.jsonFrames[0])))
+        self.loadFrame(False)
 
-    def loadFrame(self) -> None: # Display the frame
-        if not self.isPlaying:
+    def loadFrame(self, loadFile) -> None: # Display the frame
+        if loadFile:
             with open(self.projectDir, 'r') as self.fileOpen:
-                self.json_readFile = json.load(self.fileOpen)
-                self.json_Frames = self.json_readFile['frames']
+                self.jsonReadFile = json.load(self.fileOpen)
+                self.jsonFrames = self.jsonReadFile['frames']
 
-        if len(self.json_Frames[0][f'frame_' + self.currentFrame.get()]) == 0: # If the frame is empty
+        if len(self.jsonFrames[0][f'frame_' + self.currentFrame.get()]) == 0: # If the frame is empty
             for pixel in range(int(self.res.get())**2):
                 self.canvas.itemconfig(self.pixels[pixel], fill='white') # Fill pixels with white (0 alpha)
             return None
 
         for pixel in range(int(self.res.get())**2):
             try:
-                if self.json_Frames[0].get(f'frame_' + self.currentFrame.get()):
-                    self.savedPixelColor = self.json_Frames[0][f'frame_' + self.currentFrame.get()]
+                if self.jsonFrames[0].get(f'frame_' + self.currentFrame.get()):
+                    self.savedPixelColor = self.jsonFrames[0][f'frame_' + self.currentFrame.get()]
 
                 if self.showAlphaVar.get(): # If show alpha is selected
                     self.displayAlpha(False)
@@ -928,9 +932,9 @@ class Main:
     def loadFrom(self, frame: int) -> None:
         for pixel in range(int(self.res.get())**2):
             with open(self.projectDir, 'r') as self.fileOpen:
-                self.json_readFile = json.load(self.fileOpen)
+                self.jsonReadFile = json.load(self.fileOpen)
                 try:
-                    self.json_readFrames = self.json_readFile['frames']
+                    self.json_readFrames = self.jsonReadFile['frames']
                     self.savedPixelColor = self.json_readFrames[0][f'frame_{frame}']
 
                     if self.canvas.itemcget(self.pixels[pixel], option='fill') != self.savedPixelColor[str(self.pixels[pixel])]: # If the pixel color is already the pen color
@@ -942,13 +946,15 @@ class Main:
 
     def displayAlpha(self, triggered):
         if triggered and self.showAlphaVar.get(): #If this was triggered by pressing the show alpha button
-            self.saveFrame() # Save the current image
+            if '*' == root.title()[-1]:
+                self.saveFrame() # Save the current image
 
         for pixel in self.pixels:
             if self.showAlphaVar.get():
                 self.canvas.itemconfig(pixel, fill=['black' if self.canvas.itemcget(pixel, option='fill') == 'white' else 'white']) # Show the alpha
             else: # Reload the colors from the file
-                self.loadFrame()
+                self.loadFrame(False)
+                break
                 # with open(self.projectDir, 'r') as self.fileOpen:
                 #     self.json_readFile = json.load(self.fileOpen)
                 #     self.json_Frames = self.json_readFile['frames']
@@ -1018,10 +1024,10 @@ class Main:
 
         # Get the frame count
         with open(self.projectDir, 'r') as self.fileOpen:
-            self.json_readFile = json.load(self.fileOpen)
-            self.json_Frames = self.json_readFile['frames']
+            self.jsonReadFile = json.load(self.fileOpen)
+            self.jsonFrames = self.jsonReadFile['frames']
 
-        tk.Label(self.exportFrameBottom1, width=40, text=f"Total frame count: {(len(self.json_Frames[0]))}").pack() # Display the total frame count
+        tk.Label(self.exportFrameBottom1, width=40, text=f"Total frame count: {(len(self.jsonFrames[0]))}").pack() # Display the total frame count
 
     def openOutputDir(self):
         self.exportTL.attributes("-topmost", False)
@@ -1069,7 +1075,8 @@ class Main:
             self.fileOpen.close()
             if stopMode:
                 self.currentFrame.set(self.currentFrame_mem)
-                self.loadFrame()
+
+                self.loadFrame(False)
                 self.isPlaying = False
 
                 if self.audioFile != None:
@@ -1113,7 +1120,7 @@ class Main:
                 if self.isPlaying:
                     time2 = timeit.default_timer()
                     time_total = time2 - time1
-                    time_total = self.framerate - time_total - 0.0015 # Remove frame desyncing
+                    time_total = self.framerate - time_total - 0.0015 # Remove frame desyncing (to an extent)
                     time.sleep(max(time_total, 0))
             except:
                 return None
