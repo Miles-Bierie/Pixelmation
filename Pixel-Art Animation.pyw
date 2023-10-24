@@ -1113,7 +1113,7 @@ class Main:
                 if self.isPlaying:
                     time2 = timeit.default_timer()
                     time_total = time2 - time1
-                    time_total = self.framerate - time_total - 0.0004 # Remove frame desyncing
+                    time_total = self.framerate - time_total - 0.0015 # Remove frame desyncing
                     time.sleep(max(time_total, 0))
             except:
                 return None
