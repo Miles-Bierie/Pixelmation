@@ -173,7 +173,7 @@ class Main:
         # Setup file cascade
         self.fileMenu = tk.Menu(self.menubar, tearoff=0)
         self.fileMenu.add_command(label="New", command=self.newFileDialogue)
-        self.fileMenu.add_command(label="Open", command=self.openFile)
+        self.fileMenu.add_command(label="Open", command=lambda: self.openFile(True))
         self.fileMenu.add_command(label="Rename", command=self.renameDialogue, state=tk.DISABLED)
         self.fileMenu.add_command(label="Save", command=lambda: self.save(True), state=tk.DISABLED)
         self.fileMenu.add_command(label="Save As", command=self.saveAs, state=tk.DISABLED)
@@ -490,16 +490,21 @@ class Main:
             except AttributeError: # If this function was called using Save As
                 pass
 
-    def openFile(self):
+    def openFile(self, dialog):
         if '*' in root.title():
             self.saveMode = mb.askyesno(title="Unsaved Changes", message="Would you like to save the current project?")
             if self.saveMode:
                 self.save(True)
 
-        self.fileOpen = fd.askopenfilename(
-            title="Open Project File",
-            filetypes=(("pixel project", f'*.{self.extension}'),("pixel project", f'*.{self.extension}')))
-        if len(self.fileOpen) > 0:
+        if dialog:
+            self.fileOpen = fd.askopenfilename(
+                title="Open Project File",
+                filetypes=(("pixel project", f'*.{self.extension}'),("pixel project", f'*.{self.extension}')))
+            
+        else:
+            self.fileOpen = self.projectDir
+
+        if len(self.fileOpen) > 0 or not dialog:
             try:
                 self.currentFrame.set(1) # Reset the current frame
                 self.audioFile = None
@@ -590,6 +595,7 @@ class Main:
                 self.fileOpen.writelines(self.fileData)
 
             self.projectDir = self.newDir
+            self.openFile(False)
 
     def renameDialogue(self) -> None:
         self.renameVar = tk.StringVar()
