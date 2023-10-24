@@ -500,7 +500,6 @@ class Main:
             self.fileOpen = fd.askopenfilename(
                 title="Open Project File",
                 filetypes=(("pixel project", f'*.{self.extension}'),("pixel project", f'*.{self.extension}')))
-            
         else:
             self.fileOpen = self.projectDir
 
@@ -925,12 +924,15 @@ class Main:
                     self.savedPixelColor = self.jsonFrames[0][f'frame_' + self.currentFrame.get()]
 
                 if self.showAlphaVar.get(): # If show alpha is selected
-                    self.displayAlpha(False)
+                    self.canvas.itemconfig(self.pixels[pixel], fill=('white' if self.savedPixelColor[str(self.pixels[pixel])] else 'black'))
                 else:
                     self.canvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColor[str(self.pixels[pixel])])
 
             except KeyError: # If the pixel is not present within the json file
-                self.canvas.itemconfig(self.pixels[pixel], fill='white') # Fill pixels with white (0 alpha)
+                if self.showAlphaVar.get():
+                    self.canvas.itemconfig(self.pixels[pixel], fill='black') # Fill pixels with white (0 alpha)
+                else:
+                    self.canvas.itemconfig(self.pixels[pixel], fill='white') # Fill pixels with white (0 alpha)
 
         if self.audioFile != None:
             self.getPlaybackPos()
@@ -1126,7 +1128,7 @@ class Main:
                 if self.isPlaying:
                     time2 = timeit.default_timer()
                     time_total = time2 - time1
-                    time_total = self.framerate - time_total - 0.0015 # Remove frame desyncing (to an extent)
+                    time_total = self.framerate - time_total - 0.00132 # Remove frame desyncing (to an extent)
                     time.sleep(max(time_total, 0))
             except:
                 return None
