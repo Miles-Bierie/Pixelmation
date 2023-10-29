@@ -9,6 +9,7 @@ import copy
 import time
 from pygame import mixer
 import timeit
+import mutagen
 
 class VolumeSlider(tk.Canvas):
     def __init__(self, master=None, *, command=None, to=100,from_=0,**kwargs):
@@ -106,6 +107,8 @@ class Main:
         self.paused = False
         self.playback = 0.0
         self.playOffset = 0
+        self.audioLength = 0
+        self.playbackModeVar = tk.StringVar(value='Play Every Frame')
 
         self.VOLUME = 0.8 # Default volume
         self.FRAMERATES = (1, 3, 8, 10, 12, 15, 20, 24, 30, 60)
@@ -116,6 +119,7 @@ class Main:
         self.currentFrame_mem = 1
         self.framerate = -1 # Default value (Unasigned)
         self.framerateNum = -1
+        self.frameStorage = None # Stores a frame when copying and pasting
 
         self.clickCoords = {}
 
@@ -153,7 +157,7 @@ class Main:
         self.load()
         
     def undo(self):
-        self.loadFrame(True)
+        self.load_frame(True)
         root.title(''.join([i for i in root.title() if i != '*'])) # Remove the star in the project title
 
     def load(self):
@@ -237,7 +241,7 @@ class Main:
         root.bind('<Return>', lambda event: root.focus())
         root.bind('<Escape>', lambda event: self.esc())
         
-        root.bind('<p>', lambda event: mixer.music.play())
+        root.bind('<p>', lambda event: (mixer.music.stop() if mixer.music.get_busy() else mixer.music.play()))
 
         # Frame
         self.toolsFrame = tk.LabelFrame(self.frameTop, text="Tools", height=60, width=266, bg='white')
@@ -286,11 +290,18 @@ class Main:
         self.volumeSlider.config(value=self.VOLUME)
         self.volumeSlider.pack(side=tk.RIGHT, anchor=tk.SE, pady=10)
 
+        # Add playback mode menu box
+        self.playbackMode = tk.OptionMenu(self.frameBottom, self.playbackModeVar, "Play Every Frame", "Sync With Audio")
+        self.playbackMode.pack(side=tk.LEFT, padx=(80, 0))
+        self.playbackMode.config(state=tk.DISABLED)
+
         # Add play button
         self.playButton = tk.Button(self.frameBottom, text="Play", height=2, width=32, command=lambda: self.play_init(False))
-        self.playButton.pack(side=tk.BOTTOM, padx=(320, 100), anchor=tk.CENTER)
+        self.playButton.pack(side=tk.BOTTOM, padx=(100, 100), anchor=tk.CENTER)
         root.bind_all('<KeyPress-Control_L>', lambda event: self.playButtonMode(True))
         root.bind_all('<KeyRelease-Control_L>', lambda event: self.playButtonMode(False))
+        
+        
 
         # Add the frame button dropdown
         self.frameDisplayButton.menu = tk.Menu(self.frameDisplayButton, tearoff=0)
@@ -299,8 +310,12 @@ class Main:
 
         self.frameDisplayButton.menu.add_command(label="Insert Frame", command=self.insertFrame)
         self.frameDisplayButton.menu.add_command(label="Delete Frame", command=self.deleteFrame)
+        self.frameDisplayButton.menu.add_separator()
         self.frameDisplayButton.menu.add_command(label="Load from Previous", command=lambda: self.loadFrom(str(int(self.currentFrame.get()) - 1)))
         self.frameDisplayButton.menu.add_command(label="Load from Next", command=lambda: self.loadFrom(str(int(self.currentFrame.get()) + 1)))
+        self.frameDisplayButton.menu.add_separator()
+        self.frameDisplayButton.menu.add_command(label="Copy Frame", command=lambda: self.copy_paste('copy'))
+        self.frameDisplayButton.menu.add_command(label="Paste Frame", command=lambda: self.copy_paste('paste'))
 
     def getClickCoords(self, event):
         self.clickCoords = event
@@ -534,6 +549,10 @@ class Main:
                     mixer.music.queue(self.audioFile)
                     mixer.music.load(self.audioFile)
 
+                    audio = mutagen.File(self.audioFile)
+                    self.audioLength = audio.info.length
+                    self.audioLength = int((self.audioLength % 60) * 1000)
+
                 self.file.close()
             except Exception as e:
                 print(e)
@@ -551,9 +570,12 @@ class Main:
             mixer.music.unload()
             self.paused = False
             mixer.music.load(self.audioFile)
-            #mixer.music.play()
-            #mixer.music.rewind()
-            #mixer.music.stop()
+
+            audio = mutagen.File(self.audioFile)
+            self.audioLength = audio.info.length
+            self.audioLength = int((self.audioLength % 60) * 1000)
+            #print(self.audioLength)
+            
             root.title("Pixel-Art Animator-" + self.projectDir + '*')
 
     def save(self, all) -> None:
@@ -575,7 +597,7 @@ class Main:
                     root.title(''.join([i for i in root.title() if i != '*'])) # Remove the star in the project title
 
                 if all:
-                    self.saveFrame()
+                    self.save_frame()
             except: # In case a project is not open
                 pass
 
@@ -595,6 +617,14 @@ class Main:
 
             self.projectDir = self.newDir
             self.openFile(False)
+            
+    def copy_paste(self, mode:str) -> None:
+        if mode == 'copy':
+            self.frameStorage = f'frame_{self.currentFrame.get()}'
+        elif mode == 'paste':
+            self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = self.jsonFrames[0][self.frameStorage]
+            self.load_frame(False)
+            self.save_frame()
 
     def renameDialogue(self) -> None:
         self.renameVar = tk.StringVar()
@@ -765,7 +795,7 @@ class Main:
         self.undoFrame = tk.Toplevel(height=10, width=20)
         self.undoEntry = tk.Entry(self.undoFrame, textvariable=self.undoLimitVar)
 
-    def saveFrame(self) -> None:
+    def save_frame(self) -> None:
         root.title(''.join([i for i in root.title() if i != '*'])) # Remove the star in the project title
 
         with open(self.projectDir, 'r+') as self.fileOpen:
@@ -850,25 +880,29 @@ class Main:
         else:
             pass
         try:
-            self.loadFrame(True)  
+            self.load_frame(True)  
         except KeyError:
             self.currentFrame.set(1)
             self.canvasClear()
-            self.saveFrame()
+            self.save_frame()
 
     def increaseFrame(self) -> None:
         # Get frame count
         if int(self.currentFrame.get()) != int(len(self.jsonFrames[0])):
             self.currentFrame.set(str(int(self.currentFrame.get()) + 1))
+            if mixer.music.get_busy():
+                    #print(round(self.playback, 4))
+                    pass
         else:
             self.currentFrame.set(1)
             if self.audioFile != None:
                 if mixer.music.get_busy():
                     mixer.music.set_pos(0.001)
                 else:
-                    mixer.music.play()
+                    if self.isPlaying:
+                        mixer.music.play()
             
-        self.loadFrame(False)
+        self.load_frame(False)
        
     def decreaseFrame(self) -> None:
         self.currentFrame.set(str(int(self.currentFrame.get()) - 1))
@@ -879,7 +913,7 @@ class Main:
         if self.audioFile != None:
             self.getPlaybackPos()
 
-        self.loadFrame(False)
+        self.load_frame(False)
 
     def frameSkip(self, mode: bool) -> None: # Displays the '→←' text or the '+-' text, depending on current functionality
         if mode == True:
@@ -897,7 +931,7 @@ class Main:
 
     def toFirst(self): # Go to first frame
         self.currentFrame.set(1)
-        self.loadFrame(False)
+        self.load_frame(False)
 
     def toLast(self): # Go to last frame
         with open(self.projectDir, 'r') as self.fileOpen:
@@ -905,9 +939,9 @@ class Main:
             self.jsonFrames = self.jsonReadFile['frames']
 
         self.currentFrame.set(int(len(self.jsonFrames[0])))
-        self.loadFrame(False)
+        self.load_frame(False)
 
-    def loadFrame(self, loadFile) -> None: # Display the frame
+    def load_frame(self, loadFile) -> None: # Display the frame
         if loadFile:
             with open(self.projectDir, 'r') as self.fileOpen:
                 self.jsonReadFile = json.load(self.fileOpen)
@@ -955,29 +989,21 @@ class Main:
     def displayAlpha(self, triggered):
         if triggered and self.showAlphaVar.get(): #If this was triggered by pressing the show alpha button
             if '*' == root.title()[-1]:
-                self.saveFrame() # Save the current image
+                self.save_frame() # Save the current image
 
         for pixel in self.pixels:
             if self.showAlphaVar.get():
                 self.canvas.itemconfig(pixel, fill=['black' if self.canvas.itemcget(pixel, option='fill') == 'white' else 'white']) # Show the alpha
             else: # Reload the colors from the file
-                self.loadFrame(False)
+                self.load_frame(False)
                 break
-                # with open(self.projectDir, 'r') as self.fileOpen:
-                #     self.json_readFile = json.load(self.fileOpen)
-                #     self.json_Frames = self.json_readFile['frames']
-                #     self.savedPixelColor = self.json_Frames[0][f'frame_'+self.currentFrame.get()]
-                #     try:
-                #         self.canvas.itemconfig(pixel, fill=self.savedPixelColor[str(pixel)])
-                #     except:
-                #         self.canvas.itemconfig(pixel, fill='white')
 
     def quit(self):
         if '*' in root.title(): # If the file is not saved...
             self.quitMode = mb.askyesnocancel(title="File Not Saved", message="Do you want to save your project?")
 
             if self.quitMode: # Save and quit
-                self.save()
+                self.save(True)
                 root.destroy()
             if self.quitMode == False: # Quit without saving
                 root.destroy()
@@ -1017,8 +1043,7 @@ class Main:
 
         # Create the menus
         self.outputDirectory = tk.StringVar()
-        self.exportTypeStr = tk.StringVar()
-        self.exportTypeStr.set(".png") # Set the default output extenion
+        self.exportTypeStr = tk.StringVar(value='.png') # Set the default output extenion
 
         self.outputDirectoryEntry = tk.Entry(self.exportFrameTop, textvariable=self.outputDirectory, width=32, font=('Calibri', 14))
         self.outputDirectoryEntry.pack(side=tk.LEFT,anchor=tk.NW, padx=(5, 0))
@@ -1043,7 +1068,7 @@ class Main:
         if len(output) > 1:
             self.outputDirectory.set(output)
         self.exportTL.attributes("-topmost", True)
-        
+
     def getPlaybackPos(self):
         self.playback = max(self.framerate * float(self.currentFrame.get()) - self.framerate, 0.0001)  # Get the audio position
         if self.audioFile != None:
@@ -1084,7 +1109,7 @@ class Main:
             if stopMode:
                 self.currentFrame.set(self.currentFrame_mem)
 
-                self.loadFrame(False)
+                self.load_frame(False)
                 self.isPlaying = False
 
                 if self.audioFile != None:
@@ -1116,22 +1141,44 @@ class Main:
             
             time.sleep(self.framerate)
 
-        while self.isPlaying:
-            time1 = timeit.default_timer()
-            self.increaseFrame()
-            root.update()
-            if not loop:
-                if int(self.currentFrame.get()) == self.currentFrame_mem:
-                    end()
+        if self.playbackModeVar.get() == "Play Every Frame":
+            while self.isPlaying:
+                time1 = timeit.default_timer()
+                self.increaseFrame()
+                root.update()
+                if not loop:
+                    if int(self.currentFrame.get()) == self.currentFrame_mem:
+                        end()
+                        return None
+                try:
+                    if self.isPlaying:
+                        time2 = timeit.default_timer()
+                        time_total = time2 - time1
+                        time_total = self.framerate - time_total
+                        time.sleep(max(time_total, 0))
+                except:
                     return None
-            try:
-                if self.isPlaying:
-                    time2 = timeit.default_timer()
-                    time_total = time2 - time1
-                    time_total = self.framerate - time_total - 0.00132 # Remove frame desyncing (to an extent)
-                    time.sleep(max(time_total, 0))
-            except:
-                return None
+
+        else:
+            frames = len(self.jsonFrames[0])
+            while self.isPlaying:
+                try:
+                    if ("Put equation here"):
+                        self.increaseFrame()
+                        root.update()
+                        self.playback = mixer.music.get_pos()
+                    else:
+                        self.playback = mixer.music.get_pos()
+                        #print(float(mixer.music.get_pos()) * 1000) % int((self.audioLength * 1000) / frames)
+                        root.update()
+                    if not loop:
+                        if int(self.currentFrame.get()) == self.currentFrame_mem:
+                            end()
+                            return None
+                except TypeError:
+                    self.playback = mixer.music.get_pos()
+                    print("Error")
+                    root.update()
         end()
 
     def playButtonMode(self, isControl):
