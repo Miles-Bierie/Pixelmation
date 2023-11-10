@@ -117,8 +117,8 @@ class Main:
         self.res.set(8)
         self.currentFrame = tk.StringVar(value='1')
         self.currentFrame_mem = 1
-        self.framerate = -1 # Default value (Unasigned)
-        self.framerateNum = -1
+        self.framerateDelay = -1 # Default value (Unasigned)
+        self.framerate = -1
         self.frameStorage = None # Stores a frame when copying and pasting
 
         self.clickCoords = {}
@@ -176,29 +176,29 @@ class Main:
 
         # Setup file cascade
         self.fileMenu = tk.Menu(self.menubar, tearoff=0)
-        self.fileMenu.add_command(label="New", command=self.newFileDialogue)
-        self.fileMenu.add_command(label="Open", command=lambda: self.openFile(True))
-        self.fileMenu.add_command(label="Rename", command=self.renameDialogue, state=tk.DISABLED)
+        self.fileMenu.add_command(label="New", command=self.new_file_dialog)
+        self.fileMenu.add_command(label="Open", command=lambda: self.open_file(True))
+        self.fileMenu.add_command(label="Rename", command=self.rename_dialog, state=tk.DISABLED)
         self.fileMenu.add_command(label="Save", command=lambda: self.save(True), state=tk.DISABLED)
-        self.fileMenu.add_command(label="Save As", command=self.saveAs, state=tk.DISABLED)
-        self.fileMenu.add_command(label="Export", command=self.exportDisplay, state=tk.DISABLED)
+        self.fileMenu.add_command(label="Save As", command=self.save_as, state=tk.DISABLED)
+        self.fileMenu.add_command(label="Export", command=self.export_display, state=tk.DISABLED)
         self.fileMenu.add_separator()
         self.fileMenu.add_command(label="Open Directory in Explorer", command=openDir, state=tk.DISABLED)
-        self.fileMenu.add_command(label="Load Audio", command=self.openAudio, state=tk.DISABLED)
+        self.fileMenu.add_command(label="Load Audio", command=self.open_audio, state=tk.DISABLED)
         self.fileMenu.add_separator()
         self.fileMenu.add_command(label="Quit", command=self.quit)
 
         # Setup edit cascade
         self.editMenu = tk.Menu(self.menubar, tearoff=0)
-        self.editMenu.add_command(label="Clear", command=self.canvasClear, state=tk.DISABLED)
-        self.editMenu.add_command(label="Fill", command=self.canvasFill, state=tk.DISABLED)
+        self.editMenu.add_command(label="Clear", command=self.canvas_clear, state=tk.DISABLED)
+        self.editMenu.add_command(label="Fill", command=self.canvas_fill, state=tk.DISABLED)
         self.editMenu.add_separator()
         
         # Setup display cascasde
         self.displayMenu = tk.Menu(self.menubar, tearoff=0)
-        self.displayMenu.add_checkbutton(label="Show Grid", variable=self.showGridVar, command=lambda: self.updateGrid(True), state=tk.DISABLED)
-        self.displayMenu.add_command(label="Grid Color", command=lambda: self.setGridColor(True), state=tk.DISABLED)
-        self.displayMenu.add_checkbutton(label="Show Alpha", variable=self.showAlphaVar, command=lambda: self.displayAlpha(True))
+        self.displayMenu.add_checkbutton(label="Show Grid", variable=self.showGridVar, command=lambda: self.update_grid(True), state=tk.DISABLED)
+        self.displayMenu.add_command(label="Grid Color", command=lambda: self.set_grid_color(True), state=tk.DISABLED)
+        self.displayMenu.add_checkbutton(label="Show Alpha", variable=self.showAlphaVar, command=lambda: self.display_alpha(True))
 
         # Add the file cascades
         self.menubar.add_cascade(label="File", menu=self.fileMenu)
@@ -227,16 +227,16 @@ class Main:
         #Add the color picker
         self.colorPickerFrame = tk.Frame(self.frameTop, highlightthickness=2, highlightbackground='black')
         self.colorPickerFrame.pack(padx=(4, 75), side=tk.LEFT)
-        self.colorPickerButton = tk.Button(self.colorPickerFrame, text="Color Picker", command=self.askColor, font=('Calibri', 14))
+        self.colorPickerButton = tk.Button(self.colorPickerFrame, text="Color Picker", command=self.ask_color, font=('Calibri', 14))
         self.colorPickerButton.pack()
 
         # Add the tools:
 
         # Key binds
-        root.bind('q', lambda event: self.toolSelect(1))
-        root.bind('w', lambda event: self.toolSelect(2))
-        root.bind('e', lambda event: self.toolSelect(3))
-        root.bind('r', lambda event: self.toolSelect(4))
+        root.bind('q', lambda event: self.tool_select(1))
+        root.bind('w', lambda event: self.tool_select(2))
+        root.bind('e', lambda event: self.tool_select(3))
+        root.bind('r', lambda event: self.tool_select(4))
 
         root.bind('<Return>', lambda event: root.focus())
         root.bind('<Escape>', lambda event: self.esc())
@@ -252,54 +252,49 @@ class Main:
         self.penFrame = tk.Frame(self.toolsFrame, height=14, width=6, highlightthickness=2, highlightbackground='red')
         self.penFrame.pack(side=tk.LEFT, padx=5)
 
-        self.penButton = tk.Button(self.penFrame, text="Pen", relief=tk.RAISED, height=14, width=6, command=lambda: self.toolSelect(1))
+        self.penButton = tk.Button(self.penFrame, text="Pen", relief=tk.RAISED, height=14, width=6, command=lambda: self.tool_select(1))
         self.penButton.pack()
 
         # Eraser
         self.eraserFrame = tk.Frame(self.toolsFrame, height=14, width=6, highlightthickness=2, highlightbackground='white')
         self.eraserFrame.pack(side=tk.LEFT, padx=5)
 
-        self.eraserButton = tk.Button(self.eraserFrame, text="Eraser", relief=tk.RAISED, height=14, width=6, command=lambda: self.toolSelect(2))
+        self.eraserButton = tk.Button(self.eraserFrame, text="Eraser", relief=tk.RAISED, height=14, width=6, command=lambda: self.tool_select(2))
         self.eraserButton.pack()
 
         # Remove tool
         self.removeFrame = tk.Frame(self.toolsFrame, height=14, width=6, highlightthickness=2, highlightbackground='white')
         self.removeFrame.pack(side=tk.LEFT, padx=5)
        
-        self.removeButton = tk.Button(self.removeFrame, text="Remove", relief=tk.RAISED, height=14, width=6, command=lambda: self.toolSelect(3))
+        self.removeButton = tk.Button(self.removeFrame, text="Remove", relief=tk.RAISED, height=14, width=6, command=lambda: self.tool_select(3))
         self.removeButton.pack()
 
         # Repalce tool
         self.replaceFrame = tk.Frame(self.toolsFrame, height=14, width=6, highlightthickness=2, highlightbackground='white')
         self.replaceFrame.pack(side=tk.LEFT, padx=5)
        
-        self.replaceButton = tk.Button(self.replaceFrame, text="Replace", relief=tk.RAISED, height=14, width=6, command=lambda: self.toolSelect(4))
+        self.replaceButton = tk.Button(self.replaceFrame, text="Replace", relief=tk.RAISED, height=14, width=6, command=lambda: self.tool_select(4))
         self.replaceButton.pack()
 
         # Add frame display
-        self.decreaseFrameButton = tk.Button(self.frameTop, text="-", command=self.decreaseFrame, state='disabled', font=('Courier New', 9))
+        self.decreaseFrameButton = tk.Button(self.frameTop, text="-", command=self.decrease_frame, state='disabled', font=('Courier New', 9))
         self.decreaseFrameButton.pack(side=tk.LEFT, padx=(234, 0), pady=(10, 0))
         self.frameDisplayButton = tk.Menubutton(self.frameTop, textvariable=self.currentFrame, width=6, disabledforeground='black', relief=tk.RIDGE)
         self.frameDisplayButton.pack(pady=(10, 0), side=tk.LEFT)
-        self.increaseFrameButton = tk.Button(self.frameTop, text="+", command=self.increaseFrame, font=('Courier New', 9), state='disabled')
+        self.increaseFrameButton = tk.Button(self.frameTop, text="+", command=self.increase_frame, font=('Courier New', 9), state='disabled')
         self.increaseFrameButton.pack(side=tk.LEFT, pady=(10, 0))
 
         # Add delay input
         #self.frameDelay = tk.Entry(self.frameBottom, width=4, textvariable=self.frameDelayVar, font=('Calibri', 16)).pack(side=tk.LEFT, padx=(300,0))
-        self.volumeSlider = VolumeSlider(self.frameBottom, width=200, from_= 0, to=1, command=lambda: self.changeVolume())
+        self.volumeSlider = VolumeSlider(self.frameBottom, width=200, from_= 0, to=1, command=lambda: self.change_volume())
         self.volumeSlider.config(value=self.VOLUME)
         self.volumeSlider.pack(side=tk.RIGHT, anchor=tk.SE, pady=10)
-
-        # Add playback mode menu box
-        self.playbackMode = tk.OptionMenu(self.frameBottom, self.playbackModeVar, "Play Every Frame", "Sync With Audio")
-        self.playbackMode.pack(side=tk.LEFT, padx=(80, 0))
-        self.playbackMode.config(state=tk.DISABLED)
 
         # Add play button
         self.playButton = tk.Button(self.frameBottom, text="Play", height=2, width=32, command=lambda: self.play_init(False))
         self.playButton.pack(side=tk.BOTTOM, padx=(100, 100), anchor=tk.CENTER)
-        root.bind_all('<KeyPress-Control_L>', lambda event: self.playButtonMode(True))
-        root.bind_all('<KeyRelease-Control_L>', lambda event: self.playButtonMode(False))
+        root.bind_all('<KeyPress-Control_L>', lambda event: self.play_button_mode(True))
+        root.bind_all('<KeyRelease-Control_L>', lambda event: self.play_button_mode(False))
         
         
 
@@ -308,32 +303,32 @@ class Main:
         self.frameDisplayButton['menu'] = self.frameDisplayButton.menu
         self.frameDisplayButton['state'] = 'disabled'
 
-        self.frameDisplayButton.menu.add_command(label="Insert Frame", command=self.insertFrame)
-        self.frameDisplayButton.menu.add_command(label="Delete Frame", command=self.deleteFrame)
+        self.frameDisplayButton.menu.add_command(label="Insert Frame", command=self.insert_frame)
+        self.frameDisplayButton.menu.add_command(label="Delete Frame", command=self.delete_frame)
         self.frameDisplayButton.menu.add_separator()
-        self.frameDisplayButton.menu.add_command(label="Load from Previous", command=lambda: self.loadFrom(str(int(self.currentFrame.get()) - 1)))
-        self.frameDisplayButton.menu.add_command(label="Load from Next", command=lambda: self.loadFrom(str(int(self.currentFrame.get()) + 1)))
+        self.frameDisplayButton.menu.add_command(label="Load from Previous", command=lambda: self.load_from(str(int(self.currentFrame.get()) - 1)))
+        self.frameDisplayButton.menu.add_command(label="Load from Next", command=lambda: self.load_from(str(int(self.currentFrame.get()) + 1)))
         self.frameDisplayButton.menu.add_separator()
         self.frameDisplayButton.menu.add_command(label="Copy Frame", command=lambda: self.copy_paste('copy'))
         self.frameDisplayButton.menu.add_command(label="Paste Frame", command=lambda: self.copy_paste('paste'))
 
-    def getClickCoords(self, event):
+    def get_click_coords(self, event):
         self.clickCoords = event
 
-    def returnDataSetTrue(self):
+    def return_data_set_true(self):
         self.returnData = True
 
-    def askColor(self):
+    def ask_color(self):
         self.colorPickerData = ch.askcolor()
         self.colorPickerFrame.config(highlightbackground=self.colorPickerData[1]) # Set the border of the button to the chosen color
 
-    def pickColor(self, event):
+    def pick_color(self, event):
         self.selectedPixel = self.canvas.find_closest(event.x, event.y)
         self.colorPickerData = ['None'] # Add a placeholder item
         self.colorPickerData.append(self.canvas.itemcget(self.selectedPixel, option='fill') if self.canvas.itemcget(self.selectedPixel, option='fill') != 'white' else '#ffffff')
         self.colorPickerFrame.config(highlightbackground = self.colorPickerData[1])
 
-    def toolSelect(self, tool):
+    def tool_select(self, tool):
         for frame in self.toolsFrame.winfo_children():
                 frame.config(highlightbackground='white')
 
@@ -346,10 +341,10 @@ class Main:
         if tool == 4:
             self.replaceFrame.config(highlightbackground = 'red')
 
-    def updateTitle(self):
+    def update_title(self):
         root.title("Pixel-Art Animator-" + self.projectDir)
 
-    def updateGrid(self, triggered):
+    def update_grid(self, triggered):
         if self.showGridVar.get():
             for pixel in self.pixels:
                 self.canvas.itemconfig(str(pixel), outline=self.gridColor)
@@ -362,7 +357,7 @@ class Main:
         if triggered:
             root.title("Pixel-Art Animator-" + self.projectDir + '*')
 
-    def setGridColor(self, menu):
+    def set_grid_color(self, menu):
         if menu:
             self.gridColor = ch.askcolor()[1]
             root.title("Pixel-Art Animator-" + self.projectDir + '*')
@@ -372,7 +367,7 @@ class Main:
                     self.canvas.itemconfig(str(pixel), outline=self.gridColor)
 
 
-    def newProjectNameFilter(self, res):
+    def new_project_name_filter(self, res):
         try:
             mem = 64
             res.set(''.join([i for i in self.newFileSetResolutionEntry.get() if i.isdigit()]))
@@ -388,7 +383,7 @@ class Main:
         if len(self.res.get()) > 0 and int(self.res.get()) == 0:
             self.res.set(1)
 
-    def unlockButtons(self):
+    def unlock_buttons(self):
         self.fileMenu.entryconfig('Rename', state=tk.ACTIVE)
         self.fileMenu.entryconfig('Save', state=tk.ACTIVE)
         self.fileMenu.entryconfig('Save As', state=tk.ACTIVE)
@@ -407,16 +402,24 @@ class Main:
         self.frameDisplayButton['state'] = "normal"
         self.decreaseFrameButton['state'] = 'normal'
 
-        root.bind("<KeyPress-Shift_L>", lambda event: self.frameSkip(True))
-        root.bind("<KeyPress-Shift_R>", lambda event: self.frameSkip(True))
-        root.bind("<KeyRelease-Shift_L>", lambda event: self.frameSkip(False))
-        root.bind("<KeyRelease-Shift_R>", lambda event: self.frameSkip(False))
+        root.bind("<KeyPress-Shift_L>", lambda event: self.frame_skip(True))
+        root.bind("<KeyPress-Shift_R>", lambda event: self.frame_skip(True))
+        root.bind("<KeyRelease-Shift_L>", lambda event: self.frame_skip(False))
+        root.bind("<KeyRelease-Shift_R>", lambda event: self.frame_skip(False))
+        
+        #root.bind("<KeyRelease-Left>", lambda event: self.load_frame(False))
+        #root.bind("<KeyRelease-Right>", lambda event: self.load_frame(False))
+        root.bind("<l>", lambda event: self.set_frame())
 
-        root.bind('<Right>', lambda event: self.increaseFrame())
-        root.bind('<space>', lambda event: self.playSpace())
-        root.bind('<Left>', lambda event: self.decreaseFrame())
+        root.bind('<Right>', lambda event: self.increase_frame())
+        root.bind('<space>', lambda event: self.play_space())
+        root.bind('<Left>', lambda event: self.decrease_frame())
+        
+    def set_frame(self):
+        self.currentFrame.set(3200)
+        self.load_frame(False)
 
-    def newFileDialogue(self):
+    def new_file_dialog(self):
         newRes = tk.StringVar(value=self.res.get())
         
         #Add the toplevel window
@@ -432,29 +435,29 @@ class Main:
         self.newFileFrame.pack()
         self.newFileFrame.pack_propagate(False)
 
-        self.newFileOpenDirectoyButton = tk.Button(self.newFileFrame, text="Open Directory", command=lambda: self.createNewFile(newRes), font=('Calibri', 12)).pack(side=tk.TOP)
+        self.newFileOpenDirectoyButton = tk.Button(self.newFileFrame, text="Open Directory", command=lambda: self.create_new_file(newRes), font=('Calibri', 12)).pack(side=tk.TOP)
         self.newFileSetResolutionEntry = tk.Entry(self.newFileFrame, textvariable=newRes, width=3, font=('Courier New', 15))
         self.newFileSetResolutionEntry.pack(side=tk.BOTTOM)
         tk.Label(self.newFileFrame, text="Project Resolution:", font=('Courier New', 12)).pack(side=tk.BOTTOM, pady=4)
 
-        newRes.trace('w', lambda event1, event2, event3: self.newProjectNameFilter(newRes))
+        newRes.trace('w', lambda event1, event2, event3: self.new_project_name_filter(newRes))
         
-    def addFramerates(self):
+    def add_framerates(self):
         self.framerateMenu.delete('0', tk.LAST)
         var = tk.BooleanVar(value=True)
         for i in self.FRAMERATES:
-                if self.framerateNum == i:
+                if self.framerate == i:
                     self.framerateMenu.add_radiobutton(label=str(i), variable=var, command=lambda delay = i: self.delay(delay))
                 else:
                     self.framerateMenu.add_radiobutton(label=str(i), command=lambda delay = i: self.delay(delay))
                 root.update()
                 var.set(True)
                 root.update()
-                if self.framerateNum == i:
+                if self.framerate == i:
                     var.set(True)
                     root.update()
        
-    def createNewFile(self, res):
+    def create_new_file(self, res):
         self.res.set(res.get()) # Set project resolution to the new resolution
         self.newFileTL.attributes("-topmost", False)
         self.newDir = fd.asksaveasfilename(
@@ -489,23 +492,23 @@ class Main:
             self.jsonReadFile = self.projectFileSample
             self.jsonFrames = self.jsonReadFile['frames']
             
-            if self.framerateNum == -1: # Add the framerate menu cascade, before self.framerateNum is assigned
+            if self.framerate == -1: # Add the framerate menu cascade, before self.framerateNum is assigned
                         self.editMenu.add_cascade(label="Set Framerate", menu=self.framerateMenu)
             
-            self.addFramerates()
+            self.add_framerates()
             try:
                 self.newFileTL.destroy()
             except:
                 pass
 
-            self.addCanvas(False)
+            self.add_canvas(False)
         else:
             try:
                 self.newFileTL.attributes("-topmost", True)
             except AttributeError: # If this function was called using Save As
                 pass
 
-    def openFile(self, dialog):
+    def open_file(self, dialog):
         if '*' in root.title():
             self.saveMode = mb.askyesno(title="Unsaved Changes", message="Would you like to save the current project?")
             if self.saveMode:
@@ -530,20 +533,20 @@ class Main:
                 self.projectData = json.load(self.file)
                 self.file.close()
                 
-                if self.framerateNum == -1: # Add the framerate menu cascade, before self.framerateNum is assigned
+                if self.framerate == -1: # Add the framerate menu cascade, before self.framerateNum is assigned
                         self.editMenu.add_cascade(label="Set Framerate", menu=self.framerateMenu)
 
                 self.res.set(self.projectData['data']['resolution']) # Load resolution
                 self.showGridVar.set(self.projectData['data']['showgrid']) # Load grid state
                 self.gridColor = self.projectData['data']['gridcolor'] # Load grid color
                 self.audioFile = self.projectData['data']['audio'] # Load audio
-                self.framerateNum = self.projectData['data']['framerate'] # Load framerate
+                self.framerate = self.projectData['data']['framerate'] # Load framerate
 
-                self.delay(self.framerateNum) # Set the framerate to the saved framerate
+                self.delay(self.framerate) # Set the framerate to the saved framerate
                 
 
                 # Add framerate menu
-                self.addFramerates()
+                self.add_framerates()
 
                 if self.audioFile != None:
                     mixer.music.queue(self.audioFile)
@@ -557,9 +560,9 @@ class Main:
             except Exception as e:
                 print(e)
                 return False
-            self.addCanvas(True)
+            self.add_canvas(True)
             
-    def openAudio(self):
+    def open_audio(self):
         audioPath = fd.askopenfilename(
             title="Open audio file",
             filetypes=(("mp3", '*.mp3'),("wav", '*.wav'))
@@ -588,7 +591,7 @@ class Main:
                         self.json_projectFile['data']['gridcolor'] = self.gridColor
                         self.json_projectFile['data']['showgrid'] = int(self.showGridVar.get())
                         self.json_projectFile['data']['audio'] = self.audioFile
-                        self.json_projectFile['data']['framerate'] = self.framerateNum
+                        self.json_projectFile['data']['framerate'] = self.framerate
                         self.jsonSampleDump = json.dumps(self.json_projectFile, indent=4, separators=(',', ':')) # Read the project data as json text
                         self.fileOpen.seek(0)
                         self.fileOpen.truncate(0)
@@ -601,7 +604,7 @@ class Main:
             except: # In case a project is not open
                 pass
 
-    def saveAs(self) -> None:
+    def save_as(self) -> None:
         self.newDir = fd.asksaveasfilename(
             title="Choose Directory",
             defaultextension=("pixel project", f'*.{self.extension}'),
@@ -616,7 +619,7 @@ class Main:
                 self.fileOpen.writelines(self.fileData)
 
             self.projectDir = self.newDir
-            self.openFile(False)
+            self.open_file(False)
             
     def copy_paste(self, mode:str) -> None:
         if mode == 'copy':
@@ -626,7 +629,7 @@ class Main:
             self.load_frame(False)
             self.save_frame()
 
-    def renameDialogue(self) -> None:
+    def rename_dialog(self) -> None:
         self.renameVar = tk.StringVar()
         self.renameVar.set(os.path.splitext(os.path.split(self.projectDir)[1])[0])
 
@@ -655,13 +658,13 @@ class Main:
             self.projectDir = os.path.split(self.projectDir)[0] + '/' + self.renameVar.get() + '.' + self.extension # Set the project directory to the new name
             self.renameTL.destroy()
 
-            self.updateTitle()
+            self.update_title()
             self.save(False)
 
-    def addCanvas(self, readPixels):
+    def add_canvas(self, readPixels):
         self.returnData = False
         # Update the title
-        self.updateTitle()
+        self.update_title()
 
         # Delete any previous canvases
         [canvas.destroy() for canvas in self.frameMiddle.winfo_children()]
@@ -701,7 +704,7 @@ class Main:
                     self.savedPixelColor = self.jsonFrames[0][f'frame_'+self.currentFrame.get()]
 
                     if self.showAlphaVar.get(): # If show alpha is selected
-                        self.displayAlpha(False)
+                        self.display_alpha(False)
                     else:
                         self.canvas.itemconfig(self.pixel, fill=self.savedPixelColor[str(self.pixel)])
 
@@ -721,16 +724,16 @@ class Main:
         self.fileOpen.close()
         
         # Add the popup color picker
-        self.canvas.bind('<Button-3>', self.pickColor)
+        self.canvas.bind('<Button-3>', self.pick_color)
 
-        self.setGridColor(False)
-        self.updateGrid(False)
-        self.unlockButtons()
+        self.set_grid_color(False)
+        self.update_grid(False)
+        self.unlock_buttons()
         
         loading.destroy() # Remove the loading text
 
     def on_press(self, event: dict):
-        self.getClickCoords(event)
+        self.get_click_coords(event)
 
         if self.showAlphaVar.get(): # Stop the user from drawing in show alpha mode
             return False
@@ -752,28 +755,28 @@ class Main:
                 self.canvas.itemconfig(self.selectedPixel, fill='white')
 
             elif self.removeFrame['highlightbackground'] == 'red': # If the remove mode is selected...
-                self.canvasRemoveColor()
+                self.canvas_remove_color()
 
             elif self.replaceFrame['highlightbackground'] == 'red': # If the replace mode is selected...
                 if self.canvas.itemcget(self.selectedPixel, option='fill') == self.colorPickerData[1]: # If the pixel color is already the pen color
                     pass
                 else:
-                    self.canvasReplaceColor()
+                    self.canvas_replace_color()
         except:
             pass # I don't want it to yell at me
 
-    def canvasClear(self) -> None:
+    def canvas_clear(self) -> None:
         root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
         for pixel in self.pixels:
             self.canvas.itemconfig(pixel, fill='white')
 
-    def canvasFill(self) -> None:
+    def canvas_fill(self) -> None:
         self.fillColor = ch.askcolor()
         for pixel in self.pixels:
             self.canvas.itemconfig(pixel, fill=self.fillColor[1])
 
 
-    def canvasRemoveColor(self) -> None:
+    def canvas_remove_color(self) -> None:
         self.selectedPixel = self.canvas.find_closest(self.clickCoords.x, self.clickCoords.y)
         self.selectedColor = self.canvas.itemcget(self.selectedPixel, option='fill')
         for pixel in self.pixels:
@@ -782,7 +785,7 @@ class Main:
 
         self.colorPickerData[1] = self.colorPickerData[1] # I don't now why this is needed, but the pen color needs to be re-assigned
 
-    def canvasReplaceColor(self) -> None:
+    def canvas_replace_color(self) -> None:
         self.selectedPixel = self.canvas.find_closest(self.clickCoords.x, self.clickCoords.y)
         self.selectedColor = self.canvas.itemcget(self.selectedPixel, option='fill')
         for pixel in self.pixels:
@@ -790,10 +793,6 @@ class Main:
                 self.canvas.itemconfig(pixel, fill=self.colorPickerData[1])
 
         self.colorPickerData[1] = self.colorPickerData[1] # Needed for some reason idk
-
-    def undoLimit(self) -> None: # Unused
-        self.undoFrame = tk.Toplevel(height=10, width=20)
-        self.undoEntry = tk.Entry(self.undoFrame, textvariable=self.undoLimitVar)
 
     def save_frame(self) -> None:
         root.title(''.join([i for i in root.title() if i != '*'])) # Remove the star in the project title
@@ -828,7 +827,7 @@ class Main:
             self.jsonReadFile = json.loads(self.jsonSampleDump)
             self.jsonFrames = self.jsonReadFile['frames']
 
-    def insertFrame(self) -> None: # Inserts a frame after the current frame
+    def insert_frame(self) -> None: # Inserts a frame after the current frame
         self.currentFrame_mem = int(self.currentFrame.get())
 
         # Create a new frame at the end of the sequance
@@ -852,7 +851,7 @@ class Main:
         self.fileOpen.write(self.jsonSampleDump)
         self.fileOpen.close()
 
-    def deleteFrame(self) -> None:
+    def delete_frame(self) -> None:
         with open(self.projectDir, 'r+') as self.fileOpen:
             self.jsonReadFile = json.load(self.fileOpen)
             self.jsonFrames = self.jsonReadFile['frames'][0]
@@ -883,10 +882,10 @@ class Main:
             self.load_frame(True)  
         except KeyError:
             self.currentFrame.set(1)
-            self.canvasClear()
+            self.canvas_clear()
             self.save_frame()
 
-    def increaseFrame(self) -> None:
+    def increase_frame(self) -> None:
         # Get frame count
         if int(self.currentFrame.get()) != int(len(self.jsonFrames[0])):
             self.currentFrame.set(str(int(self.currentFrame.get()) + 1))
@@ -904,36 +903,36 @@ class Main:
             
         self.load_frame(False)
        
-    def decreaseFrame(self) -> None:
+    def decrease_frame(self) -> None:
         self.currentFrame.set(str(int(self.currentFrame.get()) - 1))
 
         if int(self.currentFrame.get()) < 1:
             self.currentFrame.set(int(len(self.jsonFrames[0])))
 
         if self.audioFile != None:
-            self.getPlaybackPos()
+            self.get_playback_pos()
 
         self.load_frame(False)
 
-    def frameSkip(self, mode: bool) -> None: # Displays the '→←' text or the '+-' text, depending on current functionality
+    def frame_skip(self, mode: bool) -> None: # Displays the '→←' text or the '+-' text, depending on current functionality
         if mode == True:
-            self.increaseFrameButton.config(text="→", command=self.toLast)
-            self.decreaseFrameButton.config(text="←", command=self.toFirst)
+            self.increaseFrameButton.config(text="→", command=self.to_last)
+            self.decreaseFrameButton.config(text="←", command=self.to_first)
 
-            root.bind('<Right>', lambda event: self.toLast())
-            root.bind('<Left>', lambda event: self.toFirst())
+            root.bind('<Right>', lambda event: self.to_last())
+            root.bind('<Left>', lambda event: self.to_first())
         else:
-            self.increaseFrameButton.config(text="+", command=self.increaseFrame)
-            self.decreaseFrameButton.config(text="-", command=self.decreaseFrame)
+            self.increaseFrameButton.config(text="+", command=self.increase_frame)
+            self.decreaseFrameButton.config(text="-", command=self.decrease_frame)
 
-            root.bind('<Right>', lambda event: self.increaseFrame())
-            root.bind('<Left>', lambda event: self.decreaseFrame())
+            root.bind('<Right>', lambda event: self.increase_frame())
+            root.bind('<Left>', lambda event: self.decrease_frame())
 
-    def toFirst(self): # Go to first frame
+    def to_first(self): # Go to first frame
         self.currentFrame.set(1)
         self.load_frame(False)
 
-    def toLast(self): # Go to last frame
+    def to_last(self): # Go to last frame
         with open(self.projectDir, 'r') as self.fileOpen:
             self.jsonReadFile = json.load(self.fileOpen)
             self.jsonFrames = self.jsonReadFile['frames']
@@ -969,9 +968,9 @@ class Main:
                     self.canvas.itemconfig(self.pixels[pixel], fill='white') # Fill pixels with white (0 alpha)
 
         if self.audioFile != None:
-            self.getPlaybackPos()
+            self.get_playback_pos()
 
-    def loadFrom(self, frame: int) -> None:
+    def load_from(self, frame: int) -> None:
         for pixel in range(int(self.res.get())**2):
             with open(self.projectDir, 'r') as self.fileOpen:
                 self.jsonReadFile = json.load(self.fileOpen)
@@ -985,8 +984,10 @@ class Main:
                     self.canvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColor[str(self.pixels[pixel])])
                 except:
                     self.canvas.itemconfig(self.pixels[pixel], fill='white')
+                    
+        self.save_frame()
 
-    def displayAlpha(self, triggered):
+    def display_alpha(self, triggered):
         if triggered and self.showAlphaVar.get(): #If this was triggered by pressing the show alpha button
             if '*' == root.title()[-1]:
                 self.save_frame() # Save the current image
@@ -1012,7 +1013,7 @@ class Main:
         else:
             root.destroy()
 
-    def exportDisplay(self):
+    def export_display(self):
         # Add the toplevel
         self.exportTL = tk.Toplevel(width=400, height=500)
         self.exportTL.resizable(False, False)
@@ -1049,7 +1050,7 @@ class Main:
         self.outputDirectoryEntry.pack(side=tk.LEFT,anchor=tk.NW, padx=(5, 0))
         tk.Label(self.exportFrameTop, text="Output Directory:", font=('Calibri', 14)).pack(side=tk.TOP, anchor=tk.NW, padx=5, before=self.outputDirectoryEntry)
 
-        self.outputDirectoryButton = tk.Button(self.exportFrameTop, text="open", font=('Calibri', 10), command=self.openOutputDir).pack(side=tk.LEFT,anchor=tk.NW)
+        self.outputDirectoryButton = tk.Button(self.exportFrameTop, text="open", font=('Calibri', 10), command=self.open_output_dir).pack(side=tk.LEFT,anchor=tk.NW)
         self.exportType = tk.OptionMenu(self.exportFrameMiddle, self.exportTypeStr, ".png", ".jpeg", ".tiff").pack(side=tk.LEFT, anchor=tk.NW)
 
         # Create the export button
@@ -1062,25 +1063,25 @@ class Main:
 
         tk.Label(self.exportFrameBottom1, width=40, text=f"Total frame count: {(len(self.jsonFrames[0]))}").pack() # Display the total frame count
 
-    def openOutputDir(self):
+    def open_output_dir(self):
         self.exportTL.attributes("-topmost", False)
         output = fd.askdirectory()
         if len(output) > 1:
             self.outputDirectory.set(output)
         self.exportTL.attributes("-topmost", True)
 
-    def getPlaybackPos(self):
-        self.playback = max(self.framerate * float(self.currentFrame.get()) - self.framerate, 0.0001)  # Get the audio position
+    def get_playback_pos(self):
+        self.playback = max(self.framerateDelay * float(self.currentFrame.get()) - self.framerateDelay, 0.0001)  # Get the audio position
         if self.audioFile != None:
             if not mixer.music.get_busy():
                 mixer.music.play()
                 mixer.music.set_pos(self.playback)
                 mixer.music.pause()
     
-    def changeVolume(self):
+    def change_volume(self):
         mixer.music.set_volume(self.volumeSlider.get())
 
-    def playSpace(self):
+    def play_space(self):
         if self.control:
             self.play_init(True)
         else:
@@ -1120,10 +1121,10 @@ class Main:
                 if self.audioFile != None:
                     mixer.music.pause()
 
-            self.getPlaybackPos()
+            self.get_playback_pos()
 
         def play_audio(): # Plays the audio, if there is any
-            self.getPlaybackPos()
+            self.get_playback_pos()
 
             if self.audioFile != None:
                 if self.paused:
@@ -1139,12 +1140,12 @@ class Main:
             self.playButton.config(text="Stop")
             play_audio()
             
-            time.sleep(self.framerate)
+            time.sleep(self.framerateDelay)
 
         if self.playbackModeVar.get() == "Play Every Frame":
             while self.isPlaying:
                 time1 = timeit.default_timer()
-                self.increaseFrame()
+                self.increase_frame()
                 root.update()
                 if not loop:
                     if int(self.currentFrame.get()) == self.currentFrame_mem:
@@ -1154,7 +1155,7 @@ class Main:
                     if self.isPlaying:
                         time2 = timeit.default_timer()
                         time_total = time2 - time1
-                        time_total = self.framerate - time_total
+                        time_total = self.framerateDelay - time_total
                         time.sleep(max(time_total, 0))
                 except:
                     return None
@@ -1164,11 +1165,12 @@ class Main:
             while self.isPlaying:
                 try:
                     if ("Put equation here"):
-                        self.increaseFrame()
+                        self.increase_frame()
                         root.update()
-                        self.playback = mixer.music.get_pos()
+                        self.get_playback_pos()
+                        print("" + " of " + str(frames))
                     else:
-                        self.playback = mixer.music.get_pos()
+                        self.get_playback_pos()
                         #print(float(mixer.music.get_pos()) * 1000) % int((self.audioLength * 1000) / frames)
                         root.update()
                     if not loop:
@@ -1181,7 +1183,7 @@ class Main:
                     root.update()
         end()
 
-    def playButtonMode(self, isControl):
+    def play_button_mode(self, isControl):
         self.control = isControl
         if isControl:
             self.playButton.config(command=lambda: self.play_init(True))
@@ -1189,8 +1191,8 @@ class Main:
             self.playButton.config(command=lambda: self.play_init(False))
 
     def delay(self, delay):
-        self.framerateNum = delay
-        self.framerate = 1 / float(delay)
+        self.framerate = delay
+        self.framerateDelay = 1 / float(delay)
 
 
 
