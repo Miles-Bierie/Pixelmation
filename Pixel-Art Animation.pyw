@@ -108,7 +108,6 @@ class Main:
         self.playback = 0.0
         self.playOffset = 0
         self.audioLength = 0
-        self.playbackModeVar = tk.StringVar(value='Play Every Frame')
 
         self.VOLUME = 0.8 # Default volume
         self.FRAMERATES = (1, 3, 8, 10, 12, 15, 20, 24, 30, 60)
@@ -295,8 +294,6 @@ class Main:
         self.playButton.pack(side=tk.BOTTOM, padx=(100, 100), anchor=tk.CENTER)
         root.bind_all('<KeyPress-Control_L>', lambda event: self.play_button_mode(True))
         root.bind_all('<KeyRelease-Control_L>', lambda event: self.play_button_mode(False))
-        
-        
 
         # Add the frame button dropdown
         self.frameDisplayButton.menu = tk.Menu(self.frameDisplayButton, tearoff=0)
@@ -1139,48 +1136,25 @@ class Main:
         if self.isPlaying:
             self.playButton.config(text="Stop")
             play_audio()
-            
+
             time.sleep(self.framerateDelay)
 
-        if self.playbackModeVar.get() == "Play Every Frame":
-            while self.isPlaying:
-                time1 = timeit.default_timer()
-                self.increase_frame()
-                root.update()
-                if not loop:
-                    if int(self.currentFrame.get()) == self.currentFrame_mem:
-                        end()
-                        return None
-                try:
-                    if self.isPlaying:
-                        time2 = timeit.default_timer()
-                        time_total = time2 - time1
-                        time_total = self.framerateDelay - time_total
-                        time.sleep(max(time_total, 0))
-                except:
+        while self.isPlaying:
+            time1 = timeit.default_timer()
+            self.increase_frame()
+            root.update()
+            if not loop:
+                if int(self.currentFrame.get()) == self.currentFrame_mem:
+                    end()
                     return None
-
-        else:
-            frames = len(self.jsonFrames[0])
-            while self.isPlaying:
-                try:
-                    if ("Put equation here"):
-                        self.increase_frame()
-                        root.update()
-                        self.get_playback_pos()
-                        print("" + " of " + str(frames))
-                    else:
-                        self.get_playback_pos()
-                        #print(float(mixer.music.get_pos()) * 1000) % int((self.audioLength * 1000) / frames)
-                        root.update()
-                    if not loop:
-                        if int(self.currentFrame.get()) == self.currentFrame_mem:
-                            end()
-                            return None
-                except TypeError:
-                    self.playback = mixer.music.get_pos()
-                    print("Error")
-                    root.update()
+            try:
+                if self.isPlaying:
+                    time2 = timeit.default_timer()
+                    time_total = time2 - time1
+                    time_total = self.framerateDelay - time_total
+                    time.sleep(max(time_total, 0))
+            except:
+                return None
         end()
 
     def play_button_mode(self, isControl):
