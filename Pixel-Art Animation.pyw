@@ -291,7 +291,7 @@ class Main:
 
         # Add play button
         self.playButton = tk.Button(self.frameBottom, text="Play", height=2, width=32, command=lambda: self.play_init(False))
-        self.playButton.pack(side=tk.BOTTOM, padx=(100, 100), anchor=tk.CENTER)
+        self.playButton.pack(side=tk.BOTTOM, padx=(320, 100), anchor=tk.CENTER)
         root.bind_all('<KeyPress-Control_L>', lambda event: self.play_button_mode(True))
         root.bind_all('<KeyRelease-Control_L>', lambda event: self.play_button_mode(False))
 
@@ -684,8 +684,8 @@ class Main:
                 self.jsonReadFile = json.load(self.fileOpen)
 
         for pixel in range(int(self.res.get())**2):
-            self.pixelate = (self.canvas.winfo_width()-5)/int(self.res.get())
-            self.pixel = self.canvas.create_rectangle(self.posX, self.posY, self.posX + self.pixelate, self.posY + self.pixelate, fill='white')
+            pixelate = (self.canvas.winfo_width()-5)/int(self.res.get())
+            self.pixel = self.canvas.create_rectangle(self.posX, self.posY, self.posX + pixelate, self.posY + pixelate, fill='white')
 
             #self.canvas.tag_bind(f'{pixel + 2}', "<ButtonPress-1>", lambda event: self.on_press(event))
             self.canvas.tag_bind(f'{pixel + 1}', "<ButtonPress-1>", lambda event: self.on_press(event))
@@ -709,12 +709,12 @@ class Main:
                     self.canvas.itemconfig(self.pixel, fill='white') # Fill pixels with white (0 alpha)
                     
 
-            self.posX += self.pixelate
+            self.posX += pixelate
             self.toY -= 1
 
             if self.toY == 0:
                 self.toY = int(self.res.get())
-                self.posY += self.pixelate
+                self.posY += pixelate
                 self.posX = 2
 
 
@@ -887,7 +887,6 @@ class Main:
         if int(self.currentFrame.get()) != int(len(self.jsonFrames[0])):
             self.currentFrame.set(str(int(self.currentFrame.get()) + 1))
             if mixer.music.get_busy():
-                    #print(round(self.playback, 4))
                     pass
         else:
             self.currentFrame.set(1)
