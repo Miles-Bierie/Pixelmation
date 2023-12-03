@@ -10,6 +10,8 @@ import time
 from pygame import mixer
 import timeit
 import mutagen
+from PIL import Image, ImageTk
+from math import ceil
 
 class VolumeSlider(tk.Canvas):
     def __init__(self, master=None, *, command=None, to=100,from_=0,**kwargs):
@@ -103,6 +105,7 @@ class Main:
         self.jsonReadFile = {} # Loads the project file into json format
         self.pixels = [] # Contains a list of the pixels on the screen (so they can be referanced)
         self.audioFile = None
+        self.outputDirectory = tk.StringVar(value='')
         
         self.paused = False
         self.playback = 0.0
@@ -119,6 +122,7 @@ class Main:
         self.framerateDelay = -1 # Default value (Unasigned)
         self.framerate = -1
         self.frameStorage = None # Stores a frame when copying and pasting
+        self.frameCount = 0
 
         self.clickCoords = {}
 
@@ -129,7 +133,8 @@ class Main:
 
         self.isPlaying = False
         self.control = False
-
+        self.gotoOpen = False
+        self.exportOpen = False
 
         self.projectFileSample = {
             "data": {
@@ -137,6 +142,7 @@ class Main:
             "showgrid": 1,
             "gridcolor": "#000000",
             "audio": None,
+            "output": "",
             "framerate": 10
             },
             "frames": [
@@ -151,7 +157,6 @@ class Main:
         root.bind('<Command-s>', lambda event: self.save(True))
         root.bind('<Control-z>', lambda event: self.undo())
         root.bind('<Command-z>', lambda event: self.undo())
-        root.bind('<`>', lambda event: self.save(False))
 
         self.load()
         
@@ -241,6 +246,8 @@ class Main:
         root.bind('<Escape>', lambda event: self.esc())
         
         root.bind('<p>', lambda event: (mixer.music.stop() if mixer.music.get_busy() else mixer.music.play()))
+        root.bind('<Control-n>', lambda event: self.new_file_dialog())
+        root.bind('<Control-o>', lambda event: self.open_file(True))
 
         # Frame
         self.toolsFrame = tk.LabelFrame(self.frameTop, text="Tools", height=60, width=266, bg='white')
@@ -398,19 +405,25 @@ class Main:
         self.increaseFrameButton['state'] = "normal"
         self.frameDisplayButton['state'] = "normal"
         self.decreaseFrameButton['state'] = 'normal'
-
-        root.bind("<KeyPress-Shift_L>", lambda event: self.frame_skip(True))
-        root.bind("<KeyPress-Shift_R>", lambda event: self.frame_skip(True))
-        root.bind("<KeyRelease-Shift_L>", lambda event: self.frame_skip(False))
-        root.bind("<KeyRelease-Shift_R>", lambda event: self.frame_skip(False))
         
-        #root.bind("<KeyRelease-Left>", lambda event: self.load_frame(False))
-        #root.bind("<KeyRelease-Right>", lambda event: self.load_frame(False))
-        root.bind("<l>", lambda event: self.set_frame())
+        root.bind('<Control-e>', lambda event: self.export_display())
+
+        root.bind('<KeyPress-Shift_L>', lambda event: self.frame_skip(True))
+        root.bind('<KeyPress-Shift_R>', lambda event: self.frame_skip(True))
+        root.bind('<KeyRelease-Shift_L>', lambda event: self.frame_skip(False))
+        root.bind('<KeyRelease-Shift_R>', lambda event: self.frame_skip(False))
+        
+        #root.bind('<KeyRelease-Left>', lambda event: self.load_frame(False))
+        #root.bind('<KeyRelease-Right>', lambda event: self.load_frame(False))
+        root.bind('<l>', lambda event: self.set_frame())
 
         root.bind('<Right>', lambda event: self.increase_frame())
         root.bind('<space>', lambda event: self.play_space())
         root.bind('<Left>', lambda event: self.decrease_frame())
+        
+        # For goto
+        for i in range(1, 10):
+            root.bind(f'<KeyPress-{i}>', lambda e, num = i: self.goto(str(num)))
         
     def set_frame(self):
         self.currentFrame.set(3200)
@@ -478,6 +491,7 @@ class Main:
             self.projectFileSample['data']['gridcolor'] = self.gridColor
             self.projectFileSample['data']['showgrid'] = int(self.showGridVar.get())
             self.projectFileSample['data']['framerate'] = 10
+            self.projectFileSample['data']['output'] = self.outputDirectory.get()
 
             self.jsonSampleDump = json.dumps(self.projectFileSample, indent=4, separators=(',', ':')) # Read the project data as json text
 
@@ -538,9 +552,9 @@ class Main:
                 self.gridColor = self.projectData['data']['gridcolor'] # Load grid color
                 self.audioFile = self.projectData['data']['audio'] # Load audio
                 self.framerate = self.projectData['data']['framerate'] # Load framerate
+                self.outputDirectory.set(self.projectData['data']['output'])
 
-                self.delay(self.framerate) # Set the framerate to the saved framerate
-                
+                self.delay(self.framerate) # Set the framerate to the saved framerate               
 
                 # Add framerate menu
                 self.add_framerates()
@@ -589,6 +603,7 @@ class Main:
                         self.json_projectFile['data']['showgrid'] = int(self.showGridVar.get())
                         self.json_projectFile['data']['audio'] = self.audioFile
                         self.json_projectFile['data']['framerate'] = self.framerate
+                        self.json_projectFile['data']['output'] = self.outputDirectory.get()
                         self.jsonSampleDump = json.dumps(self.json_projectFile, indent=4, separators=(',', ':')) # Read the project data as json text
                         self.fileOpen.seek(0)
                         self.fileOpen.truncate(0)
@@ -687,13 +702,12 @@ class Main:
             pixelate = (self.canvas.winfo_width()-5)/int(self.res.get())
             self.pixel = self.canvas.create_rectangle(self.posX, self.posY, self.posX + pixelate, self.posY + pixelate, fill='white')
 
-            #self.canvas.tag_bind(f'{pixel + 2}', "<ButtonPress-1>", lambda event: self.on_press(event))
             self.canvas.tag_bind(f'{pixel + 1}', "<ButtonPress-1>", lambda event: self.on_press(event))
             self.canvas.tag_bind(f'{pixel + 1}', "<B1-Motion>", lambda event: self.on_press(event))
 
             self.pixels.append(self.pixel)
 
-                # Set the pixel color
+            # Set the pixel color
             if readPixels:
 
                 self.jsonFrames = self.jsonReadFile['frames']
@@ -717,7 +731,9 @@ class Main:
                 self.posY += pixelate
                 self.posX = 2
 
-
+        # Get number of frames
+        self.frameCount = len(self.jsonFrames[0].values())
+        
         self.fileOpen.close()
         
         # Add the popup color picker
@@ -827,7 +843,7 @@ class Main:
     def insert_frame(self) -> None: # Inserts a frame after the current frame
         self.currentFrame_mem = int(self.currentFrame.get())
 
-        # Create a new frame at the end of the sequance
+        # Create a new frame at the end of the sequence
         with open(self.projectDir, 'r+') as self.fileOpen:
             self.jsonReadFile = json.load(self.fileOpen)
 
@@ -929,11 +945,7 @@ class Main:
         self.load_frame(False)
 
     def to_last(self): # Go to last frame
-        with open(self.projectDir, 'r') as self.fileOpen:
-            self.jsonReadFile = json.load(self.fileOpen)
-            self.jsonFrames = self.jsonReadFile['frames']
-
-        self.currentFrame.set(int(len(self.jsonFrames[0])))
+        self.currentFrame.set(self.frameCount)
         self.load_frame(False)
 
     def load_frame(self, loadFile) -> None: # Display the frame
@@ -994,6 +1006,50 @@ class Main:
             else: # Reload the colors from the file
                 self.load_frame(False)
                 break
+            
+    def goto(self, start):
+        text = tk.StringVar(value=start)
+        
+        def remove(goto):
+            gotoTL.destroy()
+            self.gotoOpen = False
+            if goto:
+                if int(text.get()) > self.frameCount:
+                    self.currentFrame.set(self.frameCount - 1)
+                else:
+                    self.currentFrame.set(int(text.get()) - 1)
+                self.increase_frame()
+            
+        def display(char):
+            if char != None:
+                if len(text.get()) < len(str(self.frameCount)):
+                    text.set(text.get() + str(char))
+            
+            else:
+                if len(text.get()) > 1:
+                    text.set(text.get()[:-1])
+            
+        if self.gotoOpen:
+            return None
+        
+        self.gotoOpen = True
+        gotoTL = tk.Toplevel()
+        gotoTL.title("Goto...")
+        gotoTL.geometry('240x64')
+        gotoTL.resizable(False, False)
+        # gotoTL.attributes('-toolwindow', True)
+        gotoTL.focus()
+        
+        label = tk.Label(gotoTL, width=1000, height=10, textvariable=text, font=('Calibri', 16), justify=tk.LEFT).pack()
+        
+        gotoTL.bind('<FocusOut>', lambda e: remove(False))
+        gotoTL.bind('<Escape>', lambda e: remove(False))
+        gotoTL.bind('<Return>', lambda e: remove(True))
+        
+        for i in range(10):
+            gotoTL.bind(f'<KeyPress-{i}>', lambda e, num = i: display(num))
+            
+        gotoTL.bind('<BackSpace>', lambda e: display(None))
 
     def quit(self):
         if '*' in root.title(): # If the file is not saved...
@@ -1010,61 +1066,98 @@ class Main:
             root.destroy()
 
     def export_display(self):
+        def close():
+            self.exportOpen = False
+            self.exportTL.destroy()
+
+        if self.exportOpen:
+            self.exportTL.focus()
+            return None
+
+        self.exportOpen = True
+        
         # Add the toplevel
         self.exportTL = tk.Toplevel(width=400, height=500)
         self.exportTL.resizable(False, False)
         self.exportTL.title("Export Animation")
-        self.exportTL.attributes("-topmost", True)
+        self.exportTL.protocol("WM_DELETE_WINDOW", close)
+        self.exportTL.focus()
 
         # Create the notebook
         self.tabs = ttk.Notebook(self.exportTL)
         self.tabs.pack()
 
         # Create the frames
-        self.sequanceFrame = tk.Frame(self.exportTL, width=400, height=500)
+        self.sequenceFrame = tk.Frame(self.exportTL, width=400, height=500)
         self.singleFrame = tk.Frame(self.exportTL, width=400, height=500)
 
-        self.exportFrameTop = tk.Frame(self.sequanceFrame, width=400, height=100)
+        self.exportFrameTop = tk.Frame(self.sequenceFrame, width=400, height=100)
         self.exportFrameTop.pack(side=tk.TOP)
         self.exportFrameTop.pack_propagate(False)
-        self.exportFrameMiddle = tk.Frame(self.sequanceFrame, width=400, height=50)
+        self.exportFrameMiddle = tk.Frame(self.sequenceFrame, width=400, height=50)
         self.exportFrameMiddle.pack(side=tk.LEFT,pady=(0, 64))
-        self.exportFrameBottom1 = tk.Frame(self.sequanceFrame, width=400, height=500)
+        self.exportFrameBottom1 = tk.Frame(self.sequenceFrame, width=400, height=500)
         self.exportFrameBottom1.pack(side=tk.BOTTOM)
-        self.exportFrameBottom2 = tk.Frame(self.sequanceFrame, width=400)
+        self.exportFrameBottom2 = tk.Frame(self.sequenceFrame, width=400)
         self.exportFrameBottom2.pack(side=tk.BOTTOM)
 
         # Add the tabs
-        self.tabs.add(self.sequanceFrame, text="Image Sequance")
+        self.tabs.add(self.sequenceFrame, text="Image sequence")
         self.tabs.add(self.singleFrame, text="Single Image")
 
         # Create the menus
-        self.outputDirectory = tk.StringVar()
         self.exportTypeStr = tk.StringVar(value='.png') # Set the default output extenion
 
-        self.outputDirectoryEntry = tk.Entry(self.exportFrameTop, textvariable=self.outputDirectory, width=32, font=('Calibri', 14))
-        self.outputDirectoryEntry.pack(side=tk.LEFT,anchor=tk.NW, padx=(5, 0))
-        tk.Label(self.exportFrameTop, text="Output Directory:", font=('Calibri', 14)).pack(side=tk.TOP, anchor=tk.NW, padx=5, before=self.outputDirectoryEntry)
+        outputDirectoryEntry = tk.Entry(self.exportFrameTop, textvariable=self.outputDirectory, width=32, font=('Calibri', 14))
+        outputDirectoryEntry.pack(side=tk.LEFT,anchor=tk.NW, padx=(5, 0))
+        tk.Label(self.exportFrameTop, text="Output Directory:", font=('Calibri', 14)).pack(side=tk.TOP, anchor=tk.NW, padx=5, before=outputDirectoryEntry)
 
-        self.outputDirectoryButton = tk.Button(self.exportFrameTop, text="open", font=('Calibri', 10), command=self.open_output_dir).pack(side=tk.LEFT,anchor=tk.NW)
-        self.exportType = tk.OptionMenu(self.exportFrameMiddle, self.exportTypeStr, ".png", ".jpeg", ".tiff").pack(side=tk.LEFT, anchor=tk.NW)
+        tk.Button(self.exportFrameTop, text="open", font=('Calibri', 10), command=self.open_output_dir).pack(side=tk.LEFT,anchor=tk.NW)
+        tk.OptionMenu(self.exportFrameMiddle, self.exportTypeStr, ".png", ".tga", ".tiff").pack(side=tk.LEFT, anchor=tk.NW)
+        
+        # Alpha checkbox
+        useAlphaVar = tk.BooleanVar()
+        tk.Checkbutton(self.exportFrameBottom1, variable=useAlphaVar, text="Use Alpha").pack()
 
         # Create the export button
-        tk.Button(self.exportFrameBottom1, text="Export").pack(side=tk.BOTTOM)
+        tk.Button(self.exportFrameBottom1, text="Export", command=lambda: self.export(useAlphaVar.get())).pack(side=tk.BOTTOM)
 
         # Get the frame count
-        with open(self.projectDir, 'r') as self.fileOpen:
-            self.jsonReadFile = json.load(self.fileOpen)
-            self.jsonFrames = self.jsonReadFile['frames']
-
-        tk.Label(self.exportFrameBottom1, width=40, text=f"Total frame count: {(len(self.jsonFrames[0]))}").pack() # Display the total frame count
+        tk.Label(self.exportFrameBottom1, width=40, text=f"Total frame count: {self.frameCount}").pack() # Display the total frame count
+        
+    def export(self, alpha):
+        fileName = f"{self.outputDirectory.get()}/Render"
+        img = Image.new(size=(int(self.res.get()), int(self.res.get())), mode=('RGBA' if alpha else 'RGB'), color='blue')
+        px = 0 # The current pixel being referanced
+        for y in range(0,img.size[1]):
+            for x in range(0,img.size[0]):
+                px += 1
+                color = self.canvas.itemcget(str(px), "fill")
+                if color != 'white':
+                    rgb = self.hex_to_rgb(color)
+                    rgb.append(255)
+                    rgb = tuple(rgb)
+                    img.putpixel((x, y), rgb)
+                else:
+                    if alpha:
+                        img.putpixel((x, y), (0, 0, 0, 0))
+                    else:
+                        img.putpixel((x, y), (255, 255, 255, 255))
+                
+        img = img.resize(size=(int(self.res.get()) * ceil(1024 / int(self.res.get())), int(self.res.get()) * ceil(1024 / int(self.res.get()))), resample=4)
+        img.save(fileName + self.exportTypeStr.get(), self.exportTypeStr.get()[1:])
+        img.close()
+        
+    def hex_to_rgb(self, color):
+        color = color[1:]
+        return list(int(color[i:i+2], 16) for i in (0, 2, 4))
 
     def open_output_dir(self):
-        self.exportTL.attributes("-topmost", False)
         output = fd.askdirectory()
         if len(output) > 1:
             self.outputDirectory.set(output)
-        self.exportTL.attributes("-topmost", True)
+            root.title("Pixel-Art Animator-" + self.projectDir + '*')
+        self.exportTL.focus()
 
     def get_playback_pos(self):
         self.playback = max(self.framerateDelay * float(self.currentFrame.get()) - self.framerateDelay, 0.0001)  # Get the audio position
