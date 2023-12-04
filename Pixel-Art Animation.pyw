@@ -1091,7 +1091,7 @@ class Main:
         self.sequenceFrame = tk.Frame(self.exportTL, width=400, height=500)
         self.singleFrame = tk.Frame(self.exportTL, width=400, height=500)
 
-        self.exportFrameTop = tk.Frame(self.sequenceFrame, width=400, height=100)
+        self.exportFrameTop = tk.Frame(self.sequenceFrame, width=400, height=100, highlightbackground='black', highlightthickness=2)
         self.exportFrameTop.pack(side=tk.TOP)
         self.exportFrameTop.pack_propagate(False)
         self.exportFrameMiddle = tk.Frame(self.sequenceFrame, width=400, height=50)
@@ -1117,13 +1117,13 @@ class Main:
         
         # Alpha checkbox
         useAlphaVar = tk.BooleanVar()
-        tk.Checkbutton(self.exportFrameBottom1, variable=useAlphaVar, text="Use Alpha").pack()
+        tk.Checkbutton(self.exportFrameBottom2, variable=useAlphaVar, text="Use Alpha").pack()
 
         # Create the export button
-        tk.Button(self.exportFrameBottom1, text="Export", command=lambda: self.export(useAlphaVar.get())).pack(side=tk.BOTTOM)
+        tk.Button(self.exportFrameBottom2, text="Export", command=lambda: self.export(useAlphaVar.get())).pack(side=tk.BOTTOM)
 
         # Get the frame count
-        tk.Label(self.exportFrameBottom1, width=40, text=f"Total frame count: {self.frameCount}").pack() # Display the total frame count
+        tk.Label(self.exportFrameBottom1, width=40, text=f"Total frame count: {self.frameCount}").pack(side=tk.BOTTOM) # Display the total frame count
         
     def export(self, alpha):
         fileName = f"{self.outputDirectory.get()}/Render"
