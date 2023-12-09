@@ -4,6 +4,7 @@ from tkinter import filedialog as fd
 from tkinter import messagebox as mb
 from tkinter import colorchooser as ch
 import os
+import sys
 import json
 import copy
 import time
@@ -173,7 +174,8 @@ class Main:
         mixer.init()
         mixer.set_num_channels(1)
         
-
+        root.bind('<l>', lambda e: self.export_display())
+        
         # Add the menubar:
         self.menubar = tk.Menu(root) # Main menubar
         root.config(menu=self.menubar)
@@ -415,7 +417,6 @@ class Main:
         
         #root.bind('<KeyRelease-Left>', lambda event: self.load_frame(False))
         #root.bind('<KeyRelease-Right>', lambda event: self.load_frame(False))
-        root.bind('<l>', lambda event: self.set_frame())
 
         root.bind('<Right>', lambda event: self.increase_frame())
         root.bind('<space>', lambda event: self.play_space())
@@ -424,10 +425,6 @@ class Main:
         # For goto
         for i in range(1, 10):
             root.bind(f'<KeyPress-{i}>', lambda e, num = i: self.goto(str(num)))
-        
-    def set_frame(self):
-        self.currentFrame.set(3200)
-        self.load_frame(False)
 
     def new_file_dialog(self):
         newRes = tk.StringVar(value=self.res.get())
@@ -902,8 +899,6 @@ class Main:
         # Get frame count
         if int(self.currentFrame.get()) != int(len(self.jsonFrames[0])):
             self.currentFrame.set(str(int(self.currentFrame.get()) + 1))
-            if mixer.music.get_busy():
-                    pass
         else:
             self.currentFrame.set(1)
             if self.audioFile != None:
@@ -1019,6 +1014,9 @@ class Main:
                 else:
                     self.currentFrame.set(int(text.get()) - 1)
                 self.increase_frame()
+                if mixer.music.get_busy():
+                    self.get_playback_pos()
+                    mixer.music.set_pos(self.playback)
             
         def display(char):
             if char != None:
@@ -1082,71 +1080,83 @@ class Main:
         self.exportTL.title("Export Animation")
         self.exportTL.protocol("WM_DELETE_WINDOW", close)
         self.exportTL.focus()
-
-        # Create the notebook
-        self.tabs = ttk.Notebook(self.exportTL)
-        self.tabs.pack()
+        self.exportTL.withdraw()
 
         # Create the frames
         self.sequenceFrame = tk.Frame(self.exportTL, width=400, height=500)
+        self.sequenceFrame.pack()
         self.singleFrame = tk.Frame(self.exportTL, width=400, height=500)
 
         self.exportFrameTop = tk.Frame(self.sequenceFrame, width=400, height=100, highlightbackground='black', highlightthickness=2)
         self.exportFrameTop.pack(side=tk.TOP)
         self.exportFrameTop.pack_propagate(False)
-        self.exportFrameMiddle = tk.Frame(self.sequenceFrame, width=400, height=50)
-        self.exportFrameMiddle.pack(side=tk.LEFT,pady=(0, 64))
+        self.exportFrameMiddle = tk.Frame(self.sequenceFrame, width=400, height=50, highlightbackground='black', highlightthickness=2)
+        self.exportFrameMiddle.pack(pady=(20, 64))
+        self.exportFrameMiddle.pack_propagate(False)
         self.exportFrameBottom1 = tk.Frame(self.sequenceFrame, width=400, height=500)
         self.exportFrameBottom1.pack(side=tk.BOTTOM)
         self.exportFrameBottom2 = tk.Frame(self.sequenceFrame, width=400)
         self.exportFrameBottom2.pack(side=tk.BOTTOM)
 
-        # Add the tabs
-        self.tabs.add(self.sequenceFrame, text="Image sequence")
-        self.tabs.add(self.singleFrame, text="Single Image")
-
-        # Create the menus
+        # Create the menus:
+        
+        # Directory panel
         self.exportTypeStr = tk.StringVar(value='.png') # Set the default output extenion
+        self.exportFileNameStr = tk.StringVar(value=os.path.splitext(os.path.split(self.projectDir)[1])[0])
 
         outputDirectoryEntry = tk.Entry(self.exportFrameTop, textvariable=self.outputDirectory, width=32, font=('Calibri', 14))
         outputDirectoryEntry.pack(side=tk.LEFT,anchor=tk.NW, padx=(5, 0))
+        
         tk.Label(self.exportFrameTop, text="Output Directory:", font=('Calibri', 14)).pack(side=tk.TOP, anchor=tk.NW, padx=5, before=outputDirectoryEntry)
 
         tk.Button(self.exportFrameTop, text="open", font=('Calibri', 10), command=self.open_output_dir).pack(side=tk.LEFT,anchor=tk.NW)
+        
+        # Render panel:
+        tk.Label(self.exportFrameMiddle, text="File: ").pack(side=tk.TOP, anchor=tk.NW)
+        tk.Entry(self.exportFrameMiddle, textvariable=self.exportFileNameStr, width=26).pack(side=tk.LEFT)
         tk.OptionMenu(self.exportFrameMiddle, self.exportTypeStr, ".png", ".tga", ".tiff").pack(side=tk.LEFT, anchor=tk.NW)
         
         # Alpha checkbox
         useAlphaVar = tk.BooleanVar()
-        tk.Checkbutton(self.exportFrameBottom2, variable=useAlphaVar, text="Use Alpha").pack()
-
-        # Create the export button
-        tk.Button(self.exportFrameBottom2, text="Export", command=lambda: self.export(useAlphaVar.get())).pack(side=tk.BOTTOM)
-
-        # Get the frame count
+        tk.Checkbutton(self.exportFrameMiddle, variable=useAlphaVar, text="Use Alpha", font=("Calibri", 11)).pack()
+        
+        # Create the export buttons
+        ttk.Button(self.exportFrameBottom2, text="Render Sequance", command=lambda: self.export(self.exportFileNameStr.get(), useAlphaVar.get(), True)).pack(side=tk.LEFT, anchor=tk.W)
+        ttk.Button(self.exportFrameBottom2, text="Render Image", command=lambda: self.export(self.exportFileNameStr.get(), useAlphaVar.get(), False)).pack(side=tk.RIGHT, anchor=tk.E)
+        
+        self.exportTL.update_idletasks()
+        
+        tk.Label(self.exportFrameBottom1, width=self.exportTL.winfo_width(), height=1, font=("Times New Roman", 1), bg='gray').pack() # Seperator
         tk.Label(self.exportFrameBottom1, width=40, text=f"Total frame count: {self.frameCount}").pack(side=tk.BOTTOM) # Display the total frame count
         
-    def export(self, alpha):
-        fileName = f"{self.outputDirectory.get()}/Render"
-        img = Image.new(size=(int(self.res.get()), int(self.res.get())), mode=('RGBA' if alpha else 'RGB'), color='blue')
-        px = 0 # The current pixel being referanced
-        for y in range(0,img.size[1]):
-            for x in range(0,img.size[0]):
-                px += 1
-                color = self.canvas.itemcget(str(px), "fill")
-                if color != 'white':
-                    rgb = self.hex_to_rgb(color)
-                    rgb.append(255)
-                    rgb = tuple(rgb)
-                    img.putpixel((x, y), rgb)
-                else:
-                    if alpha:
-                        img.putpixel((x, y), (0, 0, 0, 0))
+        self.exportTL.deiconify()
+        
+    def export(self, fileName, alpha, isSequance):
+        if isSequance:
+            pass
+        else:
+            fileName = f"{self.outputDirectory.get()}/{fileName}"
+            img = Image.new(size=(int(self.res.get()), int(self.res.get())), mode=('RGBA' if alpha else 'RGB'), color='blue')
+            px = 0 # The current pixel being referanced
+            
+            for y in range(0,img.size[1]):
+                for x in range(0,img.size[0]):
+                    px += 1
+                    color = self.canvas.itemcget(str(px), "fill")
+                    if color != 'white':
+                        rgb = self.hex_to_rgb(color)
+                        rgb.append(255)
+                        rgb = tuple(rgb)
+                        img.putpixel((x, y), rgb)
                     else:
-                        img.putpixel((x, y), (255, 255, 255, 255))
+                        if alpha:
+                            img.putpixel((x, y), (0) * 4)
+                        else:
+                            img.putpixel((x, y), (255, 255, 255, 255))
                 
-        img = img.resize(size=(int(self.res.get()) * ceil(1024 / int(self.res.get())), int(self.res.get()) * ceil(1024 / int(self.res.get()))), resample=4)
-        img.save(fileName + self.exportTypeStr.get(), self.exportTypeStr.get()[1:])
-        img.close()
+            img = img.resize(size=(int(self.res.get()) * ceil(1024 / int(self.res.get())), int(self.res.get()) * ceil(1024 / int(self.res.get()))), resample=4).resize(size=(1024, 1024))
+            img.save(fileName + self.exportTypeStr.get(), self.exportTypeStr.get()[1:])
+            img.close()
         
     def hex_to_rgb(self, color):
         color = color[1:]
@@ -1202,8 +1212,9 @@ class Main:
                 self.load_frame(False)
                 self.isPlaying = False
 
-                if self.audioFile != None:
-                    mixer.music.rewind() # Restart the song
+                if self.audioFile != None:  # Restart and stop the audio
+                    mixer.music.rewind()
+                    mixer.music.stop()
                 self.paused = False
             else:
                 self.paused = True
