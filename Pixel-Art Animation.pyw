@@ -12,92 +12,10 @@ from pygame import mixer
 import timeit
 import mutagen
 from PIL import Image, ImageTk
-from math import ceil
+from math import ceil, floor
 
-class VolumeSlider(tk.Canvas):
-    def __init__(self, master=None, *, command=None, to=100,from_=0,**kwargs):
-        super().__init__(master, **kwargs)
-        self.min_value = from_
-        self.max_value = to
-        self.value = 0
-        self.master = master
-        self.slider_width = 20
-        self.command_flag = 0
-        self.buffer_value = 0
-        self.command = command
-        self.height = 20  
-        self.configure(height=self.height)
-        self.set_real_value()   
-        self.set_resolution()
-        self.slider = self.create_rectangle(self.value, 0, self.value + self.slider_width, self.height, fill='gray', tags='slider')
-        self.left_side = self.create_rectangle(0, 0, self.value,self.height, fill='green', tags='left_side')        
-        self.right_side = self.create_rectangle(self.value + self.slider_width, 0, self.winfo_width(), self.height, fill='black', tags='right_side')
-        self.buffer = self.create_rectangle(self.value + self.slider_width, 2,self.value + self.slider_width + self.buffer_value , self.height-2, fill='blue', tags='buffer')
-        self.bind('<Configure>', self.set_resolution)
-        self.bind('<Button-1>', self.on_event)
-        self.bind('<B1-Motion>', self.on_event)
-
-    def set_real_value(self):
-        relation = self.value / (self.winfo_width()-self.slider_width)
-        self.real_value = self.min_value + relation * (self.max_value-self.min_value) 
-
-    def set_resolution(self, event = None):
-        self.value = (self.real_value / (self.max_value-self.min_value)) * (self.winfo_width()-self.slider_width)
-        self.value= max(0, min(self.winfo_width()-self.slider_width, self.value))
-        self.set_coords()
-
-    def set_slider(self):
-        self.set_coords()
-        self.set_real_value()   
-
-    def set_coords(self):
-        self.coords('slider', self.value, 0, self.value + self.slider_width, self.height)
-        self.coords('left_side', 0,0,self.value,self.height)
-        self.coords('right_side', self.value + self.slider_width,0,self.winfo_width(),self.height)
-        self.coords('buffer', self.value + self.slider_width, 2,self.value + self.slider_width + self.buffer_value , self.height-2)
-
-    def on_event(self, event):
-        self.value = max(0, min(self.winfo_width()-self.slider_width, event.x))
-        self.set_slider()
-        if self.command and self.command_flag == 0:
-            self.command_flag = 1
-            self.after(200, self.execute_command)
-
-    def execute_command(self):
-        self.command()
-        self.set_real_value()
-        self.command_flag = 0
-
-    def get(self):
-        relation = self.value / (self.winfo_width()-self.slider_width)
-        return relation * (self.max_value-self.min_value)
-
-    def set(self, value = False, buffer = 0):
-        if buffer:
-            self.buffer_value = buffer
-            relation = buffer / (self.max_value-self.min_value)
-            buffer = relation * (self.winfo_width()-self.slider_width)
-            self.buffer_value= max(0, min(self.winfo_width()-self.slider_width, self.value))
-        if value:
-            relation = value / (self.max_value-self.min_value)
-            self.value = relation * (self.winfo_width()-self.slider_width)
-            self.value= max(0, min(self.winfo_width()-self.slider_width, self.value))
-        if value or buffer:
-            self.set_slider()
-
-    def config(self, **kwargs):
-        self.set_real_value()   
-        for key, value in kwargs.items():
-            if key == 'from_':
-                self.min_value = value
-            elif key == 'to':
-                self.max_value = value
-            elif key == 'value':
-                self.real_value = value
-        self.value = (self.real_value / (self.max_value-self.min_value)) * (self.winfo_width()-self.slider_width)
-        self.value= max(0, min(self.winfo_width()-self.slider_width, self.value))
-        self.set_coords()
-
+if sys.platform == 'win32':
+    import winsound
 
 class Main:
     def __init__(self):
@@ -112,12 +30,12 @@ class Main:
         self.playback = 0.0
         self.playOffset = 0
         self.audioLength = 0
-
+        self.volume = tk.IntVar()
+        
         self.VOLUME = 0.8 # Default volume
         self.FRAMERATES = (1, 3, 8, 10, 12, 15, 20, 24, 30, 60)
 
-        self.res = tk.StringVar() # The project resolution
-        self.res.set(8)
+        self.res = tk.StringVar(value=8) # The project resolution
         self.currentFrame = tk.StringVar(value='1')
         self.currentFrame_mem = 1
         self.framerateDelay = -1 # Default value (Unasigned)
@@ -174,8 +92,6 @@ class Main:
         mixer.init()
         mixer.set_num_channels(1)
         
-        root.bind('<l>', lambda e: self.export_display())
-        
         # Add the menubar:
         self.menubar = tk.Menu(root) # Main menubar
         root.config(menu=self.menubar)
@@ -221,12 +137,12 @@ class Main:
 
         # Add middle/canvas frame
         self.frameMiddle = tk.Frame(root, width=1080, height=10)
-        self.frameMiddle.pack(anchor=tk.CENTER)
+        self.frameMiddle.pack(anchor=tk.CENTER, pady=(20, 0))
 
         # Add bottom frame
-        self.frameBottom = tk.Frame(root, width=1080, height=10)
-        self.frameBottom.pack(side=tk.BOTTOM)
-        self.frameBottom.pack_propagate()
+        self.frameBottom = tk.Frame(root, width=1080, height=40)
+        self.frameBottom.pack(side=tk.BOTTOM, pady=(0, 4))
+        self.frameBottom.pack_propagate(False)
 
         # Top frame widgets
        
@@ -292,15 +208,19 @@ class Main:
         self.increaseFrameButton = tk.Button(self.frameTop, text="+", command=self.increase_frame, font=('Courier New', 9), state='disabled')
         self.increaseFrameButton.pack(side=tk.LEFT, pady=(10, 0))
 
-        # Add delay input
-        #self.frameDelay = tk.Entry(self.frameBottom, width=4, textvariable=self.frameDelayVar, font=('Calibri', 16)).pack(side=tk.LEFT, padx=(300,0))
-        self.volumeSlider = VolumeSlider(self.frameBottom, width=200, from_= 0, to=1, command=lambda: self.change_volume())
-        self.volumeSlider.config(value=self.VOLUME)
-        self.volumeSlider.pack(side=tk.RIGHT, anchor=tk.SE, pady=10)
+        # Volume
+        volumeStyle = ttk.Style()
+        volumeStyle.theme_use("default")
+
+        self.volumeSlider = ttk.Scale(root, length=164, from_=0, to=100, variable=self.volume, style='blue.Horizontal.TScale', command=lambda e: self.change_volume())
+        self.volumeSlider.place(relx=.8, rely=.964)
+        
+        self.volume.set(80) # Set the initial volume
 
         # Add play button
         self.playButton = tk.Button(self.frameBottom, text="Play", height=2, width=32, command=lambda: self.play_init(False))
-        self.playButton.pack(side=tk.BOTTOM, padx=(320, 100), anchor=tk.CENTER)
+        self.playButton.place(relx=.5, rely=.5, anchor='center')
+        
         root.bind_all('<KeyPress-Control_L>', lambda event: self.play_button_mode(True))
         root.bind_all('<KeyRelease-Control_L>', lambda event: self.play_button_mode(False))
 
@@ -389,7 +309,7 @@ class Main:
         if len(self.res.get()) > 0 and int(self.res.get()) == 0:
             self.res.set(1)
 
-    def unlock_buttons(self):
+    def on_unlock(self):
         self.fileMenu.entryconfig('Rename', state=tk.ACTIVE)
         self.fileMenu.entryconfig('Save', state=tk.ACTIVE)
         self.fileMenu.entryconfig('Save As', state=tk.ACTIVE)
@@ -414,9 +334,6 @@ class Main:
         root.bind('<KeyPress-Shift_R>', lambda event: self.frame_skip(True))
         root.bind('<KeyRelease-Shift_L>', lambda event: self.frame_skip(False))
         root.bind('<KeyRelease-Shift_R>', lambda event: self.frame_skip(False))
-        
-        #root.bind('<KeyRelease-Left>', lambda event: self.load_frame(False))
-        #root.bind('<KeyRelease-Right>', lambda event: self.load_frame(False))
 
         root.bind('<Right>', lambda event: self.increase_frame())
         root.bind('<space>', lambda event: self.play_space())
@@ -425,6 +342,8 @@ class Main:
         # For goto
         for i in range(1, 10):
             root.bind(f'<KeyPress-{i}>', lambda e, num = i: self.goto(str(num)))
+            
+        self.frameMiddle.config(highlightthickness=2, highlightbackground="darkblue")
 
     def new_file_dialog(self):
         newRes = tk.StringVar(value=self.res.get())
@@ -570,6 +489,8 @@ class Main:
                 return False
             self.add_canvas(True)
             
+            self.exportOpen = False
+            
     def open_audio(self):
         audioPath = fd.askopenfilename(
             title="Open audio file",
@@ -608,8 +529,8 @@ class Main:
                     
                     root.title(''.join([i for i in root.title() if i != '*'])) # Remove the star in the project title
 
-                if all:
-                    self.save_frame()
+                    if all:
+                        self.save_frame()
             except: # In case a project is not open
                 pass
 
@@ -680,7 +601,7 @@ class Main:
         self.pixels.clear()
 
         self.canvas = tk.Canvas(self.frameMiddle, height=1026-160, width=1026-160)
-        self.canvas.pack(pady=(20, 0))
+        self.canvas.pack()
 
         # Create pixels
         self.toY = int(self.res.get())
@@ -738,7 +659,7 @@ class Main:
 
         self.set_grid_color(False)
         self.update_grid(False)
-        self.unlock_buttons()
+        self.on_unlock()
         
         loading.destroy() # Remove the loading text
 
@@ -1056,53 +977,73 @@ class Main:
             if self.quitMode: # Save and quit
                 self.save(True)
                 root.destroy()
-            if self.quitMode == False: # Quit without saving
-                root.destroy()
             if self.quitMode == None: # Do nothing
                 return None
+            root.destroy()
         else:
             root.destroy()
+            
+    def var_filter(self, var, min, max):
+        var.set("".join(i for i in var.get() if i.isdigit()))
+        if min != None:
+            if int(var.get()) < min:
+                var.set(min)
+                
+        if max != None:
+            if int(var.get()) > max:
+                var.set(max)
 
     def export_display(self):
-        def close():
-            self.exportOpen = False
-            self.exportTL.destroy()
-
         if self.exportOpen:
+            self.exportTL.deiconify()
             self.exportTL.focus()
-            return None
+            return
 
         self.exportOpen = True
         
+        # Resolution values
+        resolutions = []
+        v = 16
+        for i in range(10): # Generate resolutions
+            resolutions.append(v)
+            v*= 2
+        
         # Add the toplevel
-        self.exportTL = tk.Toplevel(width=400, height=500)
+        self.exportTL = tk.Toplevel(width=420, height=500)
         self.exportTL.resizable(False, False)
         self.exportTL.title("Export Animation")
-        self.exportTL.protocol("WM_DELETE_WINDOW", close)
+        self.exportTL.protocol("WM_DELETE_WINDOW", self.exportTL.withdraw)
         self.exportTL.focus()
         self.exportTL.withdraw()
 
         # Create the frames
-        self.sequenceFrame = tk.Frame(self.exportTL, width=400, height=500)
+        self.sequenceFrame = tk.Frame(self.exportTL, width=420, height=500)
         self.sequenceFrame.pack()
-        self.singleFrame = tk.Frame(self.exportTL, width=400, height=500)
+        self.singleFrame = tk.Frame(self.exportTL, width=420, height=500)
 
-        self.exportFrameTop = tk.Frame(self.sequenceFrame, width=400, height=100, highlightbackground='black', highlightthickness=2)
+        self.exportFrameTop = tk.Frame(self.sequenceFrame, width=420, height=100, highlightbackground='black', highlightthickness=2)
         self.exportFrameTop.pack(side=tk.TOP)
         self.exportFrameTop.pack_propagate(False)
-        self.exportFrameMiddle = tk.Frame(self.sequenceFrame, width=400, height=50, highlightbackground='black', highlightthickness=2)
-        self.exportFrameMiddle.pack(pady=(20, 64))
-        self.exportFrameMiddle.pack_propagate(False)
-        self.exportFrameBottom1 = tk.Frame(self.sequenceFrame, width=400, height=500)
+        
+        self.exportFrameMiddleTop = tk.Frame(self.sequenceFrame, width=420, height=50, highlightbackground='black', highlightthickness=2)
+        self.exportFrameMiddleTop.pack(pady=(20, 0))
+        self.exportFrameMiddleTop.pack_propagate(False)
+        
+        self.exportFrameMiddleBottom = tk.Frame(self.sequenceFrame, width=420, height=50, highlightbackground='black', highlightthickness=2)
+        self.exportFrameMiddleBottom.pack(pady=20)
+        self.exportFrameMiddleBottom.pack_propagate(False)
+        
+        self.exportFrameBottom1 = tk.Frame(self.sequenceFrame, width=420, height=500)
         self.exportFrameBottom1.pack(side=tk.BOTTOM)
-        self.exportFrameBottom2 = tk.Frame(self.sequenceFrame, width=400)
+        
+        self.exportFrameBottom2 = tk.Frame(self.sequenceFrame, width=420)
         self.exportFrameBottom2.pack(side=tk.BOTTOM)
 
         # Create the menus:
         
         # Directory panel
-        self.exportTypeStr = tk.StringVar(value='.png') # Set the default output extenion
-        self.exportFileNameStr = tk.StringVar(value=os.path.splitext(os.path.split(self.projectDir)[1])[0])
+        exportTypeStr = tk.StringVar(value='.png') # Set the default output extenion
+        exportFileNameStr = tk.StringVar(value=os.path.splitext(os.path.split(self.projectDir)[1])[0])
 
         outputDirectoryEntry = tk.Entry(self.exportFrameTop, textvariable=self.outputDirectory, width=32, font=('Calibri', 14))
         outputDirectoryEntry.pack(side=tk.LEFT,anchor=tk.NW, padx=(5, 0))
@@ -1112,31 +1053,178 @@ class Main:
         tk.Button(self.exportFrameTop, text="open", font=('Calibri', 10), command=self.open_output_dir).pack(side=tk.LEFT,anchor=tk.NW)
         
         # Render panel:
-        tk.Label(self.exportFrameMiddle, text="File: ").pack(side=tk.TOP, anchor=tk.NW)
-        tk.Entry(self.exportFrameMiddle, textvariable=self.exportFileNameStr, width=26).pack(side=tk.LEFT)
-        tk.OptionMenu(self.exportFrameMiddle, self.exportTypeStr, ".png", ".tga", ".tiff").pack(side=tk.LEFT, anchor=tk.NW)
+        tk.Label(self.exportFrameMiddleTop, text="File Name: ").pack(side=tk.TOP, anchor=tk.NW)
+        tk.Entry(self.exportFrameMiddleTop, textvariable=exportFileNameStr, width=26).pack(side=tk.LEFT)
+        tk.OptionMenu(self.exportFrameMiddleTop, exportTypeStr, ".png", ".tga", ".tiff").pack(side=tk.LEFT, anchor=tk.NW)
         
         # Alpha checkbox
         useAlphaVar = tk.BooleanVar()
-        tk.Checkbutton(self.exportFrameMiddle, variable=useAlphaVar, text="Use Alpha", font=("Calibri", 11)).pack()
+        tk.Checkbutton(self.exportFrameMiddleTop, variable=useAlphaVar, text="Use Alpha", font=("Calibri", 11), justify=tk.CENTER).pack()
+        
+        # Duration panel:
+        self.fromVar = tk.StringVar(value='1')
+        self.toVar = tk.StringVar(value=self.frameCount)
+        self.stepVar = tk.IntVar()
+        self.resVar = tk.IntVar()
+        
+        self.fromVar.trace('w', lambda e1, e2, e3: self.var_filter(self.fromVar, 1, self.frameCount - 1))
+        self.toVar.trace('w', lambda e1, e2, e3: self.var_filter(self.toVar, 1, self.frameCount))
+        
+        tk.Label(self.exportFrameMiddleBottom, text="Frame Settings:").pack(side=tk.TOP, anchor=tk.NW)
+
+        tk.Label(self.exportFrameMiddleBottom, text="From:").pack(side=tk.LEFT)
+        tk.Entry(self.exportFrameMiddleBottom, width=4, textvariable=self.fromVar).pack(side=tk.LEFT, padx=4)
+        
+        tk.Label(self.exportFrameMiddleBottom, text="To:").pack(side=tk.LEFT, padx=(20, 0))
+        tk.Entry(self.exportFrameMiddleBottom, width=4, textvariable=self.toVar).pack(side=tk.LEFT, padx=4)
+        
+        tk.Label(self.exportFrameMiddleBottom, text="Step:").pack(side=tk.LEFT, padx=(32, 0))
+        tk.Spinbox(self.exportFrameMiddleBottom, width=4, textvariable=self.stepVar, from_=1.0, to=10.0, state='readonly').pack(side=tk.LEFT, padx=4)
+        
+        tk.Label(self.exportFrameMiddleBottom, text="Resolution:").pack(side=tk.LEFT, padx=(32, 0))
+        tk.Spinbox(self.exportFrameMiddleBottom, width=4, textvariable=self.resVar, values=resolutions, state='readonly').pack(side=tk.LEFT, padx=4)
         
         # Create the export buttons
-        ttk.Button(self.exportFrameBottom2, text="Render Sequance", command=lambda: self.export(self.exportFileNameStr.get(), useAlphaVar.get(), True)).pack(side=tk.LEFT, anchor=tk.W)
-        ttk.Button(self.exportFrameBottom2, text="Render Image", command=lambda: self.export(self.exportFileNameStr.get(), useAlphaVar.get(), False)).pack(side=tk.RIGHT, anchor=tk.E)
+        ttk.Button(self.exportFrameBottom2, text="Render Sequence", width=16, command=lambda: self.export(exportFileNameStr.get(), exportTypeStr.get(), useAlphaVar.get(), True, int(self.fromVar.get()), int(self.toVar.get()), self.stepVar.get(), resolution=self.resVar.get())).pack(side=tk.LEFT, anchor=tk.W)
+        ttk.Button(self.exportFrameBottom2, text="Render Image", width=16, command=lambda: self.export(exportFileNameStr.get(), exportTypeStr.get(), useAlphaVar.get(), False, resolution=self.resVar.get())).pack(side=tk.RIGHT, anchor=tk.E)
         
-        self.exportTL.update_idletasks()
+        self.exportTL.update_idletasks() # So we can get the resolution that one time
         
-        tk.Label(self.exportFrameBottom1, width=self.exportTL.winfo_width(), height=1, font=("Times New Roman", 1), bg='gray').pack() # Seperator
+        ttk.Separator(self.exportFrameBottom1, orient='horizontal').pack(ipadx=240, pady=(8, 0)) # Seperator
         tk.Label(self.exportFrameBottom1, width=40, text=f"Total frame count: {self.frameCount}").pack(side=tk.BOTTOM) # Display the total frame count
         
-        self.exportTL.deiconify()
+        self.exportTL.after(10, lambda: self.exportTL.deiconify())
         
-    def export(self, fileName, alpha, isSequance):
+    def export(self, fileName, extension, alpha, isSequance, *args, **kwargs):
+        self.rendering = True
+        resolution = kwargs['resolution']
+        
+        def beep(): # Don't beep if user clickes off the application
+            root.update()
+            
+            if renderTL.focus_get() != None:
+                winsound.MessageBeep()
+                
+        def cancelDialog():
+            self.rendering = not mb.askyesno(title="Cancel Render", message="Are you sure you want to cancel the current render?")
+                
+        fileName = f"{self.outputDirectory.get()}/{fileName}"
+                
         if isSequance:
-            pass
+            if (frameCount := args[1] - args[0]) <= 0: # Makes sure we have a valid frame range
+                mb.showerror(title="Frame Error", message='"From" value must be less than "to" value')
+                self.exportTL.focus()
+                return
+            
+            renderTL = tk.Toplevel()
+            renderTL.title("Rendering...")
+            renderTL.geometry("480x360")
+            renderTL.resizable(False, False)
+            renderTL.grab_set() # Keep the render window in focus
+            renderTL.focus()
+            
+            # Progress bar styles
+            progressBarStyle = ttk.Style()
+            progressBarStyle.configure("red.Horizontal.TProgressbar", foreground='red', background='red')
+            progressBarStyle.configure("green.Horizontal.TProgressbar", foreground='green', background='green')
+            progressBarStyle.configure("blue.Horizontal.TProgressbar", foreground='blue', background='blue')
+            
+            if sys.platform == 'win32':
+                renderTL.bind('<FocusOut>', lambda e: beep()) # Beep if we try to click off
+            
+            renderFrameBottom = tk.Frame(renderTL, width=40, height=100)
+            renderFrameBottom.pack(side=tk.BOTTOM, pady=(0, 4))
+            
+            ttk.Separator(renderTL, orient='horizontal').pack(side=tk.BOTTOM, ipadx=1000, pady=(0, 4))
+            
+            renderFrameMiddle = tk.Frame(renderTL, width=64, height=128)
+            renderFrameMiddle.pack(side=tk.BOTTOM, pady=(4, 0))
+            
+            renderFrameTop = tk.Frame(renderTL, width=280, height=280, highlightbackground='black', highlightthickness=1)
+            renderFrameTop.pack(side=tk.TOP)
+            renderFrameTop.pack_propagate(False)
+            
+            # Main GUI:
+            imageDisplay = tk.Canvas(renderFrameTop, bg='lightblue')
+            imageDisplay.pack(expand=True)
+            imageDisplay.create_text(20, 20, text="")
+            
+            infoLabel = tk.Label(renderFrameMiddle, text="Starting Up...")
+            infoLabel.pack(anchor=tk.W)
+            
+            progressBar = ttk.Progressbar(renderFrameMiddle, length=420, maximum=frameCount, style="blue.Horizontal.TProgressbar")
+            progressBar.pack(pady=(4, 6))
+            
+            ttk.Button(renderFrameBottom, text="Cancel", width=64, command=lambda: cancelDialog()).pack()
+            
+            subStr = '0' * len(str(frameCount + 1))
+            position = 0
+            index = len(str(frameCount + 1)) - 1
+            
+            renderTL.update()
+            time.sleep(.2) # Give window time to pop up
+            
+            frame = 0
+
+            for i in range(args[0], args[1] + 1):
+                if self.rendering:
+                    position += 1
+                    index = len(str(frameCount + 1)) - 1
+                    subStr = subStr[:len(str(index)) - len(str(position)) - 1]
+                    subStr += str(position)
+                    
+                    if position % args[2] == 0:
+                        img = Image.new(size=(int(self.res.get()), int(self.res.get())), mode=('RGBA' if alpha else 'RGB'))
+                        pixels = self.jsonFrames[0][f"frame_{i}"]
+                        px = 0
+                        frame += 1
+
+                        for y in range(0,img.size[1]):
+                            for x in range(0,img.size[0]):
+                                px += 1
+                                try:
+                                    color = pixels[str(px)]
+                                    rgb = self.hex_to_rgb(color)
+                                    rgb.append(255)
+                                    rgb = tuple(rgb)
+                                    img.putpixel((x, y), rgb)
+                                except KeyError:
+                                    if alpha:
+                                        img.putpixel((x, y), (0) * 4)
+                                    else:
+                                        img.putpixel((x, y), (255, 255, 255, 255))
+                                            
+                        img = img.resize(size=(int(self.res.get()) * ceil(resolution / int(self.res.get())), int(self.res.get()) * ceil(resolution / int(self.res.get()))), resample=4).resize(size=(resolution, resolution))
+                        img.save(fileName + "_" + subStr + extension, extension[1:])
+                        img.close()
+                        
+                        imageDisplay.delete('1')
+                        renderedImage = ImageTk.PhotoImage(image=(Image.open(fileName + "_" + subStr + extension).resize((imageDisplay.winfo_width(), imageDisplay.winfo_height()), resample=0)))
+                        imageDisplay.create_image(1, 1, anchor=tk.NW, image=renderedImage)
+                        
+                        infoLabel.config(text=f"Rendering frame {frame} of {floor(frameCount / args[2] + 1)}")
+                        
+                        progressBar.config(value=position)
+                        renderTL.update()
+                else:
+                    break
+
+            if self.rendering:
+                progressBar.config(style='green.Horizontal.TProgressbar')
+                renderTL.grab_release()
+                renderTL.focus()
+                mb.showinfo(title="Render", message="Render complete!")
+                renderTL.destroy()
+            else:
+                progressBar.config(style='red.Horizontal.TProgressbar', value=frameCount)
+                renderTL.grab_release()
+                renderTL.focus()
+                mb.showinfo(title="Render", message="Render halted!")
+                self.exportTL.focus()
+                renderTL.destroy()
+                        
         else:
-            fileName = f"{self.outputDirectory.get()}/{fileName}"
-            img = Image.new(size=(int(self.res.get()), int(self.res.get())), mode=('RGBA' if alpha else 'RGB'), color='blue')
+            img = Image.new(size=(int(self.res.get()), int(self.res.get())), mode=('RGBA' if alpha else 'RGB'))
             px = 0 # The current pixel being referanced
             
             for y in range(0,img.size[1]):
@@ -1154,8 +1242,8 @@ class Main:
                         else:
                             img.putpixel((x, y), (255, 255, 255, 255))
                 
-            img = img.resize(size=(int(self.res.get()) * ceil(1024 / int(self.res.get())), int(self.res.get()) * ceil(1024 / int(self.res.get()))), resample=4).resize(size=(1024, 1024))
-            img.save(fileName + self.exportTypeStr.get(), self.exportTypeStr.get()[1:])
+            img = img.resize(size=(int(self.res.get()) * ceil(resolution / int(self.res.get())), int(self.res.get()) * ceil(resolution / int(self.res.get()))), resample=4).resize(size=(resolution, resolution))
+            img.save(fileName + extension, extension[1:])
             img.close()
         
     def hex_to_rgb(self, color):
@@ -1178,7 +1266,7 @@ class Main:
                 mixer.music.pause()
     
     def change_volume(self):
-        mixer.music.set_volume(self.volumeSlider.get())
+        mixer.music.set_volume(self.volume.get() / 100)
 
     def play_space(self):
         if self.control:
@@ -1270,6 +1358,7 @@ class Main:
     def delay(self, delay):
         self.framerate = delay
         self.framerateDelay = 1 / float(delay)
+        root.title("Pixel-Art Animator-" + self.projectDir + '*')
 
 
 
