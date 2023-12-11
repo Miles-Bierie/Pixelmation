@@ -185,8 +185,8 @@ class Main:
         root.bind('<Control-o>', lambda event: self.open_file(True))
 
         # Frame
-        self.toolsFrame = tk.LabelFrame(self.frameTop, text="Tools", height=60, width=266, bg='white')
-        self.toolsFrame.pack(anchor=tk.NW, side=tk.LEFT, padx=(175, 0))
+        self.toolsFrame = tk.LabelFrame(self.frameTop, text="Tools", height=60, width=(266 if sys.platform == 'win32' else 420), bg='white')
+        self.toolsFrame.pack(anchor=tk.NW, side=tk.LEFT, padx=((175 if sys.platform == 'win32' else 60), 0))
         self.toolsFrame.pack_propagate(False)
 
         # Pen
@@ -216,7 +216,7 @@ class Main:
 
         # Add frame display
         self.decreaseFrameButton = tk.Button(self.frameTop, text="-", command=self.decrease_frame, state='disabled', font=('Courier New', 9))
-        self.decreaseFrameButton.pack(side=tk.LEFT, padx=(234, 0), pady=(10, 0))
+        self.decreaseFrameButton.pack(side=tk.LEFT, padx=((234 if sys.platform == 'win32' else 120), 0), pady=(10, 0))
         self.frameDisplayButton = tk.Menubutton(self.frameTop, textvariable=self.currentFrame, width=6, disabledforeground='black', relief=tk.RIDGE)
         self.frameDisplayButton.pack(pady=(10, 0), side=tk.LEFT)
         self.increaseFrameButton = tk.Button(self.frameTop, text="+", command=self.increase_frame, font=('Courier New', 9), state='disabled')
@@ -505,6 +505,7 @@ class Main:
             self.add_canvas(True)
             
             self.exportOpen = False
+            root.focus_force()
             
     def open_audio(self):
         audioPath = fd.askopenfilename(
@@ -713,11 +714,16 @@ class Main:
         root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
         for pixel in self.pixels:
             self.canvas.itemconfig(pixel, fill='white')
+            
+        root.title("Pixel-Art Animator-" + self.projectDir + '*')
 
     def canvas_fill(self) -> None:
-        self.fillColor = ch.askcolor()
-        for pixel in self.pixels:
-            self.canvas.itemconfig(pixel, fill=self.fillColor[1])
+        fillColor = ch.askcolor()
+        if fillColor != (None, None): # If we selected a color (didn't hit cancel)
+            for pixel in self.pixels:
+                self.canvas.itemconfig(pixel, fill=fillColor[1])
+
+            root.title("Pixel-Art Animator-" + self.projectDir + '*')
 
     def canvas_remove_color(self) -> None:
         self.selectedPixel = self.canvas.find_closest(self.clickCoords.x, self.clickCoords.y)
@@ -772,6 +778,7 @@ class Main:
 
     def insert_frame(self) -> None: # Inserts a frame after the current frame
         self.currentFrame_mem = int(self.currentFrame.get())
+        self.frameCount += 1
 
         # Create a new frame at the end of the sequence
         with open(self.projectDir, 'r+') as self.fileOpen:
@@ -800,7 +807,11 @@ class Main:
             self.jsonFrames = self.jsonReadFile['frames'][0]
             self.newData = copy.deepcopy(self.jsonFrames) # Create a copy of the frame list (as to not change the original durring iteration)
             
+            if self.frameCount != 1:
+                self.frameCount -= 1
+                
             i = int(self.currentFrame.get())
+            
             for frame in range(int(self.currentFrame.get()), len(self.jsonFrames) + 1):
                 if i != len(self.jsonFrames): # If the frame is not the last frame, copy the data from the next frame
                     self.newData[f'frame_{i}'] = self.jsonFrames[f'frame_{i + 1}']
@@ -1052,7 +1063,7 @@ class Main:
         localResVar = tk.BooleanVar()
         
         # Add the toplevel
-        self.exportTL = tk.Toplevel(width=420, height=500)
+        self.exportTL = tk.Toplevel(width=450, height=500)
         self.exportTL.resizable(False, False)
         self.exportTL.title("Export Animation")
         self.exportTL.protocol("WM_DELETE_WINDOW", self.exportTL.withdraw)
@@ -1062,26 +1073,28 @@ class Main:
         self.exportTL.bind('<Escape>', lambda e: self.exportTL.withdraw())
 
         # Create the frames
-        self.sequenceFrame = tk.Frame(self.exportTL, width=420, height=500)
+        frameWidth = (420 if sys.platform == 'win32' else 456)
+        
+        self.sequenceFrame = tk.Frame(self.exportTL, width=frameWidth, height=500)
         self.sequenceFrame.pack()
-        self.singleFrame = tk.Frame(self.exportTL, width=420, height=500)
+        self.singleFrame = tk.Frame(self.exportTL, width=frameWidth, height=500)
 
-        self.exportFrameTop = tk.Frame(self.sequenceFrame, width=420, height=100, highlightbackground='black', highlightthickness=2)
+        self.exportFrameTop = tk.Frame(self.sequenceFrame, width=frameWidth, height=100, highlightbackground='black', highlightthickness=2)
         self.exportFrameTop.pack(side=tk.TOP)
         self.exportFrameTop.pack_propagate(False)
         
-        self.exportFrameMiddleTop = tk.Frame(self.sequenceFrame, width=420, height=50, highlightbackground='black', highlightthickness=2)
+        self.exportFrameMiddleTop = tk.Frame(self.sequenceFrame, width=frameWidth, height=50, highlightbackground='black', highlightthickness=2)
         self.exportFrameMiddleTop.pack(pady=(20, 0))
         self.exportFrameMiddleTop.pack_propagate(False)
         
-        self.exportFrameMiddleBottom = tk.Frame(self.sequenceFrame, width=420, height=50, highlightbackground='black', highlightthickness=2)
+        self.exportFrameMiddleBottom = tk.Frame(self.sequenceFrame, width=frameWidth, height=50, highlightbackground='black', highlightthickness=2)
         self.exportFrameMiddleBottom.pack(pady=20)
         self.exportFrameMiddleBottom.pack_propagate(False)
         
-        self.exportFrameBottom1 = tk.Frame(self.sequenceFrame, width=420, height=500)
+        self.exportFrameBottom1 = tk.Frame(self.sequenceFrame, width=frameWidth, height=500)
         self.exportFrameBottom1.pack(side=tk.BOTTOM)
         
-        self.exportFrameBottom2 = tk.Frame(self.sequenceFrame, width=420)
+        self.exportFrameBottom2 = tk.Frame(self.sequenceFrame, width=frameWidth)
         self.exportFrameBottom2.pack(side=tk.BOTTOM)
 
         # Create the menus:
@@ -1169,6 +1182,11 @@ class Main:
             
             if (args[0]) <= 0: # Makes sure we have a valid frame range
                 mb.showerror(title="Frame Error", message='"From" value must be 1 or greater!')
+                self.exportTL.focus()
+                return
+            
+            if (args[1]) > self.frameCount: # Makes sure we have a valid frame range
+                mb.showerror(title="Frame Error", message='"To" value must be less than or equal to the frame count!')
                 self.exportTL.focus()
                 return
             
@@ -1307,7 +1325,7 @@ class Main:
                         else:
                             img.putpixel((x, y), (255, 255, 255, 255))
                 
-            img = img.resize(size=(int(self.res.get()) * ceil(resolution / int(self.res.get())), int(self.res.get()) * ceil(resolution / int(self.res.get()))), resample=Image.Resampling.BILINEAR).resize(size=(resolution, resolution))
+            img = img.resize(size=(int(self.res.get()) * ceil(resolution / int(self.res.get())), int(self.res.get()) * ceil(resolution / int(self.res.get()))), resample=0).resize(size=(resolution, resolution))
             img.save(fileName + extension, extension[1:])
             img.close()
         
@@ -1438,3 +1456,5 @@ m_cls = Main()
 root.protocol("WM_DELETE_WINDOW", m_cls.quit) # Open the quit dialogue when closing
 
 root.mainloop()
+
+# TODO: Add popup for too big of a frame range 
