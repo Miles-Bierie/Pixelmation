@@ -1,3 +1,5 @@
+#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- 12, 10, 2023  |=========---------  #
+
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog as fd
@@ -79,6 +81,16 @@ class Main:
 
         self.load()
         
+    def root_drag(self):
+        if mixer.music.get_busy:
+            root.bind('<Motion>', lambda e: self.root_nodrag())
+        mixer.music.set_pos(self.playback)
+        
+    def root_nodrag(self):
+        print("NO_DRAG")
+        mixer.music.set_pos(self.playback)
+        root.unbind("<Motion>")
+        
     def undo(self):
         self.load_frame(True)
         root.title(''.join([i for i in root.title() if i != '*'])) # Remove the star in the project title
@@ -141,7 +153,7 @@ class Main:
 
         # Add bottom frame
         self.frameBottom = tk.Frame(root, width=1080, height=40)
-        self.frameBottom.pack(side=tk.BOTTOM, pady=(0, 4))
+        self.frameBottom.pack(side=tk.BOTTOM, pady=(0, 3))
         self.frameBottom.pack_propagate(False)
 
         # Top frame widgets
@@ -343,7 +355,7 @@ class Main:
         for i in range(1, 10):
             root.bind(f'<KeyPress-{i}>', lambda e, num = i: self.goto(str(num)))
             
-        self.frameMiddle.config(highlightthickness=2, highlightbackground="darkblue")
+        self.frameMiddle.config(highlightthickness=3, highlightbackground="darkblue")
 
     def new_file_dialog(self):
         newRes = tk.StringVar(value=self.res.get())
@@ -984,16 +996,48 @@ class Main:
             root.destroy()
             
     def var_filter(self, var, min, max):
-        var.set("".join(i for i in var.get() if i.isdigit()))
-        if min != None:
-            if int(var.get()) < min:
-                var.set(min)
-                
-        if max != None:
-            if int(var.get()) > max:
-                var.set(max)
+        try:
+            var.set("".join(i for i in var.get() if i.isdigit()))
+            if min != None:
+                if int(var.get()) < min:
+                    var.set(min)
+                    
+            if max != None:
+                if int(var.get()) > max:
+                    var.set(max)
+        except ValueError:
+            pass
 
     def export_display(self):
+        def open_dir():
+            cdr = os.getcwd()
+            os.chdir(self.outputDirectory.get())
+            os.system("Explorer .")
+            os.chdir(cdr)
+            
+        def get_resolutions(value):
+            resolutions = []
+            res = value
+            for i in range(8): # Generate resolutions
+                resolutions.append(res)
+                res*= 2
+                
+            return resolutions
+        
+        def l_g_res(value):
+                if value:
+                    self.resolutions = get_resolutions(int(self.res.get()))
+                else:
+                    self.resolutions = get_resolutions(32)
+                    
+                self.resolutionBox.pack_forget()
+                self.resolutionBox = tk.Spinbox(self.exportFrameMiddleBottom, width=4, textvariable=self.resVar, values=self.resolutions, state='readonly')
+                self.resolutionBox.pack(side=tk.LEFT, padx=(6, 0))
+                
+                self.checkbutton.pack_forget()
+                self.checkbutton = tk.Checkbutton(self.exportFrameMiddleBottom, text="Local", variable=localResVar, command=lambda: l_g_res(localResVar.get()))
+                self.checkbutton.pack(side=tk.LEFT, padx=(10, 0))
+        
         if self.exportOpen:
             self.exportTL.deiconify()
             self.exportTL.focus()
@@ -1002,11 +1046,10 @@ class Main:
         self.exportOpen = True
         
         # Resolution values
-        resolutions = []
-        v = 16
-        for i in range(10): # Generate resolutions
-            resolutions.append(v)
-            v*= 2
+        self.resolutions = get_resolutions(32)
+        # res = int(self.res.get())
+            
+        localResVar = tk.BooleanVar()
         
         # Add the toplevel
         self.exportTL = tk.Toplevel(width=420, height=500)
@@ -1015,6 +1058,8 @@ class Main:
         self.exportTL.protocol("WM_DELETE_WINDOW", self.exportTL.withdraw)
         self.exportTL.focus()
         self.exportTL.withdraw()
+        
+        self.exportTL.bind('<Escape>', lambda e: self.exportTL.withdraw())
 
         # Create the frames
         self.sequenceFrame = tk.Frame(self.exportTL, width=420, height=500)
@@ -1052,6 +1097,8 @@ class Main:
 
         tk.Button(self.exportFrameTop, text="open", font=('Calibri', 10), command=self.open_output_dir).pack(side=tk.LEFT,anchor=tk.NW)
         
+        tk.Button(self.exportFrameTop, text="Open Directory", font=('Calibri', 10), command=lambda: (open_dir()) if sys.platform == 'win32' else (f'open "{self.outputDirectory.get()}"')).pack(side=tk.BOTTOM, anchor=tk.SW, padx=(5, 0), pady=(0, 5), before=outputDirectoryEntry)
+        
         # Render panel:
         tk.Label(self.exportFrameMiddleTop, text="File Name: ").pack(side=tk.TOP, anchor=tk.NW)
         tk.Entry(self.exportFrameMiddleTop, textvariable=exportFileNameStr, width=26).pack(side=tk.LEFT)
@@ -1075,14 +1122,18 @@ class Main:
         tk.Label(self.exportFrameMiddleBottom, text="From:").pack(side=tk.LEFT)
         tk.Entry(self.exportFrameMiddleBottom, width=4, textvariable=self.fromVar).pack(side=tk.LEFT, padx=4)
         
-        tk.Label(self.exportFrameMiddleBottom, text="To:").pack(side=tk.LEFT, padx=(20, 0))
+        tk.Label(self.exportFrameMiddleBottom, text="To:").pack(side=tk.LEFT, padx=(6, 0))
         tk.Entry(self.exportFrameMiddleBottom, width=4, textvariable=self.toVar).pack(side=tk.LEFT, padx=4)
         
-        tk.Label(self.exportFrameMiddleBottom, text="Step:").pack(side=tk.LEFT, padx=(32, 0))
+        tk.Label(self.exportFrameMiddleBottom, text="Step:").pack(side=tk.LEFT, padx=(6, 0))
         tk.Spinbox(self.exportFrameMiddleBottom, width=4, textvariable=self.stepVar, from_=1.0, to=10.0, state='readonly').pack(side=tk.LEFT, padx=4)
         
-        tk.Label(self.exportFrameMiddleBottom, text="Resolution:").pack(side=tk.LEFT, padx=(32, 0))
-        tk.Spinbox(self.exportFrameMiddleBottom, width=4, textvariable=self.resVar, values=resolutions, state='readonly').pack(side=tk.LEFT, padx=4)
+        tk.Label(self.exportFrameMiddleBottom, text="Resolution:").pack(side=tk.LEFT, padx=(6, 0))
+        self.resolutionBox = tk.Spinbox(self.exportFrameMiddleBottom, width=4, textvariable=self.resVar, values=self.resolutions, state='readonly')
+        self.resolutionBox.pack(side=tk.LEFT, padx=(6, 0))
+        
+        self.checkbutton = tk.Checkbutton(self.exportFrameMiddleBottom, text="Local", variable=localResVar, command=lambda: l_g_res(localResVar.get()))
+        self.checkbutton.pack(side=tk.LEFT, padx=(10, 0))
         
         # Create the export buttons
         ttk.Button(self.exportFrameBottom2, text="Render Sequence", width=16, command=lambda: self.export(exportFileNameStr.get(), exportTypeStr.get(), useAlphaVar.get(), True, int(self.fromVar.get()), int(self.toVar.get()), self.stepVar.get(), resolution=self.resVar.get())).pack(side=tk.LEFT, anchor=tk.W)
@@ -1122,6 +1173,8 @@ class Main:
             renderTL.resizable(False, False)
             renderTL.grab_set() # Keep the render window in focus
             renderTL.focus()
+            
+            renderTL.protocol('WM_DELETE_WINDOW', cancelDialog)
             
             # Progress bar styles
             progressBarStyle = ttk.Style()
@@ -1213,16 +1266,21 @@ class Main:
                 progressBar.config(style='green.Horizontal.TProgressbar')
                 renderTL.grab_release()
                 renderTL.focus()
+                
                 mb.showinfo(title="Render", message="Render complete!")
                 renderTL.destroy()
+                
+                self.exportTL.focus()
             else:
                 progressBar.config(style='red.Horizontal.TProgressbar', value=frameCount)
                 renderTL.grab_release()
                 renderTL.focus()
+                
                 mb.showinfo(title="Render", message="Render halted!")
                 self.exportTL.focus()
                 renderTL.destroy()
-                        
+
+                self.exportTL.focus()
         else:
             img = Image.new(size=(int(self.res.get()), int(self.res.get())), mode=('RGBA' if alpha else 'RGB'))
             px = 0 # The current pixel being referanced
@@ -1242,7 +1300,7 @@ class Main:
                         else:
                             img.putpixel((x, y), (255, 255, 255, 255))
                 
-            img = img.resize(size=(int(self.res.get()) * ceil(resolution / int(self.res.get())), int(self.res.get()) * ceil(resolution / int(self.res.get()))), resample=4).resize(size=(resolution, resolution))
+            img = img.resize(size=(int(self.res.get()) * ceil(resolution / int(self.res.get())), int(self.res.get()) * ceil(resolution / int(self.res.get()))), resample=Image.Resampling.BILINEAR).resize(size=(resolution, resolution))
             img.save(fileName + extension, extension[1:])
             img.close()
         
@@ -1293,7 +1351,8 @@ class Main:
     def play(self, stopMode, save, loop):
         def end():
             self.playButton.config(text="Play")
-            self.fileOpen.close()
+            root.unbind('<Configure>')
+            
             if stopMode:
                 self.currentFrame.set(self.currentFrame_mem)
 
@@ -1320,7 +1379,7 @@ class Main:
                 else:
                     mixer.music.play(start=self.playback)
 
-        self.fileOpen = open(self.projectDir, 'r') # Open the file
+        root.bind('<Configure>', lambda e: self.root_drag())
 
         self.currentFrame_mem = save
         self.isPlaying = not self.isPlaying
