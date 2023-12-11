@@ -76,8 +76,8 @@ class Main:
             ]
         }
 
-        root.bind('<Control-s>', lambda event: self.save(True))
-        root.bind('<Command-s>', lambda event: self.save(True))
+        root.bind_all('<Control-s>', lambda event: self.save(True))
+        root.bind_all('<Command-s>', lambda event: self.save(True))
         root.bind('<Control-z>', lambda event: self.undo())
         root.bind('<Command-z>', lambda event: self.undo())
         
@@ -1105,6 +1105,7 @@ class Main:
 
         outputDirectoryEntry = tk.Entry(self.exportFrameTop, textvariable=self.outputDirectory, width=36, font=('Calibri', 14))
         outputDirectoryEntry.pack(side=tk.LEFT,anchor=tk.NW, padx=(5, 0))
+        self.outputDirectory.trace('w', lambda e1, e2, e3: root.title("Pixel-Art Animator-" + self.projectDir + '*'))
         
         tk.Label(self.exportFrameTop, text="Output Directory:", font=('Calibri', 14)).pack(side=tk.TOP, anchor=tk.NW, padx=5, before=outputDirectoryEntry)
 
@@ -1116,6 +1117,7 @@ class Main:
         tk.Label(self.exportFrameMiddleTop, text="File Name: ").pack(side=tk.TOP, anchor=tk.NW)
         tk.Entry(self.exportFrameMiddleTop, textvariable=exportFileNameStr, width=30).pack(side=tk.LEFT)
         tk.OptionMenu(self.exportFrameMiddleTop, exportTypeStr, ".png", ".tga", ".tiff").pack(side=tk.LEFT, anchor=tk.NW)
+        
         
         # Alpha checkbox
         useAlphaVar = tk.BooleanVar()
@@ -1160,6 +1162,13 @@ class Main:
         self.exportTL.after(10, lambda: self.exportTL.deiconify())
         
     def export(self, fileName, extension, alpha, isSequance, *args, **kwargs):
+        try:
+            os.stat(self.outputDirectory.get())
+        except FileNotFoundError:
+            mb.showerror(title="Path Error", message="Output directory does not exist")
+            self.exportTL.focus()
+            return
+        
         self.rendering = True
         resolution = kwargs['resolution']
         
@@ -1283,7 +1292,7 @@ class Main:
                         
                         progressBar.config(value=position)
                         renderTL.update()
-                else:
+                else: # If we cancel the render
                     break
                 
             renderTL.attributes('-topmost', True)
@@ -1456,5 +1465,3 @@ m_cls = Main()
 root.protocol("WM_DELETE_WINDOW", m_cls.quit) # Open the quit dialogue when closing
 
 root.mainloop()
-
-# TODO: Add popup for too big of a frame range 
