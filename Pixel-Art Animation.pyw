@@ -1,4 +1,4 @@
-#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- 12, 10, 2023  |=========---------  #
+#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Sunday, December 10, 2023  |=========---------  #
 
 
 import tkinter as tk
@@ -296,7 +296,6 @@ class Main:
             for pixel in self.pixels:
                 self.canvas.itemconfig(str(pixel), outline='')
 
-       
         if triggered:
             root.title("Pixel-Art Animator-" + self.projectDir + '*')
 
@@ -308,7 +307,6 @@ class Main:
         if self.showGridVar.get() or not menu:
             for pixel in self.pixels:
                     self.canvas.itemconfig(str(pixel), outline=self.gridColor)
-
 
     def new_project_name_filter(self, res):
         try:
@@ -642,7 +640,6 @@ class Main:
 
             self.canvas.tag_bind(f'{pixel + 1}', "<ButtonPress-1>", lambda event: self.on_press(event))
             self.canvas.tag_bind(f'{pixel + 1}', "<B1-Motion>", lambda event: self.on_press(event))
-
             self.pixels.append(self.pixel)
 
             # Set the pixel color
@@ -659,7 +656,6 @@ class Main:
 
                 except KeyError: # If the pixel is not present within the json file
                     self.canvas.itemconfig(self.pixel, fill='white') # Fill pixels with white (0 alpha)
-                    
 
             self.posX += pixelate
             self.toY -= 1
@@ -725,7 +721,6 @@ class Main:
         self.fillColor = ch.askcolor()
         for pixel in self.pixels:
             self.canvas.itemconfig(pixel, fill=self.fillColor[1])
-
 
     def canvas_remove_color(self) -> None:
         self.selectedPixel = self.canvas.find_closest(self.clickCoords.x, self.clickCoords.y)
@@ -1444,5 +1439,3 @@ m_cls = Main()
 root.protocol("WM_DELETE_WINDOW", m_cls.quit) # Open the quit dialogue when closing
 
 root.mainloop()
-
-# TODO: Fix stopmode issue
