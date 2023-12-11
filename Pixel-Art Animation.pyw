@@ -1,4 +1,4 @@
-#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Sunday, December 10, 2023  |=========---------  #
+#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Monday, December 11, 2023  |=========---------  #
 
 
 import tkinter as tk
@@ -11,7 +11,6 @@ import sys
 import json
 import copy
 import time
-os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 from pygame import mixer
 import timeit
 import mutagen
@@ -20,6 +19,7 @@ from math import ceil, floor
 
 if sys.platform == 'win32':
     import winsound
+
 
 class Main:
     def __init__(self):
@@ -1213,7 +1213,8 @@ class Main:
             progressBar = ttk.Progressbar(renderFrameMiddle, length=420, maximum=frameCount, style="blue.Horizontal.TProgressbar")
             progressBar.pack(pady=(4, 6))
             
-            ttk.Button(renderFrameBottom, text="Cancel", width=64, command=lambda: cancelDialog()).pack()
+            cancelButton = ttk.Button(renderFrameBottom, text="Cancel", width=64, command=lambda: cancelDialog())
+            cancelButton.pack()
             
             subStr = '0' * len(str(frameCount + 1))
             position = 0
@@ -1266,11 +1267,14 @@ class Main:
                         renderTL.update()
                 else:
                     break
+                
+            renderTL.attributes('-topmost', True)
+            renderTL.protocol('WM_DELETE_WINDOW', lambda e = 1: e) # Do nothing
+            cancelButton['command'] = ""
 
             if self.rendering:
                 progressBar.config(style='green.Horizontal.TProgressbar')
                 renderTL.grab_release()
-                renderTL.focus()
                 
                 mb.showinfo(title="Render", message="Render complete!")
                 renderTL.destroy()
@@ -1279,10 +1283,8 @@ class Main:
             else:
                 progressBar.config(style='red.Horizontal.TProgressbar', value=frameCount)
                 renderTL.grab_release()
-                renderTL.focus()
                 
                 mb.showinfo(title="Render", message="Render halted!")
-                self.exportTL.focus()
                 renderTL.destroy()
 
                 self.exportTL.focus()
