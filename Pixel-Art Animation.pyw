@@ -193,29 +193,26 @@ class Main:
         self.penFrame = tk.Frame(self.toolsFrame, height=14, width=6, highlightthickness=2, highlightbackground='red')
         self.penFrame.pack(side=tk.LEFT, padx=5)
 
-        self.penButton = tk.Button(self.penFrame, text="Pen", relief=tk.RAISED, height=14, width=6, command=lambda: self.tool_select(1))
-        self.penButton.pack()
+        tk.Button(self.penFrame, text="Pen", relief=tk.RAISED, height=14, width=6, command=lambda: self.tool_select(1)).pack()
 
         # Eraser
         self.eraserFrame = tk.Frame(self.toolsFrame, height=14, width=6, highlightthickness=2, highlightbackground='white')
         self.eraserFrame.pack(side=tk.LEFT, padx=5)
 
-        self.eraserButton = tk.Button(self.eraserFrame, text="Eraser", relief=tk.RAISED, height=14, width=6, command=lambda: self.tool_select(2))
-        self.eraserButton.pack()
+        tk.Button(self.eraserFrame, text="Eraser", relief=tk.RAISED, height=14, width=6, command=lambda: self.tool_select(2)).pack()
 
         # Remove tool
         self.removeFrame = tk.Frame(self.toolsFrame, height=14, width=6, highlightthickness=2, highlightbackground='white')
         self.removeFrame.pack(side=tk.LEFT, padx=5)
        
-        self.removeButton = tk.Button(self.removeFrame, text="Remove", relief=tk.RAISED, height=14, width=6, command=lambda: self.tool_select(3))
-        self.removeButton.pack()
+        tk.Button(self.removeFrame, text="Remove", relief=tk.RAISED, height=14, width=6, command=lambda: self.tool_select(3)).pack()
 
         # Repalce tool
         self.replaceFrame = tk.Frame(self.toolsFrame, height=14, width=6, highlightthickness=2, highlightbackground='white')
         self.replaceFrame.pack(side=tk.LEFT, padx=5)
        
-        self.replaceButton = tk.Button(self.replaceFrame, text="Replace", relief=tk.RAISED, height=14, width=6, command=lambda: self.tool_select(4))
-        self.replaceButton.pack()
+        tk.Button(self.replaceFrame, text="Replace", relief=tk.RAISED, height=14, width=6, command=lambda: self.tool_select(4)).pack()
+
 
         # Add frame display
         self.decreaseFrameButton = tk.Button(self.frameTop, text="-", command=self.decrease_frame, state='disabled', font=('Courier New', 9))
