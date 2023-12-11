@@ -1,5 +1,6 @@
 #  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- 12, 10, 2023  |=========---------  #
 
+
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog as fd
@@ -10,6 +11,7 @@ import sys
 import json
 import copy
 import time
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 from pygame import mixer
 import timeit
 import mutagen
@@ -78,18 +80,21 @@ class Main:
         root.bind('<Command-s>', lambda event: self.save(True))
         root.bind('<Control-z>', lambda event: self.undo())
         root.bind('<Command-z>', lambda event: self.undo())
+        
+        root.bind('<*>', lambda e: self.root_nodrag())
 
         self.load()
         
     def root_drag(self):
         if mixer.music.get_busy:
             root.bind('<Motion>', lambda e: self.root_nodrag())
-        mixer.music.set_pos(self.playback)
+            mixer.music.set_pos(self.playback)
         
     def root_nodrag(self):
-        print("NO_DRAG")
-        mixer.music.set_pos(self.playback)
-        root.unbind("<Motion>")
+        if mixer.music.get_busy:
+            mixer.music.set_pos(self.playback)
+            self.currentFrame.set(max(int(self.currentFrame.get()) - 2, 1))
+            root.unbind("<Motion>")
         
     def undo(self):
         self.load_frame(True)
@@ -233,8 +238,8 @@ class Main:
         self.playButton = tk.Button(self.frameBottom, text="Play", height=2, width=32, command=lambda: self.play_init(False))
         self.playButton.place(relx=.5, rely=.5, anchor='center')
         
-        root.bind_all('<KeyPress-Control_L>', lambda event: self.play_button_mode(True))
-        root.bind_all('<KeyRelease-Control_L>', lambda event: self.play_button_mode(False))
+        root.bind('<KeyPress-Control_L>', lambda event: self.play_button_mode(True))
+        root.bind('<KeyRelease-Control_L>', lambda event: self.play_button_mode(False))
 
         # Add the frame button dropdown
         self.frameDisplayButton.menu = tk.Menu(self.frameDisplayButton, tearoff=0)
@@ -459,6 +464,9 @@ class Main:
                 filetypes=(("pixel project", f'*.{self.extension}'),("pixel project", f'*.{self.extension}')))
         else:
             self.fileOpen = self.projectDir
+            
+        if not self.isPlaying:
+            self.play_button_mode(False)
 
         if len(self.fileOpen) > 0 or not dialog:
             try:
@@ -1018,7 +1026,7 @@ class Main:
         def get_resolutions(value):
             resolutions = []
             res = value
-            for i in range(8): # Generate resolutions
+            while res <= 4096: # Generate resolutions up to 4k
                 resolutions.append(res)
                 res*= 2
                 
@@ -1090,7 +1098,7 @@ class Main:
         exportTypeStr = tk.StringVar(value='.png') # Set the default output extenion
         exportFileNameStr = tk.StringVar(value=os.path.splitext(os.path.split(self.projectDir)[1])[0])
 
-        outputDirectoryEntry = tk.Entry(self.exportFrameTop, textvariable=self.outputDirectory, width=32, font=('Calibri', 14))
+        outputDirectoryEntry = tk.Entry(self.exportFrameTop, textvariable=self.outputDirectory, width=36, font=('Calibri', 14))
         outputDirectoryEntry.pack(side=tk.LEFT,anchor=tk.NW, padx=(5, 0))
         
         tk.Label(self.exportFrameTop, text="Output Directory:", font=('Calibri', 14)).pack(side=tk.TOP, anchor=tk.NW, padx=5, before=outputDirectoryEntry)
@@ -1101,7 +1109,7 @@ class Main:
         
         # Render panel:
         tk.Label(self.exportFrameMiddleTop, text="File Name: ").pack(side=tk.TOP, anchor=tk.NW)
-        tk.Entry(self.exportFrameMiddleTop, textvariable=exportFileNameStr, width=26).pack(side=tk.LEFT)
+        tk.Entry(self.exportFrameMiddleTop, textvariable=exportFileNameStr, width=30).pack(side=tk.LEFT)
         tk.OptionMenu(self.exportFrameMiddleTop, exportTypeStr, ".png", ".tga", ".tiff").pack(side=tk.LEFT, anchor=tk.NW)
         
         # Alpha checkbox
@@ -1163,7 +1171,12 @@ class Main:
                 
         if isSequance:
             if (frameCount := args[1] - args[0]) <= 0: # Makes sure we have a valid frame range
-                mb.showerror(title="Frame Error", message='"From" value must be less than "to" value')
+                mb.showerror(title="Frame Error", message='"From" value must be less than "to" value!')
+                self.exportTL.focus()
+                return
+            
+            if (args[0]) <= 0: # Makes sure we have a valid frame range
+                mb.showerror(title="Frame Error", message='"From" value must be 1 or greater!')
                 self.exportTL.focus()
                 return
             
@@ -1431,3 +1444,5 @@ m_cls = Main()
 root.protocol("WM_DELETE_WINDOW", m_cls.quit) # Open the quit dialogue when closing
 
 root.mainloop()
+
+# TODO: Fix stopmode issue
