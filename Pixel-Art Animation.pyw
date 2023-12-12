@@ -186,32 +186,31 @@ class Main:
 
         # Frame
         self.toolsFrame = tk.LabelFrame(self.frameTop, text="Tools", height=60, width=(266 if sys.platform == 'win32' else 420), bg='white')
-        self.toolsFrame.pack(anchor=tk.NW, side=tk.LEFT, padx=((175 if sys.platform == 'win32' else 60), 0))
-        self.toolsFrame.pack_propagate(False)
+        self.toolsFrame.pack(anchor=tk.N, side=tk.LEFT, padx=((175 if sys.platform == 'win32' else 60), 0))
 
         # Pen
-        self.penFrame = tk.Frame(self.toolsFrame, height=14, width=6, highlightthickness=2, highlightbackground='red')
+        self.penFrame = tk.Frame(self.toolsFrame, height=2, width=6, highlightthickness=2, highlightbackground='red')
         self.penFrame.pack(side=tk.LEFT, padx=5)
 
-        tk.Button(self.penFrame, text="Pen", relief=tk.RAISED, height=14, width=6, command=lambda: self.tool_select(1)).pack()
+        tk.Button(self.penFrame, text="Pen", relief=tk.RAISED, height=2, width=6, command=lambda: self.tool_select(1)).pack()
 
         # Eraser
-        self.eraserFrame = tk.Frame(self.toolsFrame, height=14, width=6, highlightthickness=2, highlightbackground='white')
+        self.eraserFrame = tk.Frame(self.toolsFrame, height=2, width=6, highlightthickness=2, highlightbackground='white')
         self.eraserFrame.pack(side=tk.LEFT, padx=5)
 
-        tk.Button(self.eraserFrame, text="Eraser", relief=tk.RAISED, height=14, width=6, command=lambda: self.tool_select(2)).pack()
+        tk.Button(self.eraserFrame, text="Eraser", relief=tk.RAISED, height=2, width=6, command=lambda: self.tool_select(2)).pack()
 
         # Remove tool
-        self.removeFrame = tk.Frame(self.toolsFrame, height=14, width=6, highlightthickness=2, highlightbackground='white')
+        self.removeFrame = tk.Frame(self.toolsFrame, height=2, width=6, highlightthickness=2, highlightbackground='white')
         self.removeFrame.pack(side=tk.LEFT, padx=5)
        
-        tk.Button(self.removeFrame, text="Remove", relief=tk.RAISED, height=14, width=6, command=lambda: self.tool_select(3)).pack()
+        tk.Button(self.removeFrame, text="Remove", relief=tk.RAISED, height=2, width=6, command=lambda: self.tool_select(3)).pack()
 
         # Repalce tool
-        self.replaceFrame = tk.Frame(self.toolsFrame, height=14, width=6, highlightthickness=2, highlightbackground='white')
+        self.replaceFrame = tk.Frame(self.toolsFrame, height=2, width=6, highlightthickness=2, highlightbackground='white')
         self.replaceFrame.pack(side=tk.LEFT, padx=5)
        
-        tk.Button(self.replaceFrame, text="Replace", relief=tk.RAISED, height=14, width=6, command=lambda: self.tool_select(4)).pack()
+        tk.Button(self.replaceFrame, text="Replace", relief=tk.RAISED, height=2, width=6, command=lambda: self.tool_select(4)).pack()
 
 
         # Add frame display
@@ -1434,10 +1433,7 @@ class Main:
                     return None
             try:
                 if self.isPlaying:
-                    time2 = timeit.default_timer()
-                    time_total = time2 - time1
-                    time_total = self.framerateDelay - time_total
-                    time.sleep(max(time_total, 0))
+                    time.sleep(max((self.framerateDelay - 0.0004564) - (timeit.default_timer() - time1), 0))
             except:
                 return None
         end()
