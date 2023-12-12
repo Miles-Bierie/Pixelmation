@@ -1,4 +1,4 @@
-#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Monday, December 11, 2023  |=========---------  #
+#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Tuesday, December 12, 2023  |=========---------  #
 
 
 import tkinter as tk
@@ -386,14 +386,13 @@ class Main:
         for i in self.FRAMERATES:
                 if self.framerate == i:
                     self.framerateMenu.add_radiobutton(label=str(i), variable=var, command=lambda delay = i: self.delay(delay))
+                    var.set(True)
+                    root.update()
                 else:
                     self.framerateMenu.add_radiobutton(label=str(i), command=lambda delay = i: self.delay(delay))
                 root.update()
                 var.set(True)
                 root.update()
-                if self.framerate == i:
-                    var.set(True)
-                    root.update()
        
     def create_new_file(self, res):
         self.res.set(res.get()) # Set project resolution to the new resolution
@@ -435,6 +434,8 @@ class Main:
                         self.editMenu.add_cascade(label="Set Framerate", menu=self.framerateMenu)
             
             self.add_framerates()
+            self.framerateDelay = .04
+            
             try:
                 self.newFileTL.destroy()
             except:
