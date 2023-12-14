@@ -1,4 +1,4 @@
-#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Tuesday, December 12, 2023  |=========---------  #
+#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Thursday, December 14, 2023  |=========---------  #
 
 
 import tkinter as tk
@@ -231,7 +231,7 @@ class Main:
         self.volume.set(80) # Set the initial volume
 
         # Add play button
-        self.playButton = tk.Button(self.frameBottom, text="Play", height=2, width=32, command=lambda: self.play_init(False))
+        self.playButton = tk.Button(self.frameBottom, text="<No Project>", state='disabled', height=2, width=32, command=lambda: self.play_init(False))
         self.playButton.place(relx=.5, rely=.5, anchor='center')
         
         root.bind('<KeyPress-Control_L>', lambda event: self.play_button_mode(True))
@@ -338,6 +338,8 @@ class Main:
         self.increaseFrameButton['state'] = "normal"
         self.frameDisplayButton['state'] = "normal"
         self.decreaseFrameButton['state'] = 'normal'
+
+        self.playButton.config(state='normal', text="Play")
         
         root.bind('<Control-e>', lambda event: self.export_display())
 
