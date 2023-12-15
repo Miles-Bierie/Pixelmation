@@ -1,21 +1,22 @@
 #  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Thursday, December 14, 2023  |=========---------  #
 
 
-import tkinter as tk
-from tkinter import ttk
+from tkinter import colorchooser as ch
 from tkinter import filedialog as fd
 from tkinter import messagebox as mb
-from tkinter import colorchooser as ch
-import os
-import sys
+from PIL import Image, ImageTk
+from math import ceil, floor
+from pygame import mixer
+from tkinter import ttk
+import tkinter as tk
+import send2trash
+import mutagen
+import timeit
 import json
 import copy
 import time
-from pygame import mixer
-import timeit
-import mutagen
-from PIL import Image, ImageTk
-from math import ceil, floor
+import sys
+import os
 
 if sys.platform == 'win32':
     import winsound
@@ -173,7 +174,7 @@ class Main:
 
         # Key binds
         root.bind('q', lambda event: self.tool_select(1))
-        root.bind('w', lambda event: self.tool_select(2))
+        root.bind('write', lambda event: self.tool_select(2))
         root.bind('e', lambda event: self.tool_select(3))
         root.bind('r', lambda event: self.tool_select(4))
 
@@ -379,7 +380,7 @@ class Main:
         self.newFileSetResolutionEntry.pack(side=tk.BOTTOM)
         tk.Label(self.newFileFrame, text="Project Resolution:", font=('Courier New', 12)).pack(side=tk.BOTTOM, pady=4)
 
-        newRes.trace('w', lambda event1, event2, event3: self.new_project_name_filter(newRes))
+        newRes.trace_add('write', lambda event1, event2, event3: self.new_project_name_filter(newRes))
         
     def add_framerates(self):
         self.framerateMenu.delete('0', tk.LAST)
@@ -424,7 +425,7 @@ class Main:
             self.jsonSampleDump = json.dumps(self.projectFileSample, indent=4, separators=(',', ':')) # Read the project data as json text
 
             #Write the file resolution to the file
-            self.settingsFile = open(self.projectDir, 'w')
+            self.settingsFile = open(self.projectDir, 'write')
             self.settingsFile.write(self.jsonSampleDump)
             self.settingsFile.close()
             
@@ -563,7 +564,7 @@ class Main:
             with open(self.projectDir, 'r') as self.fileOpen:
                 self.fileData = self.fileOpen.readlines()
            
-            with open(self.newDir, 'w') as self.fileOpen:
+            with open(self.newDir, 'write') as self.fileOpen:
                 self.fileOpen.writelines(self.fileData)
 
             self.projectDir = self.newDir
@@ -1020,6 +1021,22 @@ class Main:
                     var.set(max)
         except ValueError:
             pass
+        
+    def trash(self, directory):
+        ans = mb.askyesno(title="Trash", message="Are you sure you want to clear all items from this folder?")
+        if ans:
+            os.chdir(directory)
+            if len(os.listdir()) > 0:
+                try:
+                    send2trash.send2trash(os.listdir())
+                    mb.showinfo(title="Trash", message="Files deleted successfully!")
+                except:
+                    mb.showerror(title="Trash", message="Failed to delete one or more files!")
+            else:
+                mb.showinfo(title="Trash", message="No files found!")
+            
+            
+        self.exportTL.focus()
 
     def export_display(self):
         def open_dir():
@@ -1105,20 +1122,21 @@ class Main:
         exportFileNameStr = tk.StringVar(value=os.path.splitext(os.path.split(self.projectDir)[1])[0])
 
         outputDirectoryEntry = tk.Entry(self.exportFrameTop, textvariable=self.outputDirectory, width=36, font=('Calibri', 14))
-        outputDirectoryEntry.pack(side=tk.LEFT,anchor=tk.NW, padx=(5, 0))
-        self.outputDirectory.trace('w', lambda e1, e2, e3: root.title("Pixel-Art Animator-" + self.projectDir + '*'))
+        outputDirectoryEntry.grid(row=1, column=0, columnspan=3)
         
-        tk.Label(self.exportFrameTop, text="Output Directory:", font=('Calibri', 14)).pack(side=tk.TOP, anchor=tk.NW, padx=5, before=outputDirectoryEntry)
-
-        tk.Button(self.exportFrameTop, text="open", font=('Calibri', 10), command=self.open_output_dir).pack(side=tk.LEFT,anchor=tk.NW)
+        root.update()
         
-        tk.Button(self.exportFrameTop, text="Open Directory", font=('Calibri', 10), command=lambda: (open_dir()) if sys.platform == 'win32' else (f'open "{self.outputDirectory.get()}"')).pack(side=tk.BOTTOM, anchor=tk.SW, padx=(5, 0), pady=(0, 5), before=outputDirectoryEntry)
+        self.outputDirectory.trace_add('write', lambda e1, e2, e3: root.title("Pixel-Art Animator-" + self.projectDir + '*'))
+        
+        tk.Label(self.exportFrameTop, text="Output Directory:", font=('Calibri', 14)).grid(row=0, column=0)
+        tk.Button(self.exportFrameTop, text="open", font=('Calibri', 10), command=self.open_output_dir).grid(row=1, column=3, columnspan=1, sticky=tk.W)
+        tk.Button(self.exportFrameTop, text="Open Directory", font=('Calibri', 10), command=lambda: (open_dir()) if sys.platform == 'win32' else (f'open "{self.outputDirectory.get()}"')).grid(row=2, column=0, sticky=tk.W, padx=(112, 0))
+        tk.Button(self.exportFrameTop, text="Clear Folder", font=('Calibri', 10), command=lambda: self.trash(self.outputDirectory.get())).grid(row=2, column=2, sticky=tk.E, columnspan=2, padx=(0, 112))
         
         # Render panel:
         tk.Label(self.exportFrameMiddleTop, text="File Name: ").pack(side=tk.TOP, anchor=tk.NW)
         tk.Entry(self.exportFrameMiddleTop, textvariable=exportFileNameStr, width=30).pack(side=tk.LEFT)
         tk.OptionMenu(self.exportFrameMiddleTop, exportTypeStr, ".png", ".tga", ".tiff").pack(side=tk.LEFT, anchor=tk.NW)
-        
         
         # Alpha checkbox
         useAlphaVar = tk.BooleanVar()
@@ -1130,8 +1148,8 @@ class Main:
         self.stepVar = tk.IntVar()
         self.resVar = tk.IntVar()
         
-        self.fromVar.trace('w', lambda e1, e2, e3: self.var_filter(self.fromVar, 1, self.frameCount - 1))
-        self.toVar.trace('w', lambda e1, e2, e3: self.var_filter(self.toVar, 1, self.frameCount))
+        self.fromVar.trace_add('write', lambda e1, e2, e3: self.var_filter(self.fromVar, 1, self.frameCount - 1))
+        self.toVar.trace_add('write', lambda e1, e2, e3: self.var_filter(self.toVar, 1, self.frameCount))
         
         tk.Label(self.exportFrameMiddleBottom, text="Frame Settings:").pack(side=tk.TOP, anchor=tk.NW)
 
@@ -1434,7 +1452,7 @@ class Main:
                     return None
             try:
                 if self.isPlaying:
-                    time.sleep(max((self.framerateDelay - 0.0004589648) - (timeit.default_timer() - time1), 0))
+                    time.sleep(max((self.framerateDelay - 0.000458964899999999) - (timeit.default_timer() - time1), 0))
             except:
                 return None
         end()
