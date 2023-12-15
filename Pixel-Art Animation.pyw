@@ -154,7 +154,7 @@ class Main:
 
         # Add middle/canvas frame
         self.frameMiddle = tk.Frame(root, width=1080, height=10)
-        self.frameMiddle.pack(anchor=tk.CENTER, pady=(20, 0))
+        self.frameMiddle.pack(anchor=tk.CENTER, pady=(10, 0))
 
         # Add bottom frame
         self.frameBottom = tk.Frame(root, width=1080, height=40)
@@ -1058,13 +1058,12 @@ class Main:
         
         # Resolution values
         self.resolutions = get_resolutions(32)
-        # res = int(self.res.get())
             
         localResVar = tk.BooleanVar()
         
         # Add the toplevel
-        self.exportTL = tk.Toplevel(width=450, height=500)
-        self.exportTL.resizable(False, False)
+        self.exportTL = tk.Toplevel(width=640, height=500)
+        self.exportTL.resizable(True, False)
         self.exportTL.title("Export Animation")
         self.exportTL.protocol("WM_DELETE_WINDOW", self.exportTL.withdraw)
         self.exportTL.focus()
@@ -1433,7 +1432,7 @@ class Main:
                     return None
             try:
                 if self.isPlaying:
-                    time.sleep(max((self.framerateDelay - 0.0004564) - (timeit.default_timer() - time1), 0))
+                    time.sleep(max((self.framerateDelay - 0.0004589648) - (timeit.default_timer() - time1), 0))
             except:
                 return None
         end()
