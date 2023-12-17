@@ -93,7 +93,8 @@ class Main:
         
     def root_nodrag(self):
         if mixer.music.get_busy:
-            mixer.music.set_pos(self.playback)
+            if self.audioFile != None:
+                mixer.music.set_pos(self.playback)
             self.currentFrame.set(max(int(self.currentFrame.get()) - 2, 1))
             root.unbind("<Motion>")
         
@@ -174,7 +175,7 @@ class Main:
 
         # Key binds
         root.bind('q', lambda event: self.tool_select(1))
-        root.bind('write', lambda event: self.tool_select(2))
+        root.bind('w', lambda event: self.tool_select(2))
         root.bind('e', lambda event: self.tool_select(3))
         root.bind('r', lambda event: self.tool_select(4))
 
@@ -425,7 +426,7 @@ class Main:
             self.jsonSampleDump = json.dumps(self.projectFileSample, indent=4, separators=(',', ':')) # Read the project data as json text
 
             #Write the file resolution to the file
-            self.settingsFile = open(self.projectDir, 'write')
+            self.settingsFile = open(self.projectDir, 'w')
             self.settingsFile.write(self.jsonSampleDump)
             self.settingsFile.close()
             
@@ -503,7 +504,7 @@ class Main:
 
                 self.file.close()
             except Exception as e:
-                print(e)
+                mb.showerror(title="Project", message=f"Failed to load {self.fileOpen};\n missing {e} section!")
                 return False
             self.add_canvas(True)
             
@@ -564,7 +565,7 @@ class Main:
             with open(self.projectDir, 'r') as self.fileOpen:
                 self.fileData = self.fileOpen.readlines()
            
-            with open(self.newDir, 'write') as self.fileOpen:
+            with open(self.newDir, 'w') as self.fileOpen:
                 self.fileOpen.writelines(self.fileData)
 
             self.projectDir = self.newDir
@@ -588,6 +589,7 @@ class Main:
         self.renameTL.title("Rename Project")
         self.renameTL.attributes('-topmost', True)
         self.renameTL.focus()
+        
         self.renameTL.bind('<Return>', lambda event: self.rename())
         self.renameTL.bind('<Escape>', lambda event: self.renameTL.destroy())
 
@@ -913,7 +915,7 @@ class Main:
 
             except KeyError: # If the pixel is not present within the json file
                 if self.showAlphaVar.get():
-                    self.canvas.itemconfig(self.pixels[pixel], fill='black') # Fill pixels with white (0 alpha)
+                    self.canvas.itemconfig(self.pixels[pixel], fill='black') # Fill pixels with black (0 alpha)
                 else:
                     self.canvas.itemconfig(self.pixels[pixel], fill='white') # Fill pixels with white (0 alpha)
 
@@ -998,13 +1000,13 @@ class Main:
 
     def quit(self):
         if '*' in root.title(): # If the file is not saved...
-            self.quitMode = mb.askyesnocancel(title="File Not Saved", message="Do you want to save your project?")
+            quitMode = mb.askyesnocancel(title="File Not Saved", message="Do you want to save your project?")
 
-            if self.quitMode: # Save and quit
+            if quitMode: # Save and quit
                 self.save(True)
                 root.destroy()
-            if self.quitMode == None: # Do nothing
-                return None
+            if quitMode == None: # Do nothing
+                return
             root.destroy()
         else:
             root.destroy()
@@ -1034,7 +1036,6 @@ class Main:
                     mb.showerror(title="Trash", message="Failed to delete one or more files!")
             else:
                 mb.showinfo(title="Trash", message="No files found!")
-            
             
         self.exportTL.focus()
 
@@ -1267,9 +1268,8 @@ class Main:
             index = len(str(frameCount + 1)) - 1
             
             renderTL.update()
-            time.sleep(.2) # Give window time to pop up
             
-            frame = 0
+            frame = 0 # The frame we are rendering
 
             for i in range(args[0], args[1] + 1):
                 if self.rendering:
@@ -1398,14 +1398,14 @@ class Main:
             loop = True
         if not self.isPlaying:
             self.currentFrame_mem = int(self.currentFrame.get())
-    
+
         self.play(stopMode, self.currentFrame_mem, loop)
 
     def play(self, stopMode, save, loop):
         def end():
             self.playButton.config(text="Play")
             root.unbind('<Configure>')
-            
+
             if stopMode:
                 self.currentFrame.set(self.currentFrame_mem)
 
@@ -1469,7 +1469,7 @@ class Main:
         self.framerateDelay = 1 / float(delay)
         root.title("Pixel-Art Animator-" + self.projectDir + '*')
 
-
+ 
 
 #-----====Main Program Start====-----#
 root = tk.Tk()
