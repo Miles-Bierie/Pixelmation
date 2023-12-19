@@ -10,6 +10,7 @@ from pygame import mixer
 from tkinter import ttk
 import tkinter as tk
 import send2trash
+import threading
 import mutagen
 import timeit
 import json
@@ -1025,18 +1026,27 @@ class Main:
             pass
         
     def trash(self, directory):
-        ans = mb.askyesno(title="Trash", message="Are you sure you want to clear all items from this folder?")
-        if ans:
-            os.chdir(directory)
-            if len(os.listdir()) > 0:
-                try:
-                    send2trash.send2trash(os.listdir())
-                    mb.showinfo(title="Trash", message="Files deleted successfully!")
-                except:
-                    mb.showerror(title="Trash", message="Failed to delete one or more files!")
-            else:
-                mb.showinfo(title="Trash", message="No files found!")
+        os.chdir(directory)
+        sucess = True
+        if len(os.listdir()) > 0:
+            try:
+                send2trash.send2trash(os.listdir())
+            except:
+                sucess = False
+        else:
+            sucess = None
+        
+        self.trashResponce(sucess)
+    
+    def trashResponce(self, sucess):
+        if sucess == None:
+            mb.showinfo(title="Trash", message="No files found!")
+        elif sucess:
+            mb.showinfo(title="Trash", message="Files deleted successfully!")
+        else:
+            mb.showerror(title="Trash", message="Failed to delete one or more files!")
             
+        self.clearFolderButton.config(state='normal', text="Clear Folder")
         self.exportTL.focus()
 
     def export_display(self):
@@ -1053,6 +1063,9 @@ class Main:
                 resolutions.append(res)
                 res*= 2
                 
+            if 4096 not in resolutions:
+                resolutions.append(4096)
+                
             return resolutions
         
         def l_g_res(value):
@@ -1068,6 +1081,21 @@ class Main:
                 self.checkbutton.pack_forget()
                 self.checkbutton = tk.Checkbutton(self.exportFrameMiddleBottom, text="Local", variable=localResVar, command=lambda: l_g_res(localResVar.get()))
                 self.checkbutton.pack(side=tk.LEFT, padx=(10, 0))
+                
+        def alphaAvailable(type):
+            if type in (".jpeg"):                
+                self.alphaCheck.config(state='disabled')
+            else:
+                self.alphaCheck.config(state='normal')
+                
+        def askTrash(directory):
+            self.clearFolderButton.config(state='disabled', text="Clearing...")
+            ans = mb.askyesno(title="Trash", message="Are you sure you want to clear all items from this folder?")
+            if ans:
+                threading.Thread(target=self.trash, args=(self.outputDirectory.get(),)).start()
+            else:
+                self.clearFolderButton.config(state='normal', text="Clear Folder")
+                self.exportTL.focus()
         
         if self.exportOpen:
             self.exportTL.deiconify()
@@ -1077,7 +1105,7 @@ class Main:
         self.exportOpen = True
         
         # Resolution values
-        self.resolutions = get_resolutions(32)
+        self.resolutions = get_resolutions(32) # Base resolution
             
         localResVar = tk.BooleanVar()
         
@@ -1130,18 +1158,20 @@ class Main:
         self.outputDirectory.trace_add('write', lambda e1, e2, e3: root.title("Pixel-Art Animator-" + self.projectDir + '*'))
         
         tk.Label(self.exportFrameTop, text="Output Directory:", font=('Calibri', 14)).grid(row=0, column=0)
-        tk.Button(self.exportFrameTop, text="open", font=('Calibri', 10), command=self.open_output_dir).grid(row=1, column=3, columnspan=1, sticky=tk.W)
+        tk.Button(self.exportFrameTop, text="open", font=('Calibri', 10), command=self.open_output_dir).grid(row=1, column=3, sticky=tk.W)
         tk.Button(self.exportFrameTop, text="Open Directory", font=('Calibri', 10), command=lambda: (open_dir()) if sys.platform == 'win32' else (f'open "{self.outputDirectory.get()}"')).grid(row=2, column=0, sticky=tk.W, padx=(112, 0))
-        tk.Button(self.exportFrameTop, text="Clear Folder", font=('Calibri', 10), command=lambda: self.trash(self.outputDirectory.get())).grid(row=2, column=2, sticky=tk.E, columnspan=2, padx=(0, 112))
+        self.clearFolderButton = tk.Button(self.exportFrameTop, text="Clear Folder", font=('Calibri', 10), command=lambda: askTrash(self.outputDirectory.get()))
+        self.clearFolderButton.grid(row=2, column=2, sticky=tk.E, columnspan=2, padx=(0, 112))
         
         # Render panel:
         tk.Label(self.exportFrameMiddleTop, text="File Name: ").pack(side=tk.TOP, anchor=tk.NW)
         tk.Entry(self.exportFrameMiddleTop, textvariable=exportFileNameStr, width=30).pack(side=tk.LEFT)
-        tk.OptionMenu(self.exportFrameMiddleTop, exportTypeStr, ".png", ".tga", ".tiff").pack(side=tk.LEFT, anchor=tk.NW)
+        tk.OptionMenu(self.exportFrameMiddleTop, exportTypeStr, ".png", ".jpeg", ".tga", ".tiff", command=lambda ext: alphaAvailable(ext)).pack(side=tk.LEFT, anchor=tk.NW)
         
         # Alpha checkbox
         useAlphaVar = tk.BooleanVar()
-        tk.Checkbutton(self.exportFrameMiddleTop, variable=useAlphaVar, text="Use Alpha", font=("Calibri", 11), justify=tk.CENTER).pack()
+        self.alphaCheck = tk.Checkbutton(self.exportFrameMiddleTop, variable=useAlphaVar, text="Use Alpha", font=("Calibri", 11), justify=tk.CENTER)
+        self.alphaCheck.pack()
         
         # Duration panel:
         self.fromVar = tk.StringVar(value='1')
@@ -1171,8 +1201,8 @@ class Main:
         self.checkbutton.pack(side=tk.LEFT, padx=(10, 0))
         
         # Create the export buttons
-        ttk.Button(self.exportFrameBottom2, text="Render Sequence", width=16, command=lambda: self.export(exportFileNameStr.get(), exportTypeStr.get(), useAlphaVar.get(), True, int(self.fromVar.get()), int(self.toVar.get()), self.stepVar.get(), resolution=self.resVar.get())).pack(side=tk.LEFT, anchor=tk.W)
-        ttk.Button(self.exportFrameBottom2, text="Render Image", width=16, command=lambda: self.export(exportFileNameStr.get(), exportTypeStr.get(), useAlphaVar.get(), False, resolution=self.resVar.get())).pack(side=tk.RIGHT, anchor=tk.E)
+        ttk.Button(self.exportFrameBottom2, text="Render Sequence", width=16, command=lambda: self.export(exportFileNameStr.get(), exportTypeStr.get(), useAlphaVar.get(), True, int(self.fromVar.get()), int(self.toVar.get()), self.stepVar.get(), resolution=self.resVar.get(), usingAlpha=(True if self.alphaCheck['state'] == 'normal' else False))).pack(side=tk.LEFT, anchor=tk.W)
+        ttk.Button(self.exportFrameBottom2, text="Render Image", width=16, command=lambda: self.export(exportFileNameStr.get(), exportTypeStr.get(), useAlphaVar.get(), False, resolution=self.resVar.get(), usingAlpha=(True if self.alphaCheck['state'] == 'normal' else False))).pack(side=tk.RIGHT, anchor=tk.E)
         
         self.exportTL.update_idletasks() # So we can get the resolution that one time
         
@@ -1191,6 +1221,7 @@ class Main:
         
         self.rendering = True
         resolution = kwargs['resolution']
+        usingAlpha = kwargs['usingAlpha']
         
         def beep(): # Don't beep if user clickes off the application
             root.update()
@@ -1279,7 +1310,7 @@ class Main:
                     subStr += str(position)
                     
                     if position % args[2] == 0:
-                        img = Image.new(size=(int(self.res.get()), int(self.res.get())), mode=('RGBA' if alpha else 'RGB'))
+                        img = Image.new(size=(int(self.res.get()), int(self.res.get())), mode=('RGBA' if alpha and usingAlpha else 'RGB'))
                         pixels = self.jsonFrames[0][f"frame_{i}"]
                         px = 0
                         frame += 1
@@ -1294,7 +1325,7 @@ class Main:
                                     rgb = tuple(rgb)
                                     img.putpixel((x, y), rgb)
                                 except KeyError:
-                                    if alpha:
+                                    if alpha and usingAlpha:
                                         img.putpixel((x, y), (0) * 4)
                                     else:
                                         img.putpixel((x, y), (255, 255, 255, 255))
@@ -1335,7 +1366,7 @@ class Main:
 
                 self.exportTL.focus()
         else:
-            img = Image.new(size=(int(self.res.get()), int(self.res.get())), mode=('RGBA' if alpha else 'RGB'))
+            img = Image.new(size=(int(self.res.get()), int(self.res.get())), mode=('RGBA' if alpha and usingAlpha else 'RGB'))
             px = 0 # The current pixel being referanced
             
             for y in range(0,img.size[1]):
@@ -1348,7 +1379,7 @@ class Main:
                         rgb = tuple(rgb)
                         img.putpixel((x, y), rgb)
                     else:
-                        if alpha:
+                        if alpha and usingAlpha:
                             img.putpixel((x, y), (0) * 4)
                         else:
                             img.putpixel((x, y), (255, 255, 255, 255))
@@ -1452,9 +1483,9 @@ class Main:
                     return None
             try:
                 if self.isPlaying:
-                    time.sleep(max((self.framerateDelay - 0.000458964899999999) - (timeit.default_timer() - time1), 0))
+                    time.sleep(max((self.framerateDelay - 0.000006164899999999 * int(self.res.get())) - (timeit.default_timer() - time1), 0))
             except:
-                return None
+                return
         end()
 
     def play_button_mode(self, isControl):
@@ -1466,10 +1497,8 @@ class Main:
 
     def delay(self, delay):
         self.framerate = delay
-        self.framerateDelay = 1 / float(delay)
+        self.framerateDelay = max(0.00001, 1 / float(delay))
         root.title("Pixel-Art Animator-" + self.projectDir + '*')
-
- 
 
 #-----====Main Program Start====-----#
 root = tk.Tk()
