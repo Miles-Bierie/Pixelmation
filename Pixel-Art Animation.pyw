@@ -4,6 +4,7 @@
 from tkinter import colorchooser as ch
 from tkinter import filedialog as fd
 from tkinter import messagebox as mb
+from tkinter import simpledialog
 from PIL import Image, ImageTk
 from math import ceil, floor
 from pygame import mixer
@@ -135,6 +136,7 @@ class Main:
         self.editMenu.add_command(label="Clear", command=self.canvas_clear, state=tk.DISABLED)
         self.editMenu.add_command(label="Fill", command=self.canvas_fill, state=tk.DISABLED)
         self.editMenu.add_separator()
+        self.editMenu.add_command(label="Set Framerate", command=self.set_framerate, state=tk.DISABLED)
         
         # Setup display cascasde
         self.displayMenu = tk.Menu(self.menubar, tearoff=0)
@@ -334,6 +336,7 @@ class Main:
 
         self.editMenu.entryconfig('Clear', state=tk.ACTIVE)
         self.editMenu.entryconfig('Fill', state=tk.ACTIVE)
+        self.editMenu.entryconfig('Set Framerate', state=tk.ACTIVE)
        
         self.displayMenu.entryconfig('Show Grid', state=tk.ACTIVE)
         self.displayMenu.entryconfig('Grid Color', state=tk.ACTIVE)
@@ -383,20 +386,6 @@ class Main:
         tk.Label(self.newFileFrame, text="Project Resolution:", font=('Courier New', 12)).pack(side=tk.BOTTOM, pady=4)
 
         newRes.trace_add('write', lambda event1, event2, event3: self.new_project_name_filter(newRes))
-        
-    def add_framerates(self):
-        self.framerateMenu.delete('0', tk.LAST)
-        var = tk.BooleanVar(value=True)
-        for i in self.FRAMERATES:
-                if self.framerate == i:
-                    self.framerateMenu.add_radiobutton(label=str(i), variable=var, command=lambda delay = i: self.delay(delay))
-                    var.set(True)
-                    root.update()
-                else:
-                    self.framerateMenu.add_radiobutton(label=str(i), command=lambda delay = i: self.delay(delay))
-                root.update()
-                var.set(True)
-                root.update()
        
     def create_new_file(self, res):
         self.res.set(res.get()) # Set project resolution to the new resolution
@@ -434,10 +423,6 @@ class Main:
             self.jsonReadFile = self.projectFileSample
             self.jsonFrames = self.jsonReadFile['frames']
             
-            if self.framerate == -1: # Add the framerate menu cascade, before self.framerateNum is assigned
-                        self.editMenu.add_cascade(label="Set Framerate", menu=self.framerateMenu)
-            
-            self.add_framerates()
             self.framerateDelay = .04
             
             try:
@@ -451,6 +436,12 @@ class Main:
                 self.newFileTL.attributes("-topmost", True)
             except AttributeError: # If this function was called using Save As
                 pass
+            
+    def set_framerate(self):
+        framerate = simpledialog.askinteger(title="Set Framerate", prompt="Framerate (1 - 60):", minvalue=1, maxvalue=60)
+        if framerate != None:
+            self.delay(framerate)
+            root.title("Pixel-Art Animator-" + self.projectDir + "*")
 
     def open_file(self, dialog):
         if '*' in root.title():
@@ -479,9 +470,6 @@ class Main:
                 self.file = open(f'{self.projectDir}', 'r')
                 self.projectData = json.load(self.file)
                 self.file.close()
-                
-                if self.framerate == -1: # Add the framerate menu cascade, before self.framerateNum is assigned
-                        self.editMenu.add_cascade(label="Set Framerate", menu=self.framerateMenu)
 
                 self.res.set(self.projectData['data']['resolution']) # Load resolution
                 self.showGridVar.set(self.projectData['data']['showgrid']) # Load grid state
@@ -491,9 +479,6 @@ class Main:
                 self.outputDirectory.set(self.projectData['data']['output'])
 
                 self.delay(self.framerate) # Set the framerate to the saved framerate               
-
-                # Add framerate menu
-                self.add_framerates()
 
                 if self.audioFile != None:
                     mixer.music.queue(self.audioFile)
