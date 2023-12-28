@@ -1,4 +1,4 @@
-#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Thursday, December 14, 2023  |=========---------  #
+#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Thursday, December 28, 2023  |=========---------  #
 
 
 from tkinter import colorchooser as ch
@@ -188,6 +188,7 @@ class Main:
         root.bind('<p>', lambda event: (mixer.music.stop() if mixer.music.get_busy() else mixer.music.play()))
         root.bind('<Control-n>', lambda event: self.new_file_dialog())
         root.bind('<Control-o>', lambda event: self.open_file(True))
+        root.bind('<Control-q>', lambda event: self.quit())
 
         # Frame
         self.toolsFrame = tk.LabelFrame(self.frameTop, text="Tools", height=60, width=(266 if sys.platform == 'win32' else 420), bg='white')
@@ -438,7 +439,7 @@ class Main:
                 pass
             
     def set_framerate(self):
-        framerate = simpledialog.askinteger(title="Set Framerate", prompt="Framerate (1 - 60):", minvalue=1, maxvalue=60)
+        framerate = simpledialog.askinteger(title="Set Framerate", prompt="Set framerate (1 - 60):", minvalue=1, maxvalue=60)
         if framerate != None:
             self.delay(framerate)
             root.title("Pixel-Art Animator-" + self.projectDir + "*")
@@ -1235,6 +1236,7 @@ class Main:
                 self.exportTL.focus()
                 return
             
+            # Create UI
             renderTL = tk.Toplevel()
             renderTL.title("Rendering...")
             renderTL.geometry("480x360")
