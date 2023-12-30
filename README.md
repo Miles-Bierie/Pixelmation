@@ -73,7 +73,7 @@ The button to enable/disable the alpha channel can be found under the edit menu.
 When you edit the frame, the canvas's border will turn red, indicating that there are unsaved changes. When you save, the border will revert back to dark blue.
 
 ## Playback
--You can play or pause the animation by pressing the play/pause button. Crazy, right? You can also use the spacebar to do the same.  
+-You can play or pause the animation by pressing the play/pause button. Crazy, right? Pressing the spacebar will do the same.  
 -<u>Control-clicking</u> the play button or <u>pressing the escape key</u> while the animation is playing will stop and go back to the frame you started playing on. You can also use <u>control-spacebar</u>.  
 -<u>Control-clicking</u> the button or using <u>control-spacebar</u> while the animation is *not* playing will play the animation through one, stopping on the frame you started on. For example, if you do this on frame 16, it will play to the end, go to the beginning, and play until stopping on frame 16.
 
@@ -81,7 +81,6 @@ When you edit the frame, the canvas's border will turn red, indicating that ther
 -You can use the + and - buttons surrounding the frame display button to go to the next or previous frame. You can also use the forward and back arrows to do this.  
 -Holding shift while doing this will allow you to jump to the first or last frame.  
 -In order to go to a specific frame, you can start typing the frame number you want on your number row, and press enter when you finish to jump to that frame, or escape to cancel. <u>This does not currently work with the numpad.</u>
-
 
 ## Exporting
 Open the export dialog by going to File -> Export, or by using Ctrl+E keybind. To render out an image sequence, you will first need to input a valid output path. You can type this in or open it through a dialog using the "open" button to the right of the output path entry. **The open directory button is for opening the output path in the file explorer.**  
