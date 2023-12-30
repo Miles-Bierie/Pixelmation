@@ -62,7 +62,7 @@ If you want to rename a project from within the animation program, go to File ->
 The display for the current frame is also a button that lets you do a few different frame-related things, such as adding and and removing frames, as well as copying other frames to the current frame. When you add a frame, it will be a copy of the previous frame. When you delete a frame, all other frames will automatically be shifted down to account for the missing frame. When creating, pasting, or loading a frame from the previous or next frame, that frame will be saved automatically.
 
 ## Alpha channel
-The button to enable/disable the alpha channel can be found under the edit menu. WHen alpha is displayed, the frame will be saved automatically. The alpha channel supports either fully opaque or fully transparent, so external processing will be needed for a partial value. When displaying the alpha values, white is opaque and black is transparent. While display alpha is enabled, you will not be able to edit the current frame.
+The button to enable/disable the alpha channel can be found under the edit menu. When alpha is displayed, the frame will be saved automatically. The alpha channel supports either fully opaque or fully transparent, so external processing will be needed for a partial value. When displaying the alpha values, white is opaque and black is transparent. While display alpha is enabled, you will not be able to edit the current frame.
 
 ## Tools
 + **Pen:** &nbsp; Does what you would expect; draws in the color selected by the color picker
