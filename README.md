@@ -38,7 +38,7 @@
 | R         | Replace Tool    |
 | Spacebar  | Play/pause      |
 | Ctrl+Spacebar (while stopped) | Play through to current frame|
-| Ctrl+Spacebar (while playing)  | Return to initial frame      |
+| Ctrl+Spacebar (while playing) or Esc  | Return to initial frame      |
 
 <br>
 
