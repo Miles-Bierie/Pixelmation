@@ -84,7 +84,9 @@ When you edit the frame, the canvas's border will turn red, indicating that ther
 
 
 ## Exporting
-Open the export dialog by going to File -> Export, or by using Ctrl+E keybind. To render out an image sequence, you will first need to input a valid output path. You can type this in or open it through a dialog using the "open" button to the right of the output path entry. **The open directory button is for opening the output path in the file explorer.**
+Open the export dialog by going to File -> Export, or by using Ctrl+E keybind. To render out an image sequence, you will first need to input a valid output path. You can type this in or open it through a dialog using the "open" button to the right of the output path entry. **The open directory button is for opening the output path in the file explorer.**  
+
+The "Clear Folder" button sends all contents of the output directory to the trash.
 
 **File name:**  
 &nbsp;&nbsp;&nbsp; The file name is the name that the rendered images will be, followed by a number if you are rendering an image sequence rather than a single image. The extension is determined by the dropdown menu next to the file name entry box. Defaults to a png file.
