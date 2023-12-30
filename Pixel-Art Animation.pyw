@@ -42,7 +42,7 @@ class Main:
         self.VOLUME = 0.8 # Default volume
         self.FRAMERATES = (1, 3, 8, 10, 12, 15, 20, 24, 30, 60)
 
-        self.res = tk.StringVar(value=8) # The project resolution
+        self.res = tk.StringVar(value=8) # The project resolution (8 is default)
         self.currentFrame = tk.StringVar(value='1')
         self.currentFrame_mem = 1
         self.framerateDelay = -1 # Default value (Unasigned)
@@ -73,11 +73,10 @@ class Main:
             },
             "frames": [
                 {
-                    "frame_1": {
+                    "frame_1": {}
                     }
-                }
-            ]
-        }
+                ]
+            }
 
         root.bind_all('<Control-s>', lambda event: self.save(True))
         root.bind_all('<Command-s>', lambda event: self.save(True))
@@ -102,7 +101,9 @@ class Main:
         
     def undo(self):
         self.load_frame(True)
-        root.title(''.join([i for i in root.title() if i != '*'])) # Remove the star in the project title
+        root.title(root.title()[0:-1]) # Remove the star in the project title
+        self.frameMiddle.config(highlightbackground='darkblue')
+        
 
     def load(self):
         def openDir(): # Opens the project directory
@@ -158,8 +159,9 @@ class Main:
         self.frameTop.pack(anchor=tk.NW)
 
         # Add middle/canvas frame
-        self.frameMiddle = tk.Frame(root, width=1080, height=10)
+        self.frameMiddle = tk.Frame(root, width=870, height=870)
         self.frameMiddle.pack(anchor=tk.CENTER, pady=(10, 0))
+        self.frameMiddle.pack_propagate(False)
 
         # Add bottom frame
         self.frameBottom = tk.Frame(root, width=1080, height=40)
@@ -217,7 +219,6 @@ class Main:
         self.replaceFrame.pack(side=tk.LEFT, padx=5)
        
         tk.Button(self.replaceFrame, text="Replace", relief=tk.RAISED, height=2, width=6, command=lambda: self.tool_select(4)).pack()
-
 
         # Add frame display
         self.decreaseFrameButton = tk.Button(self.frameTop, text="-", command=self.decrease_frame, state='disabled', font=('Courier New', 9))
@@ -279,11 +280,11 @@ class Main:
 
         if tool == 1:
             self.penFrame.config(highlightbackground='red')
-        if tool == 2:
+        elif tool == 2:
             self.eraserFrame.config(highlightbackground='red')
-        if tool == 3:
+        elif tool == 3:
             self.removeFrame.config(highlightbackground='red')
-        if tool == 4:
+        elif tool == 4:
             self.replaceFrame.config(highlightbackground = 'red')
 
     def update_title(self):
@@ -314,7 +315,7 @@ class Main:
         try:
             mem = 64
             res.set(''.join([i for i in self.newFileSetResolutionEntry.get() if i.isdigit()]))
-            if int(res.get()) <= 64:
+            if int(res.get()) <= 64 or int(res.get()) > 0:
                 mem = res.get()
             else:
                 res.set(mem)
@@ -375,16 +376,17 @@ class Main:
         self.newFileTL.title("New File")
         self.newFileTL.focus()
         self.newFileTL.bind('<Escape>', lambda event: self.newFileTL.destroy())
+        self.newFileTL.bind('<Return>', lambda event: self.create_new_file(newRes))
        
         #Add the main frame
-        self.newFileFrame = tk.Frame(self.newFileTL, height=128, width=256)
-        self.newFileFrame.pack()
-        self.newFileFrame.pack_propagate(False)
+        newFileFrame = tk.Frame(self.newFileTL, height=128, width=256)
+        newFileFrame.pack()
+        newFileFrame.pack_propagate(False)
 
-        self.newFileOpenDirectoyButton = tk.Button(self.newFileFrame, text="Open Directory", command=lambda: self.create_new_file(newRes), font=('Calibri', 12)).pack(side=tk.TOP)
-        self.newFileSetResolutionEntry = tk.Entry(self.newFileFrame, textvariable=newRes, width=3, font=('Courier New', 15))
-        self.newFileSetResolutionEntry.pack(side=tk.BOTTOM)
-        tk.Label(self.newFileFrame, text="Project Resolution:", font=('Courier New', 12)).pack(side=tk.BOTTOM, pady=4)
+        tk.Button(newFileFrame, text="Create Project", command=lambda: self.create_new_file(newRes), font=('Calibri', 12)).pack(side=tk.TOP)
+        snewFileSetResolutionEntry = tk.Entry(newFileFrame, textvariable=newRes, width=3, font=('Courier New', 15))
+        snewFileSetResolutionEntry.pack(side=tk.BOTTOM)
+        tk.Label(newFileFrame, text="Project Resolution:", font=('Courier New', 12)).pack(side=tk.BOTTOM, pady=4)
 
         newRes.trace_add('write', lambda event1, event2, event3: self.new_project_name_filter(newRes))
        
@@ -495,6 +497,9 @@ class Main:
                 return False
             self.add_canvas(True)
             
+            if self.showAlphaVar.get():
+                self.load_frame(False)
+            
             self.exportOpen = False
             root.focus_force()
             
@@ -513,7 +518,6 @@ class Main:
             audio = mutagen.File(self.audioFile)
             self.audioLength = audio.info.length
             self.audioLength = int((self.audioLength % 60) * 1000)
-            #print(self.audioLength)
             
             root.title("Pixel-Art Animator-" + self.projectDir + '*')
 
@@ -534,7 +538,7 @@ class Main:
                         self.fileOpen.truncate(0)
                         self.fileOpen.write(self.jsonSampleDump)
                     
-                    root.title(''.join([i for i in root.title() if i != '*'])) # Remove the star in the project title
+                    root.title(root.title()[0:-1]) # Remove the star in the project title
 
                     if all:
                         self.save_frame()
@@ -608,7 +612,7 @@ class Main:
         [canvas.destroy() for canvas in self.frameMiddle.winfo_children()]
         self.pixels.clear()
 
-        self.canvas = tk.Canvas(self.frameMiddle, height=1026-160, width=1026-160)
+        self.canvas = tk.Canvas(self.frameMiddle, height=866, width=866)
         self.canvas.pack()
 
         # Create pixels
@@ -673,7 +677,7 @@ class Main:
         self.get_click_coords(event)
 
         if self.showAlphaVar.get(): # Stop the user from drawing in show alpha mode
-            return False
+            return
        
         self.cursor_X = event.x
         self.cursor_Y = event.y
@@ -681,6 +685,8 @@ class Main:
        
         try:
             root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
+            self.frameMiddle.config(highlightbackground="red")
+            
             if self.penFrame['highlightbackground'] == 'red': # If pen mode is selected...
                 if self.canvas.itemcget(self.selectedPixel, option='fill') == self.colorPickerData[1]: # If the pixel color is already the pen color
                     pass
@@ -736,7 +742,8 @@ class Main:
         self.colorPickerData[1] = self.colorPickerData[1] # Needed for some reason idk
 
     def save_frame(self) -> None:
-        root.title(''.join([i for i in root.title() if i != '*'])) # Remove the star in the project title
+        root.title(root.title()[0:-1]) # Remove the star in the project title
+        self.frameMiddle.config(highlightbackground="darkblue")
 
         with open(self.projectDir, 'r+') as self.fileOpen:
             self.jsonReadFile = json.load(self.fileOpen)
@@ -769,6 +776,14 @@ class Main:
             self.jsonFrames = self.jsonReadFile['frames']
 
     def insert_frame(self) -> None: # Inserts a frame after the current frame
+        if self.frameMiddle['highlightbackground'] == "red" and self.frameCount > 1:
+            answer = mb.askyesnocancel(title="Unsaved Changes", message="Would you like to save the current frame?")
+            if answer:
+                self.save_frame()
+            elif answer == None:
+                return
+            self.frameMiddle.config(highlightbackground="darkblue")
+            
         self.currentFrame_mem = int(self.currentFrame.get())
         self.frameCount += 1
 
@@ -833,6 +848,19 @@ class Main:
 
     def increase_frame(self) -> None:
         # Get frame count
+        if self.frameCount == 1:
+            return
+        
+        if self.frameMiddle['highlightbackground'] == "red" and self.frameCount > 1:
+            answer = mb.askyesnocancel(title="Unsaved Changes", message="Would you like to save the current frame?")
+            if answer:
+                self.save_frame()
+            elif answer == None:
+                return
+            self.frameMiddle.config(highlightbackground="darkblue")
+            
+            root.title(root.title()[0:-1])
+            
         if int(self.currentFrame.get()) != int(len(self.jsonFrames[0])):
             self.currentFrame.set(str(int(self.currentFrame.get()) + 1))
         else:
@@ -847,6 +875,17 @@ class Main:
         self.load_frame(False)
        
     def decrease_frame(self) -> None:
+        if self.frameCount == 1:
+            return
+        
+        if self.frameMiddle['highlightbackground'] == "red" and self.frameCount > 1:
+            answer = mb.askyesnocancel(title="Unsaved Changes", message="Would you like to save the current frame?")
+            if answer:
+                self.save_frame()
+            elif answer == None:
+                return
+            self.frameMiddle.config(highlightbackground="darkblue")
+            
         self.currentFrame.set(str(int(self.currentFrame.get()) - 1))
 
         if int(self.currentFrame.get()) < 1:
@@ -933,8 +972,10 @@ class Main:
 
         for pixel in self.pixels:
             if self.showAlphaVar.get():
+                self.frameDisplayButton.config(state=tk.DISABLED)
                 self.canvas.itemconfig(pixel, fill=['black' if self.canvas.itemcget(pixel, option='fill') == 'white' else 'white']) # Show the alpha
             else: # Reload the colors from the file
+                self.frameDisplayButton.config(state=tk.NORMAL)
                 self.load_frame(False)
                 break
             
@@ -1168,7 +1209,7 @@ class Main:
         self.fromVar.trace_add('write', lambda e1, e2, e3: self.var_filter(self.fromVar, 1, self.frameCount - 1))
         self.toVar.trace_add('write', lambda e1, e2, e3: self.var_filter(self.toVar, 1, self.frameCount))
         
-        tk.Label(self.exportFrameMiddleBottom, text="Frame Settings:").pack(side=tk.TOP, anchor=tk.NW)
+        tk.Label(self.exportFrameMiddleBottom, text="Render Settings:").pack(side=tk.TOP, anchor=tk.NW)
 
         tk.Label(self.exportFrameMiddleBottom, text="From:").pack(side=tk.LEFT)
         tk.Entry(self.exportFrameMiddleBottom, width=4, textvariable=self.fromVar).pack(side=tk.LEFT, padx=4)
@@ -1467,7 +1508,7 @@ class Main:
             if not loop:
                 if int(self.currentFrame.get()) == self.currentFrame_mem:
                     end()
-                    return None
+                    return
             try:
                 if self.isPlaying:
                     time.sleep(max((self.framerateDelay - 0.000006164899999999 * int(self.res.get())) - (timeit.default_timer() - time1), 0))
