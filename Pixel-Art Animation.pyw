@@ -1147,11 +1147,10 @@ class Main:
         self.exportTL.bind('<Escape>', lambda e: self.exportTL.withdraw())
 
         # Create the frames
-        frameWidth = (420 if sys.platform == 'win32' else 456)
+        frameWidth = (420 if sys.platform == 'win32' else 548)
         
-        self.sequenceFrame = tk.Frame(self.exportTL, width=frameWidth, height=500)
+        self.sequenceFrame = tk.Frame(self.exportTL, width=frameWidth, height=300)
         self.sequenceFrame.pack()
-        self.singleFrame = tk.Frame(self.exportTL, width=frameWidth, height=500)
 
         self.exportFrameTop = tk.Frame(self.sequenceFrame, width=frameWidth, height=100, highlightbackground='black', highlightthickness=2)
         self.exportFrameTop.pack(side=tk.TOP)
@@ -1233,7 +1232,7 @@ class Main:
         
         self.exportTL.update_idletasks() # So we can get the resolution that one time
         
-        ttk.Separator(self.exportFrameBottom1, orient='horizontal').pack(ipadx=240, pady=(8, 0)) # Seperator
+        ttk.Separator(self.exportFrameBottom1, orient='horizontal').pack(ipadx=320, pady=(8, 0)) # Seperator
         tk.Label(self.exportFrameBottom1, width=40, text=f"Total frame count: {self.frameCount}").pack(side=tk.BOTTOM) # Display the total frame count
         
         self.exportTL.after(10, lambda: self.exportTL.deiconify())
