@@ -1,4 +1,4 @@
-#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Thursday, December 28, 2023  |=========---------  #
+#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Friday, January 5, 2024  |=========---------  #
 
 
 from tkinter import colorchooser as ch
@@ -193,7 +193,7 @@ class Main:
         root.bind('<Control-q>', lambda event: self.quit())
 
         # Frame
-        self.toolsFrame = tk.LabelFrame(self.frameTop, text="Tools", height=60, width=(266 if sys.platform == 'win32' else 420), bg='white')
+        self.toolsFrame = tk.LabelFrame(self.frameTop, text="Tools", height=60, width=(266 if sys.platform == 'win32' else 420), bg='white', fg='black')
         self.toolsFrame.pack(anchor=tk.N, side=tk.LEFT, padx=((175 if sys.platform == 'win32' else 60), 0))
 
         # Pen
@@ -1185,7 +1185,7 @@ class Main:
         
         tk.Label(self.exportFrameTop, text="Output Directory:", font=('Calibri', 14)).grid(row=0, column=0)
         tk.Button(self.exportFrameTop, text="open", font=('Calibri', 10), command=self.open_output_dir).grid(row=1, column=3, sticky=tk.W)
-        tk.Button(self.exportFrameTop, text="Open Directory", font=('Calibri', 10), command=lambda: (open_dir()) if sys.platform == 'win32' else (f'open "{self.outputDirectory.get()}"')).grid(row=2, column=0, sticky=tk.W, padx=(112, 0))
+        tk.Button(self.exportFrameTop, text="Open Directory", font=('Calibri', 10), command=lambda: (open_dir()) if sys.platform == 'win32' else (os.system(f"open {self.outputDirectory.get()}"))).grid(row=2, column=0, sticky=tk.W, padx=(112, 0))
         self.clearFolderButton = tk.Button(self.exportFrameTop, text="Clear Folder", font=('Calibri', 10), command=lambda: askTrash(self.outputDirectory.get()))
         self.clearFolderButton.grid(row=2, column=2, sticky=tk.E, columnspan=2, padx=(0, 112))
         
@@ -1365,7 +1365,7 @@ class Main:
                         renderedImage = ImageTk.PhotoImage(image=(Image.open(fileName + "_" + subStr + extension).resize((imageDisplay.winfo_width(), imageDisplay.winfo_height()), resample=0)))
                         imageDisplay.create_image(1, 1, anchor=tk.NW, image=renderedImage)
                         
-                        infoLabel.config(text=f"Rendering frame {frame} of {floor(frameCount / args[2] + 1)}")
+                        infoLabel.config(text=f"Rendered frame {frame} of {floor(frameCount / args[2] + 1)}")
                         
                         progressBar.config(value=position)
                         renderTL.update()
