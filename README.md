@@ -143,3 +143,6 @@ Resolution:
 
 + Development:
     + This program was developed almost entirely on a Windows computer. Therefore, some features might not work on other platforms. I will try to make this program as cross-compatible as I can, but no promises.
+
++ Undo:
+    + Undo makes you go back to the last save. This action cannot be undone. Kind of ironic. I probably won't add a real undo/redo system because that sounds hard, so be careful!

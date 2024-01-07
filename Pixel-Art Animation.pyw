@@ -1,4 +1,4 @@
-#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Friday, January 5, 2024  |=========---------  #
+#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Saturday, January 6, 2024  |=========---------  #
 
 
 from tkinter import colorchooser as ch
@@ -100,9 +100,11 @@ class Main:
             root.unbind("<Motion>")
         
     def undo(self):
-        self.load_frame(True)
-        root.title(root.title()[0:-1]) # Remove the star in the project title
-        self.frameMiddle.config(highlightbackground='darkblue')
+        answer = mb.askyesno(title="Undo", message="Are you sure you want to revert to the last save?")
+        if answer:
+            self.load_frame(True)
+            root.title(root.title()[0:-1]) # Remove the star in the project title
+            self.frameMiddle.config(highlightbackground='darkblue')
         
 
     def load(self):
