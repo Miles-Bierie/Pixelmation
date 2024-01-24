@@ -98,7 +98,7 @@ class Main:
                 mixer.music.set_pos(self.playback)
             self.currentFrame.set(max(int(self.currentFrame.get()) - 2, 1))
             root.unbind("<Motion>")
-        
+
     def undo(self):
         answer = mb.askyesno(title="Undo", message="Are you sure you want to revert to the last save?")
         if answer:
@@ -106,11 +106,14 @@ class Main:
             root.title(root.title()[0:-1]) # Remove the star in the project title
             self.frameMiddle.config(highlightbackground='darkblue')
         
-
     def load(self):
         def openDir(): # Opens the project directory
             os.chdir(self.projectDir[:self.projectDir.rfind('/')])
-            os.system(f'Explorer .')
+            
+            if sys.platform == 'win32':
+                os.system(f'Explorer .')
+            else:
+                os.system('open .')
         
         mixer.pre_init(buffer=4096)
         mixer.init()
@@ -145,7 +148,7 @@ class Main:
         self.displayMenu = tk.Menu(self.menubar, tearoff=0)
         self.displayMenu.add_checkbutton(label="Show Grid", variable=self.showGridVar, command=lambda: self.update_grid(True), state=tk.DISABLED)
         self.displayMenu.add_command(label="Grid Color", command=lambda: self.set_grid_color(True), state=tk.DISABLED)
-        self.displayMenu.add_checkbutton(label="Show Alpha", variable=self.showAlphaVar, command=lambda: self.display_alpha(True))
+        self.displayMenu.add_checkbutton(label="Show Alpha", variable=self.showAlphaVar, command=lambda: self.display_alpha(True), state=tk.DISABLED)
 
         # Add the file cascades
         self.menubar.add_cascade(label="File", menu=self.fileMenu)
@@ -344,6 +347,7 @@ class Main:
        
         self.displayMenu.entryconfig('Show Grid', state=tk.ACTIVE)
         self.displayMenu.entryconfig('Grid Color', state=tk.ACTIVE)
+        self.displayMenu.entryconfig('Show Alpha', state=tk.ACTIVE)
 
         self.increaseFrameButton['state'] = "normal"
         self.frameDisplayButton['state'] = "normal"
@@ -466,37 +470,46 @@ class Main:
 
         if len(self.fileOpen) > 0 or not dialog:
             try:
+                with open(f'{self.fileOpen}', 'r') as file:
+                    self.projectData = json.load(file)
+                
+                for i in ('resolution', 'showgrid', 'gridcolor', 'audio', 'framerate', 'output'):
+                    if i not in self.projectData['data']:
+                        mb.showerror(title="Project", message=f"Failed to load {self.fileOpen};\n missing {i} section!")
+                    
+                    if i == 'audio':
+                        if (fileCheck := self.projectData['data']['audio']) != None:
+                            if not os.path.isfile(fileCheck):
+                                mb.showerror(title="Project", message=f"Failed to load audio; Please check that the file exists!")
+                                self.audioFile = None
+                            else:
+                                self.audioFile = self.projectData['data']['audio'] # Load audio
+
+                                mixer.music.queue(self.audioFile)
+                                mixer.music.load(self.audioFile)
+                                
+                                audio = mutagen.File(self.audioFile)
+                                self.audioLength = audio.info.length
+                                self.audioLength = int((self.audioLength % 60) * 1000)
+                    
+                self.projectDir = self.fileOpen
+                
                 self.currentFrame.set(1) # Reset the current frame
-                self.audioFile = None
                 self.playback = 0
                 self.isPlaying = False
-
-                self.projectDir = self.fileOpen
-                self.file = open(f'{self.projectDir}', 'r')
-                self.projectData = json.load(self.file)
-                self.file.close()
 
                 self.res.set(self.projectData['data']['resolution']) # Load resolution
                 self.showGridVar.set(self.projectData['data']['showgrid']) # Load grid state
                 self.gridColor = self.projectData['data']['gridcolor'] # Load grid color
-                self.audioFile = self.projectData['data']['audio'] # Load audio
                 self.framerate = self.projectData['data']['framerate'] # Load framerate
                 self.outputDirectory.set(self.projectData['data']['output'])
 
                 self.delay(self.framerate) # Set the framerate to the saved framerate               
 
-                if self.audioFile != None:
-                    mixer.music.queue(self.audioFile)
-                    mixer.music.load(self.audioFile)
-
-                    audio = mutagen.File(self.audioFile)
-                    self.audioLength = audio.info.length
-                    self.audioLength = int((self.audioLength % 60) * 1000)
-
-                self.file.close()
-            except Exception as e:
-                mb.showerror(title="Project", message=f"Failed to load {self.fileOpen};\n missing {e} section!")
-                return False
+            except IndentationError as e:
+                mb.showerror(title="Project", message=f"Failed to load {self.fileOpen}; Unknown Error!")
+                return
+            
             self.add_canvas(True)
             
             if self.showAlphaVar.get():
