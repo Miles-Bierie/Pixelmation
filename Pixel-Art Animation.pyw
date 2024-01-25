@@ -530,9 +530,9 @@ class Main:
                 title="Open audio file",
                 filetypes=(("mp3", '*.mp3'),("wav", '*.wav'))
             )
-            
+
             if len(audioPath) > 1:
-                self.fileMenu.entryconfig("Load Audio", label="Unload")
+                self.fileMenu.entryconfig("Load Audio", label="Unload Audio")
                 self.audioFile = audioPath
                 mixer.music.unload()
                 self.paused = False

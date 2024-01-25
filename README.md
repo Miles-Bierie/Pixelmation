@@ -1,5 +1,5 @@
 # Pixelmation
-### A python Tkinter application for creating pixel-art animations!
+### A python 3.12 Tkinter application for creating pixel-art animations!
 
 <br>
 
