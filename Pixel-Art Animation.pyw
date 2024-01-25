@@ -133,7 +133,7 @@ class Main:
         self.fileMenu.add_command(label="Export", command=self.export_display, state=tk.DISABLED)
         self.fileMenu.add_separator()
         self.fileMenu.add_command(label="Open Directory in Explorer", command=openDir, state=tk.DISABLED)
-        self.fileMenu.add_command(label="Load Audio", command=self.open_audio, state=tk.DISABLED)
+        self.fileMenu.add_command(label="Load Audio", command=self.load_audio, state=tk.DISABLED)
         self.fileMenu.add_separator()
         self.fileMenu.add_command(label="Quit", command=self.quit)
 
@@ -280,17 +280,18 @@ class Main:
         self.colorPickerFrame.config(highlightbackground = self.colorPickerData[1])
 
     def tool_select(self, tool):
-        for frame in self.toolsFrame.winfo_children():
-                frame.config(highlightbackground='white')
+        if not self.isPlaying:
+            for frame in self.toolsFrame.winfo_children():
+                    frame.config(highlightbackground='white')
 
-        if tool == 1:
-            self.penFrame.config(highlightbackground='red')
-        elif tool == 2:
-            self.eraserFrame.config(highlightbackground='red')
-        elif tool == 3:
-            self.removeFrame.config(highlightbackground='red')
-        elif tool == 4:
-            self.replaceFrame.config(highlightbackground = 'red')
+            if tool == 1:
+                self.penFrame.config(highlightbackground='red')
+            elif tool == 2:
+                self.eraserFrame.config(highlightbackground='red')
+            elif tool == 3:
+                self.removeFrame.config(highlightbackground='red')
+            elif tool == 4:
+                self.replaceFrame.config(highlightbackground = 'red')
 
     def update_title(self):
         root.title("Pixel-Art Animator-" + self.projectDir)
@@ -339,7 +340,11 @@ class Main:
         self.fileMenu.entryconfig('Export', state=tk.ACTIVE)
 
         self.fileMenu.entryconfig('Open Directory in Explorer', state=tk.ACTIVE)
-        self.fileMenu.entryconfig('Load Audio', state=tk.ACTIVE)
+
+        try:
+            self.fileMenu.entryconfig('Load Audio', state=tk.ACTIVE)
+        except tk.TclError:
+            self.fileMenu.entryconfig('Unload Audio', state=tk.ACTIVE)
 
         self.editMenu.entryconfig('Clear', state=tk.ACTIVE)
         self.editMenu.entryconfig('Fill', state=tk.ACTIVE)
@@ -484,6 +489,8 @@ class Main:
                                 self.audioFile = None
                             else:
                                 self.audioFile = self.projectData['data']['audio'] # Load audio
+                                
+                                self.fileMenu.entryconfig("Load Audio", label="Unload Audio")
 
                                 mixer.music.queue(self.audioFile)
                                 mixer.music.load(self.audioFile)
@@ -518,23 +525,29 @@ class Main:
             self.exportOpen = False
             root.focus_force()
             
-    def open_audio(self):
-        audioPath = fd.askopenfilename(
-            title="Open audio file",
-            filetypes=(("mp3", '*.mp3'),("wav", '*.wav'))
-        )
-        
-        if len(audioPath) > 1:
-            self.audioFile = audioPath
-            mixer.music.unload()
-            self.paused = False
-            mixer.music.load(self.audioFile)
-
-            audio = mutagen.File(self.audioFile)
-            self.audioLength = audio.info.length
-            self.audioLength = int((self.audioLength % 60) * 1000)
+    def load_audio(self):
+        if self.audioFile == None:
+            audioPath = fd.askopenfilename(
+                title="Open audio file",
+                filetypes=(("mp3", '*.mp3'),("wav", '*.wav'))
+            )
             
-            root.title("Pixel-Art Animator-" + self.projectDir + '*')
+            if len(audioPath) > 1:
+                self.fileMenu.entryconfig("Load Audio", label="Unload")
+                self.audioFile = audioPath
+                mixer.music.unload()
+                self.paused = False
+                mixer.music.load(self.audioFile)
+
+                audio = mutagen.File(self.audioFile)
+                self.audioLength = audio.info.length
+                self.audioLength = int((self.audioLength % 60) * 1000)
+        else:
+            self.fileMenu.entryconfig("Unload Audio", label="Load Audio")
+            self.audioFile = None
+            mixer.music.unload()
+                
+        root.title("Pixel-Art Animator-" + self.projectDir + '*')
 
     def save(self, all) -> None:
         if not self.showAlphaVar.get(): # If show alpha is not toggled
@@ -1364,7 +1377,6 @@ class Main:
                                     color = pixels[str(px)]
                                     rgb = self.hex_to_rgb(color)
                                     rgb.append(255)
-                                    rgb = tuple(rgb)
                                     img.putpixel((x, y), rgb)
                                 except KeyError:
                                     if alpha and usingAlpha:
@@ -1418,7 +1430,6 @@ class Main:
                     if color != 'white':
                         rgb = self.hex_to_rgb(color)
                         rgb.append(255)
-                        rgb = tuple(rgb)
                         img.putpixel((x, y), rgb)
                     else:
                         if alpha and usingAlpha:
