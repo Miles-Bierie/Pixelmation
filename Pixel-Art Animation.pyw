@@ -132,7 +132,7 @@ class Main:
         self.fileMenu.add_command(label="Save As", command=self.save_as, state=tk.DISABLED)
         self.fileMenu.add_command(label="Export", command=self.export_display, state=tk.DISABLED)
         self.fileMenu.add_separator()
-        self.fileMenu.add_command(label="Open Directory in Explorer", command=openDir, state=tk.DISABLED)
+        self.fileMenu.add_command(label=f"Open Directory in {'Explorer' if sys.platform == 'win32' else 'Finder'}", command=openDir, state=tk.DISABLED)
         self.fileMenu.add_command(label="Load Audio", command=self.load_audio, state=tk.DISABLED)
         self.fileMenu.add_separator()
         self.fileMenu.add_command(label="Quit", command=self.quit)
@@ -338,7 +338,7 @@ class Main:
         self.fileMenu.entryconfig('Save As', state=tk.ACTIVE)
         self.fileMenu.entryconfig('Export', state=tk.ACTIVE)
 
-        self.fileMenu.entryconfig('Open Directory in Explorer', state=tk.ACTIVE)
+        self.fileMenu.entryconfig(f'Open Directory in {'Explorer' if sys.platform == 'win32' else 'Finder'}', state=tk.ACTIVE)
 
         try:
             self.fileMenu.entryconfig('Load Audio', state=tk.ACTIVE)
