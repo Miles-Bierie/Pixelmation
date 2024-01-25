@@ -300,7 +300,6 @@ class Main:
         if self.showGridVar.get():
             for pixel in self.pixels:
                 self.canvas.itemconfig(str(pixel), outline=self.gridColor)
-
         else:
             for pixel in self.pixels:
                 self.canvas.itemconfig(str(pixel), outline='')
