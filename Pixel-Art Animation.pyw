@@ -318,12 +318,21 @@ class Main:
 
     def new_project_name_filter(self, res):
         try:
-            mem = 64
-            res.set(''.join([i for i in self.newFileSetResolutionEntry.get() if i.isdigit()]))
-            if int(res.get()) <= 64 or int(res.get()) > 0:
-                mem = res.get()
+            res.set(''.join([i for i in res.get() if i.isdigit()]))
+            if int(res.get()) <= 64 and int(res.get()) > 0:
+                pass
             else:
-                res.set(mem)
+                res.set(64)
+        except:
+            pass
+        
+    def new_project_framerate_filter(self, framerate):
+        try:
+            framerate.set(''.join([i for i in self.newFramerateEntry.get() if i.isdigit()]))
+            if int(framerate.get()) <= 60 and int(framerate.get()) > 0:
+                pass
+            else:
+                framerate.set(60)
         except:
             pass
 
@@ -378,9 +387,10 @@ class Main:
 
     def new_file_dialog(self):
         newRes = tk.StringVar(value=self.res.get())
+        newFramerate = tk.StringVar(value='10')
         
         #Add the toplevel window
-        self.newFileTL = tk.Toplevel(width=128, height=200)
+        self.newFileTL = tk.Toplevel(width=128, height=256)
         self.newFileTL.attributes("-topmost", True)
         self.newFileTL.resizable(False, False)
         self.newFileTL.title("New File")
@@ -389,19 +399,29 @@ class Main:
         self.newFileTL.bind('<Return>', lambda event: self.create_new_file(newRes))
        
         #Add the main frame
-        newFileFrame = tk.Frame(self.newFileTL, height=128, width=256)
+        newFileFrame = tk.Frame(self.newFileTL, height=156, width=256)
         newFileFrame.pack()
         newFileFrame.pack_propagate(False)
+        
+        self.newFramerateEntry = tk.Entry(newFileFrame, textvariable=newFramerate, width=3, font=('Courier New', 15))
+        self.newFramerateEntry.pack(side=tk.BOTTOM)
+        tk.Label(newFileFrame, text="Framerate:", font=('Courier New', 12)).pack(side=tk.BOTTOM)
 
-        tk.Button(newFileFrame, text="Create Project", command=lambda: self.create_new_file(newRes), font=('Calibri', 12)).pack(side=tk.TOP)
-        snewFileSetResolutionEntry = tk.Entry(newFileFrame, textvariable=newRes, width=3, font=('Courier New', 15))
-        snewFileSetResolutionEntry.pack(side=tk.BOTTOM)
-        tk.Label(newFileFrame, text="Project Resolution:", font=('Courier New', 12)).pack(side=tk.BOTTOM, pady=4)
+        tk.Button(newFileFrame, text="Create Project", command=lambda: self.create_new_file(newRes, newFramerate), font=('Calibri', 12)).pack(side=tk.TOP)
+        self.newFileSetResolutionEntry = tk.Entry(newFileFrame, textvariable=newRes, width=3, font=('Courier New', 15))
+        self.newFileSetResolutionEntry.pack(side=tk.BOTTOM)
+        tk.Label(newFileFrame, text="Project Resolution:", font=('Courier New', 12)).pack(side=tk.BOTTOM, pady=(0, 8))
 
         newRes.trace_add('write', lambda event1, event2, event3: self.new_project_name_filter(newRes))
+        newFramerate.trace_add('write', lambda event1, event2, event3: self.new_project_framerate_filter(newFramerate))
        
-    def create_new_file(self, res):
+    def create_new_file(self, res, framerate):
+        if res.get() == '' or framerate.get() == '':
+            mb.showerror(title="Invalid Data", message="Please fill out all forms!")
+            return
+
         self.res.set(res.get()) # Set project resolution to the new resolution
+        self.delay(int(framerate.get()))
         self.newFileTL.attributes("-topmost", False)
         self.newDir = fd.asksaveasfilename(
             title="Choose Directory",
@@ -423,7 +443,7 @@ class Main:
             self.projectFileSample['data']['resolution'] = self.res.get() # Write the file resolution
             self.projectFileSample['data']['gridcolor'] = self.gridColor
             self.projectFileSample['data']['showgrid'] = int(self.showGridVar.get())
-            self.projectFileSample['data']['framerate'] = 10
+            self.projectFileSample['data']['framerate'] = self.framerate
             self.projectFileSample['data']['output'] = self.outputDirectory.get()
 
             self.jsonSampleDump = json.dumps(self.projectFileSample, indent=4, separators=(',', ':')) # Read the project data as json text
@@ -673,7 +693,7 @@ class Main:
                     if self.showAlphaVar.get(): # If show alpha is selected
                         self.display_alpha(False)
                     else:
-                        self.canvas.itemconfig(self.pixel, fill=self.savedPixelColor[str(self.pixel)])
+                        self.canvas.itemconfig(self.pixel, fill=self.savedPixelColor[str(self.pixel)][1])
 
                 except KeyError: # If the pixel is not present within the json file
                     self.canvas.itemconfig(self.pixel, fill='white') # Fill pixels with white (0 alpha)
@@ -701,6 +721,9 @@ class Main:
         loading.destroy() # Remove the loading text
 
     def on_press(self, event: dict):
+        if self.isPlaying:
+            return
+
         self.get_click_coords(event)
 
         if self.showAlphaVar.get(): # Stop the user from drawing in show alpha mode
@@ -715,9 +738,7 @@ class Main:
             self.frameMiddle.config(highlightbackground="red")
             
             if self.penFrame['highlightbackground'] == 'red': # If pen mode is selected...
-                if self.canvas.itemcget(self.selectedPixel, option='fill') == self.colorPickerData[1]: # If the pixel color is already the pen color
-                    pass
-                else:
+                if not self.canvas.itemcget(self.selectedPixel, option='fill') == self.colorPickerData[1]: # If the pixel color is already the pen color
                     root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
                     self.canvas.itemconfig(self.selectedPixel, fill=self.colorPickerData[1])
 
@@ -728,9 +749,7 @@ class Main:
                 self.canvas_remove_color()
 
             elif self.replaceFrame['highlightbackground'] == 'red': # If the replace mode is selected...
-                if self.canvas.itemcget(self.selectedPixel, option='fill') == self.colorPickerData[1]: # If the pixel color is already the pen color
-                    pass
-                else:
+                if not self.canvas.itemcget(self.selectedPixel, option='fill') == self.colorPickerData[1]: # If the pixel color is already the pen color
                     self.canvas_replace_color()
         except:
             pass # I don't want it to yell at me
@@ -791,7 +810,9 @@ class Main:
                 self.pixelColor = self.canvas.itemcget(pixel, option='fill') # Get the colors of each pixel
 
                 if self.pixelColor != 'white': # If the frame is not transparent
-                    self.color_Frame_Dict[pixel] = self.pixelColor
+                    self.color_Frame_Dict[pixel] = ["", ""]
+                    self.color_Frame_Dict[pixel][0] = self.pixelColor
+                    self.color_Frame_Dict[pixel][1] = self.pixelColor
                     self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = self.color_Frame_Dict
 
             self.jsonSampleDump = json.dumps(self.jsonReadFile, indent=4, separators=(',', ':'))
@@ -964,7 +985,7 @@ class Main:
                 if self.showAlphaVar.get(): # If show alpha is selected
                     self.canvas.itemconfig(self.pixels[pixel], fill=('white' if self.savedPixelColor[str(self.pixels[pixel])] else 'black'))
                 else:
-                    self.canvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColor[str(self.pixels[pixel])])
+                    self.canvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColor[str(self.pixels[pixel])][1])
 
             except KeyError: # If the pixel is not present within the json file
                 if self.showAlphaVar.get():
@@ -976,8 +997,8 @@ class Main:
             self.get_playback_pos()
 
     def load_from(self, frame: int) -> None:
-        for pixel in range(int(self.res.get())**2):
-            with open(self.projectDir, 'r') as self.fileOpen:
+        with open(self.projectDir, 'r') as self.fileOpen:
+            for pixel in range(int(self.res.get())**2):
                 self.jsonReadFile = json.load(self.fileOpen)
                 try:
                     self.json_readFrames = self.jsonReadFile['frames']
@@ -986,7 +1007,7 @@ class Main:
                     if self.canvas.itemcget(self.pixels[pixel], option='fill') != self.savedPixelColor[str(self.pixels[pixel])]: # If the pixel color is already the pen color
                         root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
 
-                    self.canvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColor[str(self.pixels[pixel])])
+                    self.canvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColor[str(self.pixels[pixel][1])])
                 except:
                     self.canvas.itemconfig(self.pixels[pixel], fill='white')
                     
@@ -1026,7 +1047,6 @@ class Main:
             if char != None:
                 if len(text.get()) < len(str(self.frameCount)):
                     text.set(text.get() + str(char))
-            
             else:
                 if len(text.get()) > 1:
                     text.set(text.get()[:-1])
