@@ -1376,7 +1376,7 @@ class Main:
                                     color = pixels[str(px)]
                                     rgb = self.hex_to_rgb(color)
                                     rgb.append(255)
-                                    img.putpixel((x, y), rgb)
+                                    img.putpixel((x, y), tuple(rgb))
                                 except KeyError:
                                     if alpha and usingAlpha:
                                         img.putpixel((x, y), (0) * 4)
@@ -1429,7 +1429,7 @@ class Main:
                     if color != 'white':
                         rgb = self.hex_to_rgb(color)
                         rgb.append(255)
-                        img.putpixel((x, y), rgb)
+                        img.putpixel((x, y), tuple(rgb))
                     else:
                         if alpha and usingAlpha:
                             img.putpixel((x, y), (0) * 4)
