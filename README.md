@@ -13,7 +13,6 @@
 + Toggleable grid
 + Customizable grid color
 + Ability to copy/paste frames
-+ Annoying flickering when you change tools
 + Cool text that says "Loading..." when it is loading a file
 + Lack of a fill tool (yea, I'll get around to it...)
 

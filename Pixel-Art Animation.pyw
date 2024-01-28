@@ -1,4 +1,4 @@
-#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Saturday, January 6, 2024  |=========---------  #
+#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Sunday, January 28, 2024  |=========---------  #
 
 
 from tkinter import colorchooser as ch
@@ -7,6 +7,7 @@ from tkinter import messagebox as mb
 from tkinter import simpledialog
 from PIL import Image, ImageTk
 from math import ceil, floor
+from tkinter import TclError
 from pygame import mixer
 from tkinter import ttk
 import tkinter as tk
@@ -14,6 +15,7 @@ import send2trash
 import threading
 import mutagen
 import timeit
+import uuid
 import json
 import copy
 import time
@@ -22,6 +24,248 @@ import os
 
 if sys.platform == 'win32':
     import winsound
+    
+class Operator(tk.Frame):
+    copied = None
+    modifier_count = 0
+    
+    WIDTH = 250
+    HEIGHT = 297
+        
+    def __init__(self, parent, name, _uuid):
+        # Are we renaming the modifier?
+        self.renaming = False
+        
+        # The name/title of the widget
+        self.name = name
+        self.nameVar = tk.StringVar(value=self.name)
+        
+        # ID specific to this modifier
+        self.UUID = (uuid.uuid1() if _uuid == None else _uuid)
+        
+        
+        super().__init__(master=parent)
+        
+        # Basic properties
+        self.config(width=self.WIDTH, height=self.HEIGHT, highlightbackground='black', highlightthickness=1)
+        self.pack_propagate(False)
+        
+        # Is this modifier active?
+        self.enabled = tk.BooleanVar(value=True)
+        
+        self.titleFrame = tk.Frame(self, bg='lightblue', width=self.WIDTH, height=24, highlightbackground='black', highlightthickness=1)
+        self.titleFrame.pack(side=tk.TOP)
+        self.titleFrame.pack_propagate(False)
+        self.titleFrame.bind('<Button-1>', lambda e: self.__rename__(True))
+        
+        self.nameLabel = tk.Label(self.titleFrame, text=self.name, bg='lightblue')
+        self.nameLabel.pack(anchor=tk.W, side=tk.LEFT)
+        self.nameLabel.bind('<Double-Button-1>', lambda e: self.__rename_dialog__())
+        
+        # Only visible when renaming
+        self.nameEntry = tk.Entry(self.titleFrame, textvariable=self.nameVar, width=32)
+        self.nameEntry.bind('<Return>', lambda e: self.__rename__(True))
+        self.nameEntry.bind('<FocusOut>', lambda e: self.__rename__(True))
+        self.nameEntry.bind('<Escape>', lambda e: self.__rename__(False))
+        
+        self.enableCheck = tk.Checkbutton(self.titleFrame, variable=self.enabled, command=self.__toggle_enable__, bg='lightblue')
+        self.enableCheck.pack(anchor=tk.E, side=tk.RIGHT)
+        
+        self.mainFrame = tk.Frame(self, width=self.WIDTH, height=self.HEIGHT-24, highlightbackground='black', highlightthickness=1)
+        self.mainFrame.pack(side=tk.BOTTOM, anchor=tk.S)
+        self.mainFrame.pack_propagate(False)
+        self.mainFrame.bind('<Button-1>', lambda e: self.__rename__(True))
+        
+        for widget in self.winfo_children():
+            widget.bind('<Button-3>', lambda e: self.__option_dialog__())
+        
+    # Shows the rename entry
+    def __rename_dialog__(self):
+        self.renaming = True
+        self.nameLabel.pack_forget()
+        
+        self.nameEntry.pack(anchor=tk.W, side=tk.LEFT)
+        self.nameEntry.focus()
+        
+    def __option_dialog__(self):
+        menu = tk.Menu(tearoff=False)
+        menu.add_command(label='Copy Modifier', command=lambda: self.__copy__())
+        menu.add_command(label='Paste Modifier')
+        menu.add_separator()
+        menu.add_command(label='Delete Modifier', command=lambda m = self: m.destroy())
+        menu.tk_popup(self.winfo_pointerx(), self.winfo_pointery())
+        
+    def __toggle_enable__(self):
+        # Command gets run before the value gets updated, so we negate the check
+        if not self.enabled.get():
+            self.titleFrame.config(bg='gray')
+            self.nameLabel.config(bg='gray')
+            self.enableCheck.config(bg='gray')
+            
+            self.mainFrame.pack_forget()
+            self.config(height=24)
+        else:
+            self.titleFrame.config(bg='lightblue')
+            self.nameLabel.config(bg='lightblue')
+            self.enableCheck.config(bg='lightblue')
+            
+            self.mainFrame.pack(side=tk.BOTTOM, anchor=tk.S)
+            self.config(height=self.HEIGHT)
+ 
+    def __copy__(self):
+        Operator.copied = self.UUID
+        
+    def __rename__(self, rename):
+        MAX_LENGTH = 37
+        self.focus() # And, therefore, remove focus from the entry, incase you clicked on another Operator instance
+        
+        if not self.renaming:
+            return
+
+        if self.nameVar.get() == '' or not rename:
+            self.nameVar.set(self.name)
+        
+        nameStr = self.nameVar.get().strip()
+
+        if len(nameStr) > MAX_LENGTH:
+            abbr = nameStr[:MAX_LENGTH-3]
+            abbr = abbr.strip() + '...'
+            self.nameLabel.config(text=abbr)
+        else:
+            self.nameLabel.config(text=nameStr)
+        
+        self.nameVar.set(nameStr)
+        self.name = nameStr
+        
+        self.nameEntry.pack_forget()
+        self.nameLabel.pack(anchor=tk.W, side=tk.LEFT)
+        
+        self.renaming = False
+
+
+class TintOperator(Operator):
+    def __init__(self, parent, name="TintOperator", _uuid=None): 
+        super().__init__(parent=parent, name=name, _uuid=_uuid)
+        
+        self.parent = parent
+        
+        # What is this?
+        self.type = 'TintOperator'
+        
+        self.tintColor = '#ffffff'
+        
+        self.redVar = tk.StringVar(master=self, value='255')
+        self.greenVar = tk.StringVar(master=self, value='255')
+        self.blueVar = tk.StringVar(master=self, value='255')
+        
+        # Color-picker button
+        self.buttonFrame = tk.Frame(self.mainFrame, highlightbackground='white', highlightthickness=2)
+        self.buttonFrame.pack(side=tk.TOP, pady=10)
+        self.colorButton = tk.Button(self.buttonFrame, text='Tint', command=self.pick_color, width=26)
+        self.colorButton.pack()
+        
+        rgbFrame = tk.Frame(self.mainFrame, highlightbackground='black', highlightthickness=2)
+        rgbFrame.pack(pady=(10, 0))
+        
+        tk.Label(rgbFrame, text='Red:').pack(side=tk.LEFT, padx=(0, 5))
+        self.redEntry = tk.Entry(rgbFrame, width=3, textvariable=self.redVar, name='red')
+        self.redEntry.pack(side=tk.LEFT, padx=(0, 8))
+        
+        tk.Label(rgbFrame, text='Green:').pack(side=tk.LEFT, padx=(0, 5))
+        self.greenEntry = tk.Entry(rgbFrame, width=3, textvariable=self.greenVar, name='green')
+        self.greenEntry.pack(side=tk.LEFT, padx=(0, 8))
+        
+        tk.Label(rgbFrame, text='Blue:').pack(side=tk.LEFT, padx=(0, 5))
+        self.blueEntry = tk.Entry(rgbFrame, width=3, textvariable=self.blueVar, name='blue')
+        self.blueEntry.pack(side=tk.LEFT, padx=(0, 8))
+        
+        for widget in rgbFrame.winfo_children():
+            if widget.winfo_class() == 'Entry':
+                self.redVar.trace_add('write', lambda e1, e2, e3: self.manual_color())
+                self.greenVar.trace_add('write', lambda e1, e2, e3: self.manual_color())
+                self.blueVar.trace_add('write', lambda e1, e2, e3: self.manual_color())
+        
+    def pick_color(self):
+        newColor = ch.askcolor(parent=self.parent, initialcolor=self.tintColor)
+        if newColor:
+            self.colorChooserUI = True
+
+            self.tintColor = newColor[1]
+            self.buttonFrame.config(highlightbackground=self.tintColor)
+            self.update_entries(newColor[0])
+            
+    def manual_color(self):  
+        try:
+            var = self.focus_get().winfo_name()
+            
+            if var in ('red', 'green', 'blue'):
+
+            # Make sure we are only typing numbers
+                eval(f'self.{var}Var.set("".join(i for i in self.{var}Var.get() if i.isdigit()))')
+                
+                color = (int(self.redVar.get()), int(self.greenVar.get()), int(self.blueVar.get()))
+                self.tintColor = f'#{color[0]:02x}{color[1]:02x}{color[2]:02x}'
+                self.buttonFrame.config(highlightbackground=self.tintColor)
+            
+        # The entry is empty, or we used the color chooser
+        except (ValueError, AttributeError):
+            pass
+        
+        # The value is not a valid color value
+        except TclError:
+            eval(f'self.{var}Var.set(255)')
+            
+    def update_entries(self, rgb):
+        if rgb:
+            self.redVar.set(rgb[0])
+            self.greenVar.set(rgb[1])
+            self.blueVar.set(rgb[2])
+            
+class MonochromeOperator(Operator):
+    def __init__(self, parent, name='MonochromeOperator', _uuid=None):
+        super().__init__(parent=parent, name=name, _uuid=_uuid)
+        
+        self.parent = parent
+        
+        self.type = 'MonochromeOperator'
+        
+        self.redVar = tk.BooleanVar(value=True)
+        self.greenVar = tk.BooleanVar(value=True)
+        self.blueVar = tk.BooleanVar(value=True)
+        
+        self.color_1 = '#ffffff'
+        self.color_2 = '#000000'
+        
+        checkFrame = tk.Frame(self.mainFrame, height=76, width=self.WIDTH, highlightbackground='black', highlightthickness=1)
+        checkFrame.pack(side=tk.TOP, pady=(10, 0))
+        checkFrame.pack_propagate(False)
+        
+        tk.Checkbutton(checkFrame, variable=self.redVar, text="Use Red Channel").pack(anchor=tk.W)
+        tk.Checkbutton(checkFrame, variable=self.greenVar, text="Use Green Channel").pack(anchor=tk.W)
+        tk.Checkbutton(checkFrame, variable=self.blueVar, text="Use Blue Channel").pack(anchor=tk.W)
+        
+        colorFrame = tk.Frame(self.mainFrame, height=76, width=self.WIDTH, highlightbackground='black', highlightthickness=1)
+        colorFrame.pack(pady=32)
+        colorFrame.pack_propagate(False)
+        
+        self.buttonFrame_1 = tk.Frame(colorFrame, highlightbackground='white', highlightthickness=2, name='c1')
+        self.buttonFrame_1.pack(side=tk.TOP, pady=(5, 2))
+        self.colorButton_1 = tk.Button(self.buttonFrame_1, text='Color 1', command=lambda: self.pick_color(self.buttonFrame_1), width=26)
+        self.colorButton_1.pack()
+        
+        self.buttonFrame_2 = tk.Frame(colorFrame, highlightbackground='black', highlightthickness=2, name='c2')
+        self.buttonFrame_2.pack(side=tk.TOP, pady=2)
+        self.colorButton_2 = tk.Button(self.buttonFrame_2, text='Color 2', command=lambda: self.pick_color(self.buttonFrame_2), width=26)
+        self.colorButton_2.pack()
+        
+    def pick_color(self, frame):
+        color = ch.askcolor(initialcolor=frame['highlightbackground'], parent=self.parent)
+        if color:
+            frame.config(highlightbackground=color[1])
+            if frame.winfo_name() == 'c1':
+                self.color_1 = color[1]
+            elif frame.winfo_name() == 'c2':
+                self.color_2 = color[1]
 
 
 class Main:
@@ -39,7 +283,7 @@ class Main:
         self.audioLength = 0
         self.volume = tk.IntVar()
         
-        self.VOLUME = 0.8 # Default volume
+        self.VOLUME = 0.5 # Default volume
         self.FRAMERATES = (1, 3, 8, 10, 12, 15, 20, 24, 30, 60)
 
         self.res = tk.StringVar(value=8) # The project resolution (8 is default)
@@ -61,20 +305,24 @@ class Main:
         self.control = False
         self.gotoOpen = False
         self.exportOpen = False
+        self.modifierUIOpened = False
 
         self.projectFileSample = {
             "data": {
-            "resolution": 16,
-            "showgrid": 1,
-            "gridcolor": "#000000",
-            "audio": None,
-            "output": "",
-            "framerate": 10
+                "resolution": 16,
+                "showgrid": 1,
+                "gridcolor": "#000000",
+                "audio": None,
+                "output": "",
+                "framerate": 10
             },
             "frames": [
                 {
                     "frame_1": {}
                     }
+                ],
+            "modifiers": [
+                {}
                 ]
             }
 
@@ -143,6 +391,8 @@ class Main:
         self.editMenu.add_command(label="Fill", command=self.canvas_fill, state=tk.DISABLED)
         self.editMenu.add_separator()
         self.editMenu.add_command(label="Set Framerate", command=self.set_framerate, state=tk.DISABLED)
+        self.editMenu.add_separator()
+        self.editMenu.add_command(label="Modifier UI", command=self.modifier_ui, state=tk.DISABLED)
         
         # Setup display cascasde
         self.displayMenu = tk.Menu(self.menubar, tearoff=0)
@@ -270,8 +520,9 @@ class Main:
         self.returnData = True
 
     def ask_color(self):
-        self.colorPickerData = ch.askcolor()
-        self.colorPickerFrame.config(highlightbackground=self.colorPickerData[1]) # Set the border of the button to the chosen color
+        self.colorPickerData = ch.askcolor(initialcolor=self.colorPickerData[1])
+        if self.colorPickerData:
+            self.colorPickerFrame.config(highlightbackground=self.colorPickerData[1]) # Set the border of the button to the chosen color
 
     def pick_color(self, event):
         self.selectedPixel = self.canvas.find_closest(event.x, event.y)
@@ -357,6 +608,7 @@ class Main:
         self.editMenu.entryconfig('Clear', state=tk.ACTIVE)
         self.editMenu.entryconfig('Fill', state=tk.ACTIVE)
         self.editMenu.entryconfig('Set Framerate', state=tk.ACTIVE)
+        self.editMenu.entryconfig('Modifier UI', state=tk.ACTIVE)
        
         self.displayMenu.entryconfig('Show Grid', state=tk.ACTIVE)
         self.displayMenu.entryconfig('Grid Color', state=tk.ACTIVE)
@@ -464,6 +716,7 @@ class Main:
                 pass
 
             self.add_canvas(False)
+            self.modifierUIOpened = False
         else:
             try:
                 self.newFileTL.attributes("-topmost", True)
@@ -537,6 +790,7 @@ class Main:
                 return
             
             self.add_canvas(True)
+            self.modifierUIOpened = False
             
             if self.showAlphaVar.get():
                 self.load_frame(False)
@@ -760,6 +1014,7 @@ class Main:
             self.canvas.itemconfig(pixel, fill='white')
             
         root.title("Pixel-Art Animator-" + self.projectDir + '*')
+        self.frameMiddle.config(highlightbackground="red")
 
     def canvas_fill(self) -> None:
         fillColor = ch.askcolor()
@@ -768,21 +1023,22 @@ class Main:
                 self.canvas.itemconfig(pixel, fill=fillColor[1])
 
             root.title("Pixel-Art Animator-" + self.projectDir + '*')
+            self.frameMiddle.config(highlightbackground="red")
 
     def canvas_remove_color(self) -> None:
-        self.selectedPixel = self.canvas.find_closest(self.clickCoords.x, self.clickCoords.y)
-        self.selectedColor = self.canvas.itemcget(self.selectedPixel, option='fill')
+        selectedPixel = self.canvas.find_closest(self.clickCoords.x, self.clickCoords.y)
+        selectedColor = self.canvas.itemcget(selectedPixel, option='fill')
         for pixel in self.pixels:
-            if self.canvas.itemcget(pixel, option='fill') == self.selectedColor:
+            if self.canvas.itemcget(pixel, option='fill') == selectedColor:
                 self.canvas.itemconfig(pixel, fill='white')
 
         self.colorPickerData[1] = self.colorPickerData[1] # I don't now why this is needed, but the pen color needs to be re-assigned
 
     def canvas_replace_color(self) -> None:
-        self.selectedPixel = self.canvas.find_closest(self.clickCoords.x, self.clickCoords.y)
-        self.selectedColor = self.canvas.itemcget(self.selectedPixel, option='fill')
+        selectedPixel = self.canvas.find_closest(self.clickCoords.x, self.clickCoords.y)
+        selectedColor = self.canvas.itemcget(selectedPixel, option='fill')
         for pixel in self.pixels:
-            if self.canvas.itemcget(pixel, option='fill') == self.selectedColor:
+            if self.canvas.itemcget(pixel, option='fill') == selectedColor:
                 self.canvas.itemconfig(pixel, fill=self.colorPickerData[1])
 
         self.colorPickerData[1] = self.colorPickerData[1] # Needed for some reason idk
@@ -1076,13 +1332,14 @@ class Main:
     def quit(self):
         if '*' in root.title(): # If the file is not saved...
             quitMode = mb.askyesnocancel(title="File Not Saved", message="Do you want to save your project?")
+            if quitMode == None: # Do nothing
+                return
 
             if quitMode: # Save and quit
                 self.save(True)
                 root.destroy()
-            if quitMode == None: # Do nothing
-                return
-            root.destroy()
+            else:
+                root.destroy()
         else:
             root.destroy()
             
@@ -1571,6 +1828,115 @@ class Main:
         self.framerate = delay
         self.framerateDelay = max(0.00001, 1 / float(delay))
         root.title("Pixel-Art Animator-" + self.projectDir + '*')
+        
+        
+    def modifier_ui(self):
+        def draw_frame():
+            # Draw the current frame to the preview canvas
+            for pixel in range(int(self.res.get())**2):
+                try:
+                    if self.jsonFrames[0].get(f'frame_' + self.currentFrame.get()):
+                        self.savedPixelColor = self.jsonFrames[0][f'frame_' + self.currentFrame.get()]
+                        self.previewCanvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColor[str(self.pixels[pixel])][1])
+                    else:
+                        self.savedPixelColor = 'white'
+                        self.previewCanvas.itemconfig(self.pixels[pixel], fill='white')
+
+                except KeyError: # If the pixel is not present within the json file
+                    self.previewCanvas.itemconfig(self.pixels[pixel], fill='white') # Fill pixels with white (0 alpha)
+        
+        if self.modifierUIOpened:
+            self.modifierTL.deiconify()
+            draw_frame()
+        else:
+            # Toplevel setup
+            self.modifierTL = tk.Toplevel(root, width=880, height=940)
+            self.modifierTL.title("Modifier Editor")
+            self.modifierTL.protocol('WM_DELETE_WINDOW', self.modifierTL.withdraw)
+            self.modifierTL.propagate(False)
+            self.modifierTL.resizable(False, False)
+            self.modifierTL.focus()
+            
+            PADDING = 23
+            
+            # Main frames
+            operatorContainer = tk.Frame(self.modifierTL, width=Operator.WIDTH+PADDING, height=940, highlightbackground='darkblue', highlightthickness=2)
+            operatorContainer.pack(side=tk.RIGHT, anchor=tk.NE)
+            operatorContainer.pack_propagate(False)
+            
+            operatorCanvas = tk.Canvas(operatorContainer, width=Operator.WIDTH+PADDING, height=940)
+            operatorCanvas.pack(side=tk.LEFT)
+            
+            scrollbar = tk.Scrollbar(operatorContainer, command=operatorCanvas.yview)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y, pady=(60, 10), padx=(0, 2), before=operatorCanvas)
+            
+            self.operatorFrame = tk.Frame(operatorCanvas, width=Operator.WIDTH+PADDING, height=940)
+            self.operatorFrame.bind('<Configure>', lambda e: operatorCanvas.configure(scrollregion=operatorCanvas.bbox('all')))
+            
+            operatorCanvas.create_window((0, 0), window=self.operatorFrame, anchor=tk.NW)
+            operatorCanvas.configure(yscrollcommand=scrollbar.set)
+            
+            self.previewFrame = tk.Frame(self.modifierTL, width=560, height=560, highlightbackground='green', highlightthickness=2)
+            self.previewFrame.pack(side=tk.TOP, anchor=tk.NW)
+            
+            self.settingsFrame = tk.Frame(self.modifierTL, width=568, height=340, highlightbackground='darkblue', highlightthickness=2)
+            self.settingsFrame.pack(side=tk.BOTTOM, anchor=tk.SW)
+            
+            self.previewCanvas = tk.Canvas(self.previewFrame, width=560, height=560, bg='lightblue')
+            self.previewCanvas.pack()
+            self.previewCanvas.pack_propagate(False)
+            
+            root.update()
+            
+            # Add pixels to preview canvas
+            if not self.modifierUIOpened:
+                toY = int(self.res.get())
+                posX = 2
+                posY = 2
+
+                loading = tk.Label(self.previewCanvas, text='Loading...', font=('Default', 84), bg='lightblue')
+                loading.pack(anchor=tk.CENTER, pady=(self.previewCanvas.winfo_height()/2 - 84, 0)) # Display the loading screen
+                root.update()
+
+                for pixel in range(int(self.res.get())**2):
+                    pixelate = (self.previewCanvas.winfo_width()-5)/int(self.res.get())
+                    tile = self.previewCanvas.create_rectangle(posX, posY, posX + pixelate, posY + pixelate, fill='white')
+                    self.pixels.append(tile)
+
+                    posX += pixelate
+                    toY -= 1
+
+                    if toY == 0:
+                        toY = int(self.res.get())
+                        posY += pixelate
+                        posX = 2
+
+                loading.pack_forget()
+                
+            draw_frame()
+                
+            # Modifier setup
+            addButton = tk.Menubutton(self.operatorFrame, text='➕', font=('Calibri', 16), highlightbackground='black', highlightthickness=1)
+            addButton.pack(side=tk.TOP, anchor=tk.NW, pady=(0, 1), padx=1)
+
+            addButton.menu = tk.Menu(addButton, tearoff=False)
+            addButton['menu'] = addButton.menu
+            addButton.menu.add_command(label='Tint Operator', command=lambda: self.add_modifier(0))
+            addButton.menu.add_command(label='Monochrome Operator', command=lambda: self.add_modifier(1))
+
+            tk.Frame(self.operatorFrame, width=Operator.WIDTH+PADDING, height=2, highlightbackground='darkblue', highlightthickness=2).pack(side=tk.TOP)
+            
+            self.modifierUIOpened = True
+                
+                
+    def add_modifier(self, modifier):
+        match modifier:
+            case 0:
+                TintOperator(self.operatorFrame).pack(anchor=tk.NW)
+                
+            case 1:
+                MonochromeOperator(self.operatorFrame).pack(anchor=tk.NW)
+                
 
 #-----====Main Program Start====-----#
 root = tk.Tk()
