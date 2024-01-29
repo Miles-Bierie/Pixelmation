@@ -1,4 +1,4 @@
-#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Sunday, January 28, 2024  |=========---------  #
+#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Monday, January 29, 2024  |=========---------  #
 
 
 from tkinter import colorchooser as ch
@@ -10,7 +10,6 @@ from math import ceil, floor
 from tkinter import TclError
 from pygame import mixer
 from tkinter import ttk
-import multiprocessing
 import tkinter as tk
 import send2trash
 import threading
@@ -151,7 +150,6 @@ class TintOperator(Operator):
         
         # What is this?
         self.type = 'TintOperator'
-        
         self.tintColor = '#ffffff'
         
         self.redVar = tk.StringVar(master=self, value='255')
@@ -220,7 +218,8 @@ class TintOperator(Operator):
             self.redVar.set(rgb[0])
             self.greenVar.set(rgb[1])
             self.blueVar.set(rgb[2])
-            
+
+
 class MonochromeOperator(Operator):
     def __init__(self, parent, name='MonochromeOperator', _uuid=None):
         super().__init__(parent=parent, name=name, _uuid=_uuid)
@@ -276,6 +275,7 @@ class Main:
         self.pixels = [] # Contains a list of the pixels on the screen (so they can be referanced)
         self.audioFile = None
         self.outputDirectory = tk.StringVar(value='')
+        self.isComplexProject = tk.BooleanVar()
         
         self.paused = False
         self.playback = 0.0
@@ -307,7 +307,7 @@ class Main:
         self.exportOpen = False
         self.modifierUIOpened = False
 
-        self.projectFileSample = {
+        self.complexProjectFileSample = {
             "data": {
                 "resolution": 16,
                 "showgrid": 1,
@@ -323,6 +323,25 @@ class Main:
                 ],
             "modifiers": [
                 {}
+                ],
+            "variables": [
+                {}
+                ]
+            }
+        
+        self.simpleProjectFileSample = {
+            "data": {
+                "resolution": 16,
+                "showgrid": 1,
+                "gridcolor": "#000000",
+                "audio": None,
+                "output": "",
+                "framerate": 10
+            },
+            "frames": [
+                {
+                    "frame_1": {}
+                    }
                 ]
             }
 
@@ -351,7 +370,8 @@ class Main:
         answer = mb.askyesno(title="Undo", message="Are you sure you want to revert to the last save?")
         if answer:
             self.load_frame(True)
-            root.title(root.title()[0:-1]) # Remove the star in the project title
+            
+            # NOTE: We don't remove the star from the project file, because this only applies to the canvas
             self.frameMiddle.config(highlightbackground='darkblue')
         
     def load(self):
@@ -363,9 +383,8 @@ class Main:
             else:
                 os.system('open .')
         
-        mixer.pre_init(buffer=4096)
+        mixer.pre_init(buffer=4096, channels=1, frequency=48000)
         mixer.init()
-        mixer.set_num_channels(1)
         
         # Add the menubar:
         self.menubar = tk.Menu(root) # Main menubar
@@ -411,7 +430,7 @@ class Main:
 
         # Add top frame
         self.frameTop = tk.Frame(root, width=1080, height=10)
-        self.frameTop.pack(anchor=tk.N, padx=10)
+        self.frameTop.pack(anchor=tk.N, padx=8)
         
         # Make the column sizes the same
         for i in range(3):
@@ -452,40 +471,42 @@ class Main:
         root.bind('<Control-o>', lambda event: self.open_file(True))
         root.bind('<Control-q>', lambda event: self.quit())
 
+        WIDTH = (6 if sys.platform == 'win32' else 2)
+
         # Frame
         self.toolsFrame = tk.LabelFrame(self.frameTop, text="Tools", height=60, width=380, bg='white', fg='black')
         self.toolsFrame.grid(row=0, column=1, sticky=tk.N)
         self.toolsFrame.propagate(False)
 
         # Pen
-        self.penFrame = tk.Frame(self.toolsFrame, height=2, width=6, highlightthickness=2, highlightbackground='red')
+        self.penFrame = tk.Frame(self.toolsFrame, height=2, width=WIDTH, highlightthickness=2, highlightbackground='red')
         self.penFrame.pack(side=tk.LEFT, padx=4)
 
-        tk.Button(self.penFrame, text="Pen", relief=tk.RAISED, height=2, width=6, command=lambda: self.tool_select(1)).pack()
+        tk.Button(self.penFrame, text="Pen", relief=tk.RAISED, height=2, width=WIDTH, command=lambda: self.tool_select(1)).pack()
 
         # Eraser
-        self.eraserFrame = tk.Frame(self.toolsFrame, height=2, width=6, highlightthickness=2, highlightbackground='white')
+        self.eraserFrame = tk.Frame(self.toolsFrame, height=2, width=WIDTH, highlightthickness=2, highlightbackground='white')
         self.eraserFrame.pack(side=tk.LEFT, padx=4)
 
-        tk.Button(self.eraserFrame, text="Eraser", relief=tk.RAISED, height=2, width=6, command=lambda: self.tool_select(2)).pack()
+        tk.Button(self.eraserFrame, text="Eraser", relief=tk.RAISED, height=2, width=WIDTH, command=lambda: self.tool_select(2)).pack()
 
         # Remove tool
-        self.removeFrame = tk.Frame(self.toolsFrame, height=2, width=6, highlightthickness=2, highlightbackground='white')
+        self.removeFrame = tk.Frame(self.toolsFrame, height=2, width=WIDTH, highlightthickness=2, highlightbackground='white')
         self.removeFrame.pack(side=tk.LEFT, padx=4)
        
-        tk.Button(self.removeFrame, text="Remove", relief=tk.RAISED, height=2, width=6, command=lambda: self.tool_select(3)).pack()
+        tk.Button(self.removeFrame, text="Remove", relief=tk.RAISED, height=2, width=WIDTH, command=lambda: self.tool_select(3)).pack()
 
         # Repalce tool
-        self.replaceFrame = tk.Frame(self.toolsFrame, height=2, width=6, highlightthickness=2, highlightbackground='white')
+        self.replaceFrame = tk.Frame(self.toolsFrame, height=2, width=WIDTH, highlightthickness=2, highlightbackground='white')
         self.replaceFrame.pack(side=tk.LEFT, padx=4)
        
-        tk.Button(self.replaceFrame, text="Replace", relief=tk.RAISED, height=2, width=6, command=lambda: self.tool_select(4)).pack()
+        tk.Button(self.replaceFrame, text="Replace", relief=tk.RAISED, height=2, width=WIDTH, command=lambda: self.tool_select(4)).pack()
         
         # Fill tool
-        self.fillFrame = tk.Frame(self.toolsFrame, height=2, width=6, highlightthickness=2, highlightbackground='white')
+        self.fillFrame = tk.Frame(self.toolsFrame, height=2, width=WIDTH, highlightthickness=2, highlightbackground='white')
         self.fillFrame.pack(side=tk.LEFT, padx=4)
        
-        tk.Button(self.fillFrame, text="Fill", relief=tk.RAISED, height=2, width=6, command=lambda: self.tool_select(5)).pack()
+        tk.Button(self.fillFrame, text="Fill", relief=tk.RAISED, height=2, width=WIDTH, command=lambda: self.tool_select(5)).pack()
 
         # Add frame display
         frameDisplayFrame = tk.Frame(self.frameTop, width=200, height=20)
@@ -622,7 +643,7 @@ class Main:
         self.fileMenu.entryconfig('Save As', state=tk.ACTIVE)
         self.fileMenu.entryconfig('Export', state=tk.ACTIVE)
 
-        self.fileMenu.entryconfig(f'Open Directory in {'Explorer' if sys.platform == 'win32' else 'Finder'}', state=tk.ACTIVE)
+        self.fileMenu.entryconfig(f"Open Directory in {'Explorer' if sys.platform == 'win32' else 'Finder'}", state=tk.ACTIVE)
 
         try:
             self.fileMenu.entryconfig('Load Audio', state=tk.ACTIVE)
@@ -632,7 +653,7 @@ class Main:
         self.editMenu.entryconfig('Clear', state=tk.ACTIVE)
         self.editMenu.entryconfig('Fill', state=tk.ACTIVE)
         self.editMenu.entryconfig('Set Framerate', state=tk.ACTIVE)
-        self.editMenu.entryconfig('Modifier UI', state=tk.ACTIVE)
+        self.editMenu.entryconfig('Modifier UI', state=(tk.ACTIVE if self.isComplexProject.get() else tk.DISABLED))
        
         self.displayMenu.entryconfig('Show Grid', state=tk.ACTIVE)
         self.displayMenu.entryconfig('Grid Color', state=tk.ACTIVE)
@@ -658,20 +679,28 @@ class Main:
         # For goto
         for i in range(1, 10):
             root.bind(f'<KeyPress-{i}>', lambda e, num = i: self.goto(str(num)))
-            
+
         self.frameMiddle.config(highlightthickness=3, highlightbackground="darkblue")
 
     def new_file_dialog(self):
+        def quit():
+            self.isComplexProject.set(complexValue)
+            self.newFileTL.destroy()
+
         newRes = tk.StringVar(value=self.res.get())
-        newFramerate = tk.StringVar(value='10')
+        newFramerate = tk.StringVar(value='10')         
+        complexValue = self.isComplexProject.get()
+        # We store this so that if the value is changed but a new file is not created,
+        # the "isComplexProject" variable will be set back to the correct value.
         
         #Add the toplevel window
-        self.newFileTL = tk.Toplevel(width=128, height=256)
+        self.newFileTL = tk.Toplevel(width=128, height=320)
         self.newFileTL.attributes("-topmost", True)
+        self.newFileTL.protocol('WM_DELETE_WINDOW', quit)
         self.newFileTL.resizable(False, False)
         self.newFileTL.title("New File")
         self.newFileTL.focus()
-        self.newFileTL.bind('<Escape>', lambda event: self.newFileTL.destroy())
+        self.newFileTL.bind('<Escape>', lambda event: quit)
         self.newFileTL.bind('<Return>', lambda event: self.create_new_file(newRes))
        
         #Add the main frame
@@ -679,14 +708,16 @@ class Main:
         newFileFrame.pack()
         newFileFrame.pack_propagate(False)
         
-        self.newFramerateEntry = tk.Entry(newFileFrame, textvariable=newFramerate, width=3, font=('Courier New', 15))
-        self.newFramerateEntry.pack(side=tk.BOTTOM)
+        newFramerateEntry = tk.Entry(newFileFrame, textvariable=newFramerate, width=3, font=('Courier New', 15))
+        newFramerateEntry.pack(side=tk.BOTTOM)
         tk.Label(newFileFrame, text="Framerate:", font=('Courier New', 12)).pack(side=tk.BOTTOM)
 
         tk.Button(newFileFrame, text="Create Project", command=lambda: self.create_new_file(newRes, newFramerate), font=('Calibri', 12)).pack(side=tk.TOP)
-        self.newFileSetResolutionEntry = tk.Entry(newFileFrame, textvariable=newRes, width=3, font=('Courier New', 15))
-        self.newFileSetResolutionEntry.pack(side=tk.BOTTOM)
+        newFileSetResolutionEntry = tk.Entry(newFileFrame, textvariable=newRes, width=3, font=('Courier New', 15))
+        newFileSetResolutionEntry.pack(side=tk.BOTTOM)
         tk.Label(newFileFrame, text="Project Resolution:", font=('Courier New', 12)).pack(side=tk.BOTTOM, pady=(0, 8))
+        
+        tk.Checkbutton(self.newFileTL, text='Complex Project', variable=self.isComplexProject, font=('Courier New', 12)).pack(side=tk.BOTTOM, pady=8)
 
         newRes.trace_add('write', lambda event1, event2, event3: self.new_project_name_filter(newRes))
         newFramerate.trace_add('write', lambda event1, event2, event3: self.new_project_framerate_filter(newFramerate))
@@ -714,22 +745,34 @@ class Main:
                 self.isPlaying= False
                 if mixer.music.get_busy():
                     mixer.music.stop()
+                    
+            self.delay(framerate)
 
             # Create the data files for the project
-            self.projectFileSample['data']['resolution'] = self.res.get() # Write the file resolution
-            self.projectFileSample['data']['gridcolor'] = self.gridColor
-            self.projectFileSample['data']['showgrid'] = int(self.showGridVar.get())
-            self.projectFileSample['data']['framerate'] = self.framerate
-            self.projectFileSample['data']['output'] = self.outputDirectory.get()
+            if self.isComplexProject.get():
+                self.complexProjectFileSample['data']['resolution'] = self.res.get() # Write the file resolution
+                self.complexProjectFileSample['data']['gridcolor'] = self.gridColor
+                self.complexProjectFileSample['data']['showgrid'] = int(self.showGridVar.get())
+                self.complexProjectFileSample['data']['framerate'] = self.framerate
+                self.complexProjectFileSample['data']['output'] = self.outputDirectory.get()
 
-            self.jsonSampleDump = json.dumps(self.projectFileSample, indent=4, separators=(',', ':')) # Read the project data as json text
+                self.jsonSampleDump = json.dumps((self.complexProjectFileSample), indent=4, separators=(',', ':')) # Read the project data as json text
+                
+            else:
+                self.simpleProjectFileSample['data']['resolution'] = self.res.get() # Write the file resolution
+                self.simpleProjectFileSample['data']['gridcolor'] = self.gridColor
+                self.simpleProjectFileSample['data']['showgrid'] = int(self.showGridVar.get())
+                self.simpleProjectFileSample['data']['framerate'] = self.framerate
+                self.simpleProjectFileSample['data']['output'] = self.outputDirectory.get()
+
+                self.jsonSampleDump = json.dumps((self.simpleProjectFileSample), indent=4, separators=(',', ':')) # Read the project data as json text
 
             #Write the file resolution to the file
             self.settingsFile = open(self.projectDir, 'w')
             self.settingsFile.write(self.jsonSampleDump)
             self.settingsFile.close()
             
-            self.jsonReadFile = self.projectFileSample
+            self.jsonReadFile = self.complexProjectFileSample
             self.jsonFrames = self.jsonReadFile['frames']
             
             self.framerateDelay = .04
@@ -806,10 +849,15 @@ class Main:
                 self.gridColor = self.projectData['data']['gridcolor'] # Load grid color
                 self.framerate = self.projectData['data']['framerate'] # Load framerate
                 self.outputDirectory.set(self.projectData['data']['output'])
+                
+                if 'modifiers' in self.projectData.keys():
+                    self.isComplexProject.set(True)
+                else:
+                    self.isComplexProject.set(False)
 
-                self.delay(self.framerate) # Set the framerate to the saved framerate               
+                self.delay(self.framerate) # Set the framerate to the saved framerate
 
-            except IndentationError as e:
+            except:
                 mb.showerror(title="Project", message=f"Failed to load {self.fileOpen}; Unknown Error!")
                 return
             
@@ -968,12 +1016,12 @@ class Main:
             if readPixels:
                 self.jsonFrames = self.jsonReadFile['frames']
                 try:
-                    self.savedPixelColor = self.jsonFrames[0][f'frame_'+self.currentFrame.get()]
+                    self.savedPixelColors = self.jsonFrames[0][f'frame_'+self.currentFrame.get()]
 
                     if self.showAlphaVar.get(): # If show alpha is selected
                         self.display_alpha(False)
                     else:
-                        self.canvas.itemconfig(pixel, fill=self.savedPixelColor[str(pixel)][1])
+                        self.canvas.itemconfig(pixel, fill=self.savedPixelColors[str(pixel)][1 if self.isComplexProject.get() else 0:])
 
                 except KeyError: # If the pixel is not present within the json file
                     self.canvas.itemconfig(pixel, fill='white') # Fill pixels with white (0 alpha)
@@ -1104,8 +1152,8 @@ class Main:
 
             self.jsonFrames = self.jsonReadFile['frames']
 
-            if not f'frame_{self.currentFrame.get()}' in self.jsonFrames[0]: # If the current frame is not stored in the project file, append it
-                self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = {}
+            # if not f'frame_{self.currentFrame.get()}' in self.jsonFrames[0]: # If the current frame is not stored in the project file, append it
+            #     self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = {}
            
             self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = {}
 
@@ -1113,11 +1161,14 @@ class Main:
             for pixel in self.pixels:
                 self.pixelColor = self.canvas.itemcget(pixel, option='fill') # Get the colors of each pixel
 
-                if self.pixelColor != 'white': # If the frame is not transparent
+                if self.isComplexProject.get():
                     self.color_Frame_Dict[pixel] = ["", ""]
                     self.color_Frame_Dict[pixel][0] = self.pixelColor
                     self.color_Frame_Dict[pixel][1] = self.pixelColor
-                    self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = self.color_Frame_Dict
+                else:
+                    self.color_Frame_Dict[pixel] = self.pixelColor
+
+                self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = self.color_Frame_Dict
 
             self.jsonSampleDump = json.dumps(self.jsonReadFile, indent=4, separators=(',', ':'))
 
@@ -1280,16 +1331,16 @@ class Main:
             for pixel in range(int(self.res.get())**2):
                 self.canvas.itemconfig(self.pixels[pixel], fill='white') # Fill pixels with white (0 alpha)
             return None
+        
+        if self.jsonFrames[0].get(f'frame_' + self.currentFrame.get()):
+            self.savedPixelColors = self.jsonFrames[0][f'frame_' + self.currentFrame.get()]
 
         for pixel in range(int(self.res.get())**2):
             try:
-                if self.jsonFrames[0].get(f'frame_' + self.currentFrame.get()):
-                    self.savedPixelColor = self.jsonFrames[0][f'frame_' + self.currentFrame.get()]
-
                 if self.showAlphaVar.get(): # If show alpha is selected
-                    self.canvas.itemconfig(self.pixels[pixel], fill=('white' if self.savedPixelColor[str(self.pixels[pixel])] else 'black'))
+                    self.canvas.itemconfig(self.pixels[pixel], fill=('black' if self.savedPixelColors[str(self.pixels[pixel])][1 if self.isComplexProject.get() else 0:] == 'white' else 'white'))
                 else:
-                    self.canvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColor[str(self.pixels[pixel])][1])
+                    self.canvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColors[str(self.pixels[pixel])][1 if self.isComplexProject.get() else 0:])
 
             except KeyError: # If the pixel is not present within the json file
                 if self.showAlphaVar.get():
@@ -1301,19 +1352,16 @@ class Main:
             self.get_playback_pos()
 
     def load_from(self, frame: int) -> None:
-        with open(self.projectDir, 'r') as self.fileOpen:
-            for pixel in range(int(self.res.get())**2):
-                self.jsonReadFile = json.load(self.fileOpen)
-                try:
-                    self.json_readFrames = self.jsonReadFile['frames']
-                    self.savedPixelColor = self.json_readFrames[0][f'frame_{frame}']
+        for pixel in range(int(self.res.get())**2):
+            try:
+                self.savedPixelColors = self.jsonFrames[0][f'frame_{frame}']
 
-                    if self.canvas.itemcget(self.pixels[pixel], option='fill') != self.savedPixelColor[str(self.pixels[pixel])]: # If the pixel color is already the pen color
-                        root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
+                if self.canvas.itemcget(self.pixels[pixel], option='fill') != self.savedPixelColors[str(self.pixels[pixel])][1 if self.isComplexProject.get() else 0:]:
+                    root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
 
-                    self.canvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColor[str(self.pixels[pixel][1])])
-                except:
-                    self.canvas.itemconfig(self.pixels[pixel], fill='white')
+                self.canvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColors[str(self.pixels[pixel])][1 if self.isComplexProject.get() else 0:])
+            except:
+                self.canvas.itemconfig(self.pixels[pixel], fill='white')
                     
         self.save_frame()
 
@@ -1322,14 +1370,13 @@ class Main:
             if '*' == root.title()[-1]:
                 self.save_frame() # Save the current image
 
-        for pixel in self.pixels:
-            if self.showAlphaVar.get():
-                self.frameDisplayButton.config(state=tk.DISABLED)
-                self.canvas.itemconfig(pixel, fill=['black' if self.canvas.itemcget(pixel, option='fill') == 'white' else 'white']) # Show the alpha
-            else: # Reload the colors from the file
-                self.frameDisplayButton.config(state=tk.NORMAL)
-                self.load_frame(False)
-                break
+        if self.showAlphaVar.get():
+            for pixel in self.pixels:
+                    self.frameDisplayButton.config(state=tk.DISABLED)
+                    self.canvas.itemconfig(pixel, fill=['black' if self.canvas.itemcget(pixel, option='fill') == 'white' else 'white']) # Show the alpha
+        else: # Reload the colors from the file
+            self.frameDisplayButton.config(state=tk.NORMAL)
+            self.load_frame(False)
             
     def goto(self, start):
         text = tk.StringVar(value=start)
@@ -1698,7 +1745,7 @@ class Main:
                             for x in range(0,img.size[0]):
                                 px += 1
                                 try:
-                                    color = pixels[str(px)][1]
+                                    color = pixels[str(px)][1 if self.isComplexProject.get() else 0:]
                                     rgb = self.hex_to_rgb(color)
                                     rgb.append(255)
                                     img.putpixel((x, y), tuple(rgb))
@@ -1883,10 +1930,10 @@ class Main:
             for pixel in range(int(self.res.get())**2):
                 try:
                     if self.jsonFrames[0].get(f'frame_' + self.currentFrame.get()):
-                        self.savedPixelColor = self.jsonFrames[0][f'frame_' + self.currentFrame.get()]
-                        self.previewCanvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColor[str(self.pixels[pixel])][1])
+                        self.savedPixelColors = self.jsonFrames[0][f'frame_' + self.currentFrame.get()]
+                        self.previewCanvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColors[str(self.pixels[pixel])][1 if self.isComplexProject.get() else 0:])
                     else:
-                        self.savedPixelColor = 'white'
+                        self.savedPixelColors = 'white'
                         self.previewCanvas.itemconfig(self.pixels[pixel], fill='white')
 
                 except KeyError: # If the pixel is not present within the json file
@@ -1999,7 +2046,7 @@ class Main:
 
 
 #-----====Main Program Start====-----#
-sys.setrecursionlimit(64**2)
+sys.setrecursionlimit(64**2) # So the fill tool works
 
 root = tk.Tk()
 root.title("Pixel-Art Animatitor")
