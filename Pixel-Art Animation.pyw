@@ -44,7 +44,6 @@ class Operator(tk.Frame):
         # ID specific to this modifier
         self.UUID = (uuid.uuid1() if _uuid == None else _uuid)
         
-        
         super().__init__(master=parent)
         
         # Basic properties
@@ -59,12 +58,12 @@ class Operator(tk.Frame):
         self.titleFrame.pack_propagate(False)
         self.titleFrame.bind('<Button-1>', lambda e: self.__rename__(True))
         
-        self.nameLabel = tk.Label(self.titleFrame, text=self.name, bg='lightblue')
+        self.nameLabel = tk.Label(self.titleFrame, text=self.name, bg='lightblue', font=('Consolas', 9))
         self.nameLabel.pack(anchor=tk.W, side=tk.LEFT)
         self.nameLabel.bind('<Double-Button-1>', lambda e: self.__rename_dialog__())
         
         # Only visible when renaming
-        self.nameEntry = tk.Entry(self.titleFrame, textvariable=self.nameVar, width=32)
+        self.nameEntry = tk.Entry(self.titleFrame, textvariable=self.nameVar, width=30, font=('Consolas', 9))
         self.nameEntry.bind('<Return>', lambda e: self.__rename__(True))
         self.nameEntry.bind('<FocusOut>', lambda e: self.__rename__(True))
         self.nameEntry.bind('<Escape>', lambda e: self.__rename__(False))
@@ -117,7 +116,7 @@ class Operator(tk.Frame):
         Operator.copied = self.UUID
         
     def __rename__(self, rename):
-        MAX_LENGTH = 37
+        MAX_LENGTH = 30
         self.focus() # And, therefore, remove focus from the entry, incase you clicked on another Operator instance
         
         if not self.renaming:
@@ -188,7 +187,7 @@ class TintOperator(Operator):
         
     def pick_color(self):
         newColor = ch.askcolor(parent=self.parent, initialcolor=self.tintColor)
-        if newColor:
+        if newColor != (None, None):
             self.colorChooserUI = True
 
             self.tintColor = newColor[1]
@@ -261,7 +260,7 @@ class MonochromeOperator(Operator):
         
     def pick_color(self, frame):
         color = ch.askcolor(initialcolor=frame['highlightbackground'], parent=self.parent)
-        if color:
+        if color != (None, None):
             frame.config(highlightbackground=color[1])
             if frame.winfo_name() == 'c1':
                 self.color_1 = color[1]
@@ -412,7 +411,11 @@ class Main:
 
         # Add top frame
         self.frameTop = tk.Frame(root, width=1080, height=10)
-        self.frameTop.pack(anchor=tk.NW)
+        self.frameTop.pack(anchor=tk.N, padx=10)
+        
+        # Make the column sizes the same
+        for i in range(3):
+            self.frameTop.grid_columnconfigure(i, weight=1, uniform='topFrame')
 
         # Add middle/canvas frame
         self.frameMiddle = tk.Frame(root, width=870, height=870, highlightthickness=3, highlightbackground="white")
@@ -428,7 +431,7 @@ class Main:
        
         #Add the color picker
         self.colorPickerFrame = tk.Frame(self.frameTop, highlightthickness=2, highlightbackground='black')
-        self.colorPickerFrame.pack(padx=(4, 75), side=tk.LEFT)
+        self.colorPickerFrame.grid(row=0, column=0, sticky=tk.NW)
         self.colorPickerButton = tk.Button(self.colorPickerFrame, text="Color Picker", command=self.ask_color, font=('Calibri', 14))
         self.colorPickerButton.pack()
 
@@ -450,45 +453,48 @@ class Main:
         root.bind('<Control-q>', lambda event: self.quit())
 
         # Frame
-        self.toolsFrame = tk.LabelFrame(self.frameTop, text="Tools", height=60, width=(266 if sys.platform == 'win32' else 420), bg='white', fg='black')
-        self.toolsFrame.pack(anchor=tk.N, side=tk.LEFT, padx=((155 if sys.platform == 'win32' else 50), 0))
+        self.toolsFrame = tk.LabelFrame(self.frameTop, text="Tools", height=60, width=380, bg='white', fg='black')
+        self.toolsFrame.grid(row=0, column=1, sticky=tk.N)
+        self.toolsFrame.propagate(False)
 
         # Pen
         self.penFrame = tk.Frame(self.toolsFrame, height=2, width=6, highlightthickness=2, highlightbackground='red')
-        self.penFrame.pack(side=tk.LEFT, padx=5)
+        self.penFrame.pack(side=tk.LEFT, padx=4)
 
         tk.Button(self.penFrame, text="Pen", relief=tk.RAISED, height=2, width=6, command=lambda: self.tool_select(1)).pack()
 
         # Eraser
         self.eraserFrame = tk.Frame(self.toolsFrame, height=2, width=6, highlightthickness=2, highlightbackground='white')
-        self.eraserFrame.pack(side=tk.LEFT, padx=5)
+        self.eraserFrame.pack(side=tk.LEFT, padx=4)
 
         tk.Button(self.eraserFrame, text="Eraser", relief=tk.RAISED, height=2, width=6, command=lambda: self.tool_select(2)).pack()
 
         # Remove tool
         self.removeFrame = tk.Frame(self.toolsFrame, height=2, width=6, highlightthickness=2, highlightbackground='white')
-        self.removeFrame.pack(side=tk.LEFT, padx=5)
+        self.removeFrame.pack(side=tk.LEFT, padx=4)
        
         tk.Button(self.removeFrame, text="Remove", relief=tk.RAISED, height=2, width=6, command=lambda: self.tool_select(3)).pack()
 
         # Repalce tool
         self.replaceFrame = tk.Frame(self.toolsFrame, height=2, width=6, highlightthickness=2, highlightbackground='white')
-        self.replaceFrame.pack(side=tk.LEFT, padx=5)
+        self.replaceFrame.pack(side=tk.LEFT, padx=4)
        
         tk.Button(self.replaceFrame, text="Replace", relief=tk.RAISED, height=2, width=6, command=lambda: self.tool_select(4)).pack()
         
         # Fill tool
         self.fillFrame = tk.Frame(self.toolsFrame, height=2, width=6, highlightthickness=2, highlightbackground='white')
-        self.fillFrame.pack(side=tk.LEFT, padx=5)
+        self.fillFrame.pack(side=tk.LEFT, padx=4)
        
         tk.Button(self.fillFrame, text="Fill", relief=tk.RAISED, height=2, width=6, command=lambda: self.tool_select(5)).pack()
 
         # Add frame display
-        self.decreaseFrameButton = tk.Button(self.frameTop, text="-", command=self.decrease_frame, state='disabled', font=('Courier New', 9))
+        frameDisplayFrame = tk.Frame(self.frameTop, width=200, height=20)
+        frameDisplayFrame.grid(row=0, column=2, sticky=tk.NE)
+        self.decreaseFrameButton = tk.Button(frameDisplayFrame, text="-", command=self.decrease_frame, state='disabled', font=('Courier New', 9))
         self.decreaseFrameButton.pack(side=tk.LEFT, padx=((200 if sys.platform == 'win32' else 100), 0), pady=(10, 0))
-        self.frameDisplayButton = tk.Menubutton(self.frameTop, textvariable=self.currentFrame, width=6, disabledforeground='black', relief=tk.RIDGE)
+        self.frameDisplayButton = tk.Menubutton(frameDisplayFrame, textvariable=self.currentFrame, width=6, disabledforeground='black', relief=tk.RIDGE)
         self.frameDisplayButton.pack(pady=(10, 0), side=tk.LEFT)
-        self.increaseFrameButton = tk.Button(self.frameTop, text="+", command=self.increase_frame, font=('Courier New', 9), state='disabled')
+        self.increaseFrameButton = tk.Button(frameDisplayFrame, text="+", command=self.increase_frame, font=('Courier New', 9), state='disabled')
         self.increaseFrameButton.pack(side=tk.LEFT, pady=(10, 0))
 
         # Volume
@@ -528,7 +534,11 @@ class Main:
         self.returnData = True
 
     def ask_color(self):
-        self.colorPickerData = ch.askcolor(initialcolor=self.colorPickerData[1])
+        color = ch.askcolor(initialcolor=self.colorPickerData[1])
+        if color == (None, None):
+            return
+
+        self.colorPickerData = color
         if self.colorPickerData:
             self.colorPickerFrame.config(highlightbackground=self.colorPickerData[1]) # Set the border of the button to the chosen color
 
@@ -570,7 +580,11 @@ class Main:
 
     def set_grid_color(self, menu):
         if menu:
-            self.gridColor = ch.askcolor()[1]
+            color = ch.askcolor()[1]
+            if color == (None, None):
+                return
+            
+            self.gridColor = color[1]
             root.title("Pixel-Art Animator-" + self.projectDir + '*')
 
         if self.showGridVar.get() or not menu:
@@ -1030,8 +1044,7 @@ class Main:
                     pos_y = tags['y_0'] + ((tags['y_1'] - tags['y_0']) / 2)
 
                     self.canvas_fill_recursive((pos_x, pos_y), offset, selectedColor)
-                        
-        except IndentationError:
+        except:
             pass # I don't want it to yell at me
 
     def canvas_clear(self) -> None:
@@ -1066,7 +1079,6 @@ class Main:
             if self.canvas.itemcget(pixel, option='fill') == selectedColor:
                 self.canvas.itemconfig(pixel, fill=self.colorPickerData[1])
 
-        #self.colorPickerData[1] = self.colorPickerData[1] # Still needed for some reason idk
         
     def canvas_fill_recursive(self, pos: tuple | list, offset: float, color: str) -> None:
         selectedPixel = self.canvas.find_closest(pos[0], pos[1])
@@ -1686,7 +1698,7 @@ class Main:
                             for x in range(0,img.size[0]):
                                 px += 1
                                 try:
-                                    color = pixels[str(px)]
+                                    color = pixels[str(px)][1]
                                     rgb = self.hex_to_rgb(color)
                                     rgb.append(255)
                                     img.putpixel((x, y), tuple(rgb))
@@ -1865,7 +1877,6 @@ class Main:
         self.framerateDelay = max(0.00001, 1 / float(delay))
         root.title("Pixel-Art Animator-" + self.projectDir + '*')
         
-        
     def modifier_ui(self):
         def draw_frame():
             # Draw the current frame to the preview canvas
@@ -1880,6 +1891,13 @@ class Main:
 
                 except KeyError: # If the pixel is not present within the json file
                     self.previewCanvas.itemconfig(self.pixels[pixel], fill='white') # Fill pixels with white (0 alpha)
+                    
+        def draw_grid(showGrid):
+            for i in range(int(self.res.get())**2):
+                if showGrid:
+                    self.previewCanvas.itemconfig(str(i+1), outline=self.gridColor)
+                else:
+                    self.previewCanvas.itemconfig(str(i+1), outline='')
         
         if self.modifierUIOpened:
             self.modifierTL.deiconify()
@@ -1894,6 +1912,9 @@ class Main:
             self.modifierTL.focus()
             
             PADDING = 23
+            
+            previewVar = tk.BooleanVar(master=self.modifierTL, value=True)
+            gridVar = tk.BooleanVar(master=self.modifierTL, value=True)
             
             # Main frames
             operatorContainer = tk.Frame(self.modifierTL, width=Operator.WIDTH+PADDING, height=940, highlightbackground='darkblue', highlightthickness=2)
@@ -1926,6 +1947,10 @@ class Main:
             
             # Add pixels to preview canvas
             if not self.modifierUIOpened:
+                menu = tk.Menu(self.modifierTL, tearoff=False)
+                menu.add_checkbutton(label="Preview", variable=previewVar)
+                menu.add_checkbutton(label="Grid", variable=gridVar, command=lambda: draw_grid(gridVar.get()))
+                
                 toY = int(self.res.get())
                 posX = 2
                 posY = 2
@@ -1934,10 +1959,10 @@ class Main:
                 loading.pack(anchor=tk.CENTER, pady=(self.previewCanvas.winfo_height()/2 - 84, 0)) # Display the loading screen
                 root.update()
 
-                for pixel in range(int(self.res.get())**2):
+                for i in range(int(self.res.get())**2):
                     pixelate = (self.previewCanvas.winfo_width()-5)/int(self.res.get())
-                    tile = self.previewCanvas.create_rectangle(posX, posY, posX + pixelate, posY + pixelate, fill='white')
-                    self.pixels.append(tile)
+                    self.previewCanvas.create_rectangle(posX, posY, posX + pixelate, posY + pixelate, fill='white')
+                    self.previewCanvas.tag_bind(str(i + 1), '<Button-3>', lambda e: menu.tk_popup(e.x_root, e.y_root))
 
                     posX += pixelate
                     toY -= 1
@@ -1947,7 +1972,7 @@ class Main:
                         posY += pixelate
                         posX = 2
 
-                loading.pack_forget()
+                loading.destroy()
                 
             draw_frame()
                 
@@ -1964,15 +1989,14 @@ class Main:
             
             self.modifierUIOpened = True
                 
-                
     def add_modifier(self, modifier):
         match modifier:
             case 0:
                 TintOperator(self.operatorFrame).pack(anchor=tk.NW)
-                
             case 1:
                 MonochromeOperator(self.operatorFrame).pack(anchor=tk.NW)
                 
+
 
 #-----====Main Program Start====-----#
 sys.setrecursionlimit(64**2)
