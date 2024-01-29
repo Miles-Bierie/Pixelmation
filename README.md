@@ -14,10 +14,9 @@
 + Customizable grid color
 + Ability to copy/paste frames
 + Cool text that says "Loading..." when it is loading a file
-+ Lack of a fill tool (yea, I'll get around to it...)
 
 ### Please Note:
-#### This project is <u>*still in development*</u>, and will be updated regularly probably I think with new features, so if you want the ability to render directly to a video file, well then too bad but if you want a fill tool or filters, I might feel like adding that someday.
+#### This project is <u>*still in development*</u>, and will be updated regularly probably I think with new features.
 
 ## Shortcuts
 

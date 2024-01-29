@@ -10,6 +10,7 @@ from math import ceil, floor
 from tkinter import TclError
 from pygame import mixer
 from tkinter import ttk
+import multiprocessing
 import tkinter as tk
 import send2trash
 import threading
@@ -414,8 +415,8 @@ class Main:
         self.frameTop.pack(anchor=tk.NW)
 
         # Add middle/canvas frame
-        self.frameMiddle = tk.Frame(root, width=870, height=870)
-        self.frameMiddle.pack(anchor=tk.CENTER, pady=(10, 0))
+        self.frameMiddle = tk.Frame(root, width=870, height=870, highlightthickness=3, highlightbackground="white")
+        self.frameMiddle.pack(anchor=tk.S, pady=(10, 0))
         self.frameMiddle.pack_propagate(False)
 
         # Add bottom frame
@@ -438,6 +439,7 @@ class Main:
         root.bind('w', lambda event: self.tool_select(2))
         root.bind('e', lambda event: self.tool_select(3))
         root.bind('r', lambda event: self.tool_select(4))
+        root.bind('t', lambda event: self.tool_select(5))
 
         root.bind('<Return>', lambda event: root.focus())
         root.bind('<Escape>', lambda event: self.esc())
@@ -449,7 +451,7 @@ class Main:
 
         # Frame
         self.toolsFrame = tk.LabelFrame(self.frameTop, text="Tools", height=60, width=(266 if sys.platform == 'win32' else 420), bg='white', fg='black')
-        self.toolsFrame.pack(anchor=tk.N, side=tk.LEFT, padx=((175 if sys.platform == 'win32' else 60), 0))
+        self.toolsFrame.pack(anchor=tk.N, side=tk.LEFT, padx=((155 if sys.platform == 'win32' else 50), 0))
 
         # Pen
         self.penFrame = tk.Frame(self.toolsFrame, height=2, width=6, highlightthickness=2, highlightbackground='red')
@@ -474,10 +476,16 @@ class Main:
         self.replaceFrame.pack(side=tk.LEFT, padx=5)
        
         tk.Button(self.replaceFrame, text="Replace", relief=tk.RAISED, height=2, width=6, command=lambda: self.tool_select(4)).pack()
+        
+        # Fill tool
+        self.fillFrame = tk.Frame(self.toolsFrame, height=2, width=6, highlightthickness=2, highlightbackground='white')
+        self.fillFrame.pack(side=tk.LEFT, padx=5)
+       
+        tk.Button(self.fillFrame, text="Fill", relief=tk.RAISED, height=2, width=6, command=lambda: self.tool_select(5)).pack()
 
         # Add frame display
         self.decreaseFrameButton = tk.Button(self.frameTop, text="-", command=self.decrease_frame, state='disabled', font=('Courier New', 9))
-        self.decreaseFrameButton.pack(side=tk.LEFT, padx=((234 if sys.platform == 'win32' else 120), 0), pady=(10, 0))
+        self.decreaseFrameButton.pack(side=tk.LEFT, padx=((200 if sys.platform == 'win32' else 100), 0), pady=(10, 0))
         self.frameDisplayButton = tk.Menubutton(self.frameTop, textvariable=self.currentFrame, width=6, disabledforeground='black', relief=tk.RIDGE)
         self.frameDisplayButton.pack(pady=(10, 0), side=tk.LEFT)
         self.increaseFrameButton = tk.Button(self.frameTop, text="+", command=self.increase_frame, font=('Courier New', 9), state='disabled')
@@ -542,7 +550,9 @@ class Main:
             elif tool == 3:
                 self.removeFrame.config(highlightbackground='red')
             elif tool == 4:
-                self.replaceFrame.config(highlightbackground = 'red')
+                self.replaceFrame.config(highlightbackground='red')
+            elif tool == 5:
+                self.fillFrame.config(highlightbackground='red')
 
     def update_title(self):
         root.title("Pixel-Art Animator-" + self.projectDir)
@@ -876,20 +886,22 @@ class Main:
         self.renameVar.set(os.path.splitext(os.path.split(self.projectDir)[1])[0])
 
         # Create the rename window
-        self.renameTL = tk.Toplevel(width=480, height=80)
-        self.renameTL.resizable(False, False)
-        self.renameTL.title("Rename Project")
-        self.renameTL.attributes('-topmost', True)
-        self.renameTL.focus()
+        renameTL = tk.Toplevel(width=480, height=80)
+        renameTL.resizable(False, False)
+        renameTL.title("Rename Project")
+        renameTL.attributes('-topmost', True)
         
-        self.renameTL.bind('<Return>', lambda event: self.rename())
-        self.renameTL.bind('<Escape>', lambda event: self.renameTL.destroy())
+        renameTL.bind('<Return>', lambda event: self.rename(renameTL))
+        renameTL.bind('<Escape>', lambda event: renameTL.destroy())
 
         # Add the rename entry and button:
-        self.renameEntry = tk.Entry(self.renameTL, width=26, textvariable=self.renameVar, font=('Courier New', 14)).pack(padx=4)
-        self.renameButton = tk.Button(self.renameTL, width=24, height=2, text="Rename", command=self.rename).pack()
+        rename = tk.Entry(renameTL, width=26, textvariable=self.renameVar, font=('Courier New', 14))
+        rename.pack(padx=4)
+        rename.focus()
+        
+        tk.Button(renameTL, width=24, height=2, text="Rename", command=lambda: self.rename(renameTL)).pack()
 
-    def rename(self) -> None:
+    def rename(self, renameTL) -> None:
         self.canRename = True # Keeps track of if the new name is valid
         for i in self.renameVar.get():
             if i in r'\/:*?"<>|' or len(self.renameVar.get()) == 0:
@@ -899,7 +911,7 @@ class Main:
             os.chdir(os.path.split(self.projectDir)[0])
             os.rename(self.projectDir, self.renameVar.get() + '.' + self.extension)
             self.projectDir = os.path.split(self.projectDir)[0] + '/' + self.renameVar.get() + '.' + self.extension # Set the project directory to the new name
-            self.renameTL.destroy()
+            renameTL.destroy()
 
             self.update_title()
             self.save(False)
@@ -927,19 +939,19 @@ class Main:
 
         self.fileOpen = open(self.projectDir, 'r')
         if readPixels:
-                self.jsonReadFile = json.load(self.fileOpen)
+            self.jsonReadFile = json.load(self.fileOpen)
+                
+        pixelate = (self.canvas.winfo_width()-5)/int(self.res.get())
 
-        for pixel in range(int(self.res.get())**2):
-            pixelate = (self.canvas.winfo_width()-5)/int(self.res.get())
-            self.pixel = self.canvas.create_rectangle(self.posX, self.posY, self.posX + pixelate, self.posY + pixelate, fill='white')
+        for pix in range(int(self.res.get())**2):                                                                                   # Save coords for use with the fill tool
+            pixel = self.canvas.create_rectangle(self.posX, self.posY, self.posX + pixelate, self.posY + pixelate, fill='white', tags=f'^"x_0":{self.posX},"y_0":{self.posY},"x_1":{self.posX + pixelate},"y_1":{self.posY + pixelate}&'.replace('^', '{').replace('&', '}'))
 
-            self.canvas.tag_bind(f'{pixel + 1}', "<ButtonPress-1>", lambda event: self.on_press(event))
-            self.canvas.tag_bind(f'{pixel + 1}', "<B1-Motion>", lambda event: self.on_press(event))
-            self.pixels.append(self.pixel)
+            self.canvas.tag_bind(f'{pix + 1}', "<ButtonPress-1>", lambda event: self.on_press(event))
+            self.canvas.tag_bind(f'{pix + 1}', "<B1-Motion>", lambda event: self.on_press(event))
+            self.pixels.append(pixel)
 
             # Set the pixel color
             if readPixels:
-
                 self.jsonFrames = self.jsonReadFile['frames']
                 try:
                     self.savedPixelColor = self.jsonFrames[0][f'frame_'+self.currentFrame.get()]
@@ -947,10 +959,10 @@ class Main:
                     if self.showAlphaVar.get(): # If show alpha is selected
                         self.display_alpha(False)
                     else:
-                        self.canvas.itemconfig(self.pixel, fill=self.savedPixelColor[str(self.pixel)][1])
+                        self.canvas.itemconfig(pixel, fill=self.savedPixelColor[str(pixel)][1])
 
                 except KeyError: # If the pixel is not present within the json file
-                    self.canvas.itemconfig(self.pixel, fill='white') # Fill pixels with white (0 alpha)
+                    self.canvas.itemconfig(pixel, fill='white') # Fill pixels with white (0 alpha)
 
             self.posX += pixelate
             self.toY -= 1
@@ -1005,15 +1017,28 @@ class Main:
             elif self.replaceFrame['highlightbackground'] == 'red': # If the replace mode is selected...
                 if not self.canvas.itemcget(self.selectedPixel, option='fill') == self.colorPickerData[1]: # If the pixel color is already the pen color
                     self.canvas_replace_color()
-        except:
+                    
+            elif self.fillFrame['highlightbackground'] == 'red': # If the fill mode is selected...
+                if not self.canvas.itemcget(self.selectedPixel, option='fill') == self.colorPickerData[1]: # If the pixel color is already the pen color
+                    selectedPixel = self.canvas.find_closest(self.clickCoords.x, self.clickCoords.y)
+                    selectedColor = self.canvas.itemcget(selectedPixel, option='fill')
+                    offset = self.canvas.winfo_width() / int(self.res.get())
+                    
+                    # Calculate the coords of the center of the pixel (gets rid of chance that not all tiles will be filled)
+                    tags = json.loads(self.canvas.itemcget(selectedPixel, 'tags')[:-8])
+                    pos_x = tags['x_0'] + ((tags['x_1'] - tags['x_0']) / 2)
+                    pos_y = tags['y_0'] + ((tags['y_1'] - tags['y_0']) / 2)
+
+                    self.canvas_fill_recursive((pos_x, pos_y), offset, selectedColor)
+                        
+        except IndentationError:
             pass # I don't want it to yell at me
 
     def canvas_clear(self) -> None:
-        root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
         for pixel in self.pixels:
             self.canvas.itemconfig(pixel, fill='white')
-            
-        root.title("Pixel-Art Animator-" + self.projectDir + '*')
+        
+        root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
         self.frameMiddle.config(highlightbackground="red")
 
     def canvas_fill(self) -> None:
@@ -1032,7 +1057,7 @@ class Main:
             if self.canvas.itemcget(pixel, option='fill') == selectedColor:
                 self.canvas.itemconfig(pixel, fill='white')
 
-        self.colorPickerData[1] = self.colorPickerData[1] # I don't now why this is needed, but the pen color needs to be re-assigned
+        #self.colorPickerData[1] = self.colorPickerData[1] # I don't now why this is needed, but the pen color needs to be re-assigned
 
     def canvas_replace_color(self) -> None:
         selectedPixel = self.canvas.find_closest(self.clickCoords.x, self.clickCoords.y)
@@ -1041,7 +1066,18 @@ class Main:
             if self.canvas.itemcget(pixel, option='fill') == selectedColor:
                 self.canvas.itemconfig(pixel, fill=self.colorPickerData[1])
 
-        self.colorPickerData[1] = self.colorPickerData[1] # Needed for some reason idk
+        #self.colorPickerData[1] = self.colorPickerData[1] # Still needed for some reason idk
+        
+    def canvas_fill_recursive(self, pos: tuple | list, offset: float, color: str) -> None:
+        selectedPixel = self.canvas.find_closest(pos[0], pos[1])
+
+        if self.canvas.itemcget(selectedPixel, 'fill') == color:
+            self.canvas.itemconfig(selectedPixel, fill=self.colorPickerData[1])
+            self.canvas_fill_recursive((pos[0] + offset, pos[1]), offset, color)
+            self.canvas_fill_recursive((pos[0] - offset, pos[1]), offset, color)
+            self.canvas_fill_recursive((pos[0], pos[1] + offset), offset, color)
+            self.canvas_fill_recursive((pos[0], pos[1] - offset), offset, color)
+            
 
     def save_frame(self) -> None:
         root.title(root.title()[0:-1]) # Remove the star in the project title
@@ -1939,6 +1975,8 @@ class Main:
                 
 
 #-----====Main Program Start====-----#
+sys.setrecursionlimit(64**2)
+
 root = tk.Tk()
 root.title("Pixel-Art Animatitor")
 root.geometry('990x1000')
