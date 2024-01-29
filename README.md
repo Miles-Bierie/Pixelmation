@@ -4,7 +4,7 @@
 <br>
 
 ## About
-&nbsp;&nbsp;&nbsp; This program is more of a passion project than an actual animation software. Like, you would be better off using pretty much anything else. But, if you do want to use it, then here you go. This application's UI runs entirely off of Tkinter, and therefore is not very good when it comes to playback speed on projects with a large resolution, *especially* on a Windows device. This program is mostly meant for more small scale applications, such as sprite animations.  
+&nbsp;&nbsp;&nbsp; This program is more of a passion project than an actual animation software. Like, you would be better off using pretty much anything else. But, if you do want to use it, then here you go. This application's UI runs entirely using Tkinter, and therefore is not very good when it comes to playback speed on projects with a large resolution, *especially* on a Windows device. This program is mostly ment for more small scale applications, such as sprite animations.  
 
 ## Key features:
 + An alpha channel
@@ -41,7 +41,7 @@
 <br>
 
 ## Creating a New File
-Clicking File -> New or using the Ctrl+N keybind will prompt you with a very simple popup dialog. This will ask you to input a project resolution from 1 to 64. Then, press "Create Project" or enter, and specify a path and file name for the project. After a path is selected, the .pxproj file will be created at that location.
+Clicking File -> New or using the Ctrl+N keybind will prompt you with a very simple popup dialog. This will ask you to input a project resolution from 1 to 64, a framerate from 1 to 60, and if the project is simple or complex (use simple for now; a complex project just uses more memory at the moment). Then, press "Create Project" or enter, and specify a path and file name for the project. After a path is selected, the .pxproj file will be created at that location.
 
 ## Opening an Existing File
 Clicking File -> Open or using the Ctrl+O keybind will prompt you to open a .pxproj file. If the file is not formatted correctly for any reason, an error should instruct you on what the file is missing.
@@ -52,6 +52,8 @@ If you ever want to add audio to a project, go to File -> Load Audio, and select
 Audio types currently supported:
 + Mp3
 + WAV
+
+You may unload audio by pressing the button again.
 
 ## Renaming a Project
 If you want to rename a project from within the animation program, go to File -> Rename, type in a new name, and press "Rename" or enter to rename. You can still rename the file manually if you wish to do so.
@@ -67,6 +69,7 @@ The button to enable/disable the alpha channel can be found under the edit menu.
 + **Eraser:** &nbsp; Also does what you would expect; Erases the pixel. Erased pixels have an alpha of 0
 + **Remove:** &nbsp; Erases all pixels that have the selected pixels color
 + **Replace:** &nbsp; Replaces all pixels that have the selected pixels color with the current pen color
++ **Fill:** &nbsp; Same as replace, except it will treat any color other then the selected tiles' color as a barrier
 
 When you edit the frame, the canvas's border will turn red, indicating that there are unsaved changes. When you save, the border will revert back to dark blue.
 
@@ -111,7 +114,7 @@ Resolution:
 <br>
 
 ## Extra Info:
-### Project file structure:  
+### Simple project file structure:  
     {
         "data": {
         "resolution": 16,
@@ -124,12 +127,40 @@ Resolution:
         "frames": [
             {
                 "frame_1": {
-                    1: "#FFFFFF",
-                    2: "#FFac63",
+                    1: "#ffffff",
+                    2: "#ffffff",
                     <ect...>
                 }
                 "frame_2": {...}
             }
+        ]
+    }
+
+### Complex project file structure:  
+    {
+        "data": {
+        "resolution": 16,
+        "showgrid": 1,
+        "gridcolor": "#000000",
+        "audio": None,
+        "output": "",
+        "framerate": 10
+        },
+        "frames": [
+            {
+                "frame_1": {
+                    1: ["#ffffff", #ffffff],
+                    2: ["#ffffff", #ffffff],
+                    <ect...>
+                }
+                "frame_2": {...}
+            }
+        ],
+        "modifiers": [
+            {}
+        ],
+        "variables": [
+            {}
         ]
     }
 
@@ -141,6 +172,8 @@ Resolution:
 
 + Development:
     + This program was developed almost entirely on a Windows computer. Therefore, some features might not work on other platforms. I will try to make this program as cross-compatible as I can, but no promises.
+
+    + I am currently making a modifier ystem that will allow you to do color correction and stuff. This feature will take a long time to implament, and probably won't be very useful, but... I want to.
 
 + Undo:
     + Undo makes you go back to the last save. This action cannot be undone. Kind of ironic. I probably won't add a real undo/redo system because that sounds hard, so be careful!

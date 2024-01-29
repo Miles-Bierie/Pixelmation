@@ -1151,9 +1151,6 @@ class Main:
             self.fileOpen.truncate(0)
 
             self.jsonFrames = self.jsonReadFile['frames']
-
-            # if not f'frame_{self.currentFrame.get()}' in self.jsonFrames[0]: # If the current frame is not stored in the project file, append it
-            #     self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = {}
            
             self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = {}
 
@@ -1905,11 +1902,8 @@ class Main:
                 if int(self.currentFrame.get()) == self.currentFrame_mem:
                     end()
                     return
-            try:
-                if self.isPlaying:
-                    time.sleep(max((self.framerateDelay - 0.000006164899999999 * int(self.res.get())) - (timeit.default_timer() - time1), 0))
-            except:
-                return
+            if self.isPlaying:
+                time.sleep(max((self.framerateDelay - 0.000006165999999999 * int(self.res.get())) - (timeit.default_timer() - time1), 0))
         end()
 
     def play_button_mode(self, isControl):
@@ -2042,7 +2036,7 @@ class Main:
                 TintOperator(self.operatorFrame).pack(anchor=tk.NW)
             case 1:
                 MonochromeOperator(self.operatorFrame).pack(anchor=tk.NW)
-                
+
 
 
 #-----====Main Program Start====-----#
