@@ -9,6 +9,7 @@ from PIL import Image, ImageTk
 from math import ceil, floor
 from tkinter import TclError
 from pygame import mixer
+from pygame import error
 from tkinter import ttk
 import tkinter as tk
 import send2trash
@@ -33,6 +34,8 @@ class Operator(tk.Frame):
     HEIGHT = 297
         
     def __init__(self, parent, name, _uuid):
+        Operator.modifier_count += 1
+         
         # Are we renaming the modifier?
         self.renaming = False
         
@@ -92,6 +95,8 @@ class Operator(tk.Frame):
         menu.add_command(label='Paste Modifier')
         menu.add_separator()
         menu.add_command(label='Delete Modifier', command=lambda m = self: m.destroy())
+        menu.add_separator()
+        menu.add_command(label='Print UUID', command=lambda m = self: print(self.UUID))
         menu.tk_popup(self.winfo_pointerx(), self.winfo_pointery())
         
     def __toggle_enable__(self):
@@ -281,9 +286,8 @@ class Main:
         self.playback = 0.0
         self.playOffset = 0
         self.audioLength = 0
-        self.volume = tk.IntVar()
+        self.volume = tk.IntVar(value=50)
         
-        self.VOLUME = 0.5 # Default volume
         self.FRAMERATES = (1, 3, 8, 10, 12, 15, 20, 24, 30, 60)
 
         self.res = tk.StringVar(value=8) # The project resolution (8 is default)
@@ -383,8 +387,10 @@ class Main:
             else:
                 os.system('open .')
         
+        # Start the pygame mixer for audio playback
         mixer.pre_init(buffer=4096, channels=1, frequency=48000)
         mixer.init()
+        self.change_volume()
         
         # Add the menubar:
         self.menubar = tk.Menu(root) # Main menubar
@@ -450,7 +456,7 @@ class Main:
        
         #Add the color picker
         self.colorPickerFrame = tk.Frame(self.frameTop, highlightthickness=2, highlightbackground='black')
-        self.colorPickerFrame.grid(row=0, column=0, sticky=tk.NW)
+        self.colorPickerFrame.grid(row=0, column=0, sticky=tk.NW, pady=(10, 0))
         self.colorPickerButton = tk.Button(self.colorPickerFrame, text="Color Picker", command=self.ask_color, font=('Calibri', 14))
         self.colorPickerButton.pack()
 
@@ -474,7 +480,7 @@ class Main:
         WIDTH = (6 if sys.platform == 'win32' else 2)
 
         # Frame
-        self.toolsFrame = tk.LabelFrame(self.frameTop, text="Tools", height=60, width=380, bg='white', fg='black')
+        self.toolsFrame = tk.LabelFrame(self.frameTop, text="Tools", height=60, width=380, fg='black')
         self.toolsFrame.grid(row=0, column=1, sticky=tk.N)
         self.toolsFrame.propagate(False)
 
@@ -524,8 +530,6 @@ class Main:
 
         self.volumeSlider = ttk.Scale(root, length=164, from_=0, to=100, variable=self.volume, style='blue.Horizontal.TScale', command=lambda e: self.change_volume())
         self.volumeSlider.place(relx=.8, rely=.964)
-        
-        self.volume.set(80) # Set the initial volume
 
         # Add play button
         self.playButton = tk.Button(self.frameBottom, text="<No Project>", state='disabled', height=2, width=32, command=lambda: self.play_init(False))
@@ -605,7 +609,7 @@ class Main:
             if color == (None, None):
                 return
             
-            self.gridColor = color[1]
+            self.gridColor = color
             root.title("Pixel-Art Animator-" + self.projectDir + '*')
 
         if self.showGridVar.get() or not menu:
@@ -746,7 +750,7 @@ class Main:
                 if mixer.music.get_busy():
                     mixer.music.stop()
                     
-            self.delay(framerate)
+            self.delay(framerate.get())
 
             # Create the data files for the project
             if self.isComplexProject.get():
@@ -826,17 +830,26 @@ class Main:
                             if not os.path.isfile(fileCheck):
                                 mb.showerror(title="Project", message=f"Failed to load audio; Please check that the file exists!")
                                 self.audioFile = None
+                                
                             else:
                                 self.audioFile = self.projectData['data']['audio'] # Load audio
                                 
-                                self.fileMenu.entryconfig("Load Audio", label="Unload Audio")
-
                                 mixer.music.queue(self.audioFile)
                                 mixer.music.load(self.audioFile)
                                 
                                 audio = mutagen.File(self.audioFile)
                                 self.audioLength = audio.info.length
                                 self.audioLength = int((self.audioLength % 60) * 1000)
+                                
+                                try:
+                                    self.fileMenu.entryconfig("Load Audio", label="Unload Audio")
+                                except TclError:
+                                    pass
+                        else:
+                            try:
+                                self.fileMenu.entryconfig("Unload Audio", label="Load Audio")
+                            except TclError:
+                                pass
                     
                 self.projectDir = self.fileOpen
                 
@@ -857,7 +870,7 @@ class Main:
 
                 self.delay(self.framerate) # Set the framerate to the saved framerate
 
-            except:
+            except IndentationError:
                 mb.showerror(title="Project", message=f"Failed to load {self.fileOpen}; Unknown Error!")
                 return
             
@@ -871,28 +884,40 @@ class Main:
             root.focus_force()
             
     def load_audio(self):
-        if self.audioFile == None:
+        if self.audioFile == None: # So unload audio button doesn't open the file dialog
             audioPath = fd.askopenfilename(
                 title="Open audio file",
                 filetypes=(("mp3", '*.mp3'),("wav", '*.wav'))
             )
 
             if len(audioPath) > 1:
+                root.title("Pixel-Art Animator-" + self.projectDir + '*')
                 self.fileMenu.entryconfig("Load Audio", label="Unload Audio")
                 self.audioFile = audioPath
                 mixer.music.unload()
                 self.paused = False
-                mixer.music.load(self.audioFile)
+                try:
+                    mixer.music.load(self.audioFile)
 
-                audio = mutagen.File(self.audioFile)
-                self.audioLength = audio.info.length
-                self.audioLength = int((self.audioLength % 60) * 1000)
-        else:
-            self.fileMenu.entryconfig("Unload Audio", label="Load Audio")
-            self.audioFile = None
-            mixer.music.unload()
+                    audio = mutagen.File(self.audioFile)
+                    self.audioLength = audio.info.length
+                    self.audioLength = int((self.audioLength % 60) * 1000)
+                except error: # pygame error
+                    mb.showerror(title='Audio', message='Failed to load audio!')
+            else:
+                try:
+                    self.fileMenu.entryconfig("Unload Audio", label="Load Audio")
+                except TclError:
+                    pass
+
+                self.audioFile = None
+                mixer.music.unload()
                 
-        root.title("Pixel-Art Animator-" + self.projectDir + '*')
+        else:
+            self.fileMenu.entryconfig('Unload Audio', label='Load Audio')
+            self.audioFile = None
+                
+        
 
     def save(self, all) -> None:
         if not self.showAlphaVar.get(): # If show alpha is not toggled
@@ -1922,16 +1947,14 @@ class Main:
         def draw_frame():
             # Draw the current frame to the preview canvas
             for pixel in range(int(self.res.get())**2):
-                try:
-                    if self.jsonFrames[0].get(f'frame_' + self.currentFrame.get()):
-                        self.savedPixelColors = self.jsonFrames[0][f'frame_' + self.currentFrame.get()]
-                        self.previewCanvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColors[str(self.pixels[pixel])][1 if self.isComplexProject.get() else 0:])
-                    else:
-                        self.savedPixelColors = 'white'
-                        self.previewCanvas.itemconfig(self.pixels[pixel], fill='white')
+                if self.jsonFrames[0].get(f'frame_' + self.currentFrame.get()):
+                    self.savedPixelColors = self.jsonFrames[0][f'frame_' + self.currentFrame.get()]
+                    self.previewCanvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColors[str(self.pixels[pixel])][1 if self.isComplexProject.get() else 0:])
+                else:
+                    self.savedPixelColors = 'white'
+                    self.previewCanvas.itemconfig(self.pixels[pixel], fill='white')
 
-                except KeyError: # If the pixel is not present within the json file
-                    self.previewCanvas.itemconfig(self.pixels[pixel], fill='white') # Fill pixels with white (0 alpha)
+                self.previewCanvas.itemconfig(self.pixels[pixel], outline=self.gridColor)
                     
         def draw_grid(showGrid):
             for i in range(int(self.res.get())**2):
@@ -1977,8 +2000,9 @@ class Main:
             self.previewFrame = tk.Frame(self.modifierTL, width=560, height=560, highlightbackground='green', highlightthickness=2)
             self.previewFrame.pack(side=tk.TOP, anchor=tk.NW)
             
-            self.settingsFrame = tk.Frame(self.modifierTL, width=568, height=340, highlightbackground='darkblue', highlightthickness=2)
-            self.settingsFrame.pack(side=tk.BOTTOM, anchor=tk.SW)
+            self.variableFrame = tk.Frame(self.modifierTL, width=568, height=340, bg='black', highlightbackground='darkblue', highlightthickness=2)
+            self.variableFrame.pack(side=tk.BOTTOM, anchor=tk.SW)
+            self.variableFrame.pack_propagate(False)
             
             self.previewCanvas = tk.Canvas(self.previewFrame, width=560, height=560, bg='lightblue')
             self.previewCanvas.pack()
@@ -2017,7 +2041,7 @@ class Main:
                 
             draw_frame()
                 
-            # Modifier setup
+            # Modifier frame setup
             addButton = tk.Menubutton(self.operatorFrame, text='➕', font=('Calibri', 16), highlightbackground='black', highlightthickness=1)
             addButton.pack(side=tk.TOP, anchor=tk.NW, pady=(0, 1), padx=1)
 
@@ -2027,6 +2051,13 @@ class Main:
             addButton.menu.add_command(label='Monochrome Operator', command=lambda: self.add_modifier(1))
 
             tk.Frame(self.operatorFrame, width=Operator.WIDTH+PADDING, height=2, highlightbackground='darkblue', highlightthickness=2).pack(side=tk.TOP)
+            
+            # Variable frame setup:
+            variableLinkFrame = tk.Frame(self.variableFrame, width=self.variableFrame.winfo_width()/2-3, height=self.variableFrame.winfo_height())
+            variableLinkFrame.pack(side=tk.LEFT, anchor=tk.W)
+            
+            variableListFrame = tk.Frame(self.variableFrame, width=self.variableFrame.winfo_width()/2-3, height=self.variableFrame.winfo_height())
+            variableListFrame.pack(side=tk.RIGHT, anchor=tk.E)
             
             self.modifierUIOpened = True
                 
