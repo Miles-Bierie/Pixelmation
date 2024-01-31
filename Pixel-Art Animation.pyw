@@ -1,4 +1,4 @@
-#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Monday, January 29, 2024  |=========---------  #
+#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Wednesday, January 31, 2024  |=========---------  #
 
 
 from tkinter import colorchooser as ch
@@ -273,11 +273,12 @@ class Main:
     def __init__(self):
         self.projectDir = ''
         self.extension = 'pxproj' # Project file name extension
-        self.jsonReadFile = {} # Loads the project file into json format
+        self.projectData = {} # Loads the project file into json format
         self.pixels = [] # Contains a list of the pixels on the screen (so they can be referanced)
         self.audioFile = None
         self.outputDirectory = tk.StringVar(value='')
         self.isComplexProject = tk.BooleanVar()
+        self.autoSave = tk.BooleanVar()
         
         self.paused = False
         self.playback = 0.0
@@ -406,6 +407,8 @@ class Main:
         self.fileMenu.add_command(label="Load Audio", command=self.load_audio, state=tk.DISABLED)
         self.fileMenu.add_separator()
         self.fileMenu.add_command(label="Quit", command=self.quit)
+        self.fileMenu.add_separator()
+        self.fileMenu.add_checkbutton(label="Auto-Save", variable=self.autoSave)
 
         # Setup edit cascade
         self.editMenu = tk.Menu(self.menubar, tearoff=0)
@@ -773,8 +776,8 @@ class Main:
             self.settingsFile.write(self.jsonSampleDump)
             self.settingsFile.close()
             
-            self.jsonReadFile = self.complexProjectFileSample
-            self.jsonFrames = self.jsonReadFile['frames']
+            self.projectData = self.complexProjectFileSample
+            self.jsonFrames = self.projectData['frames']
             
             self.framerateDelay = .04
             
@@ -912,34 +915,34 @@ class Main:
                 
         else:
             self.fileMenu.entryconfig('Unload Audio', label='Load Audio')
+            root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
             self.audioFile = None
-                
-        
+
 
     def save(self, all) -> None:
         if not self.showAlphaVar.get(): # If show alpha is not toggled
             if '*' == root.title()[-1]:
                 with open(self.projectDir, 'r+') as self.fileOpen:
-                    self.json_projectFile = json.load(self.fileOpen)
-                    self.json_projectFile['data']['resolution'] = self.res.get()
-                    self.json_projectFile['data']['gridcolor'] = self.gridColor
-                    self.json_projectFile['data']['showgrid'] = int(self.showGridVar.get())
-                    self.json_projectFile['data']['audio'] = self.audioFile
-                    self.json_projectFile['data']['framerate'] = self.framerate
-                    self.json_projectFile['data']['output'] = self.outputDirectory.get()
+                    self.projectData = json.load(self.fileOpen)
+                    self.projectData['data']['resolution'] = self.res.get()
+                    self.projectData['data']['gridcolor'] = self.gridColor
+                    self.projectData['data']['showgrid'] = int(self.showGridVar.get())
+                    self.projectData['data']['audio'] = self.audioFile
+                    self.projectData['data']['framerate'] = self.framerate
+                    self.projectData['data']['output'] = self.outputDirectory.get()
 
                     if all:
                         self.save_frame(True)
                         
-                    self.jsonSampleDump = json.dumps(self.json_projectFile, indent=4, separators=(',', ':')) # Read the project data as json text
+                    self.jsonSampleDump = json.dumps(self.projectData, indent=4, separators=(',', ':')) # Read the project data as json text
                     self.fileOpen.seek(0)
                     self.fileOpen.truncate(0)
                     self.fileOpen.write(self.jsonSampleDump)
                     
                     if all:
                         # Load new file data
-                        self.jsonReadFile = json.loads(self.jsonSampleDump)
-                        self.jsonFrames = self.jsonReadFile['frames']
+                        self.projectData = json.loads(self.jsonSampleDump)
+                        self.jsonFrames = self.projectData['frames']
                         
                     root.title(root.title()[0:-1]) # Remove the star in the project title
 
@@ -1026,7 +1029,7 @@ class Main:
 
         self.fileOpen = open(self.projectDir, 'r')
         if readPixels:
-            self.jsonReadFile = json.load(self.fileOpen)
+            self.projectData = json.load(self.fileOpen)
                 
         pixelate = (self.canvas.winfo_width()-5)/int(self.res.get())
 
@@ -1040,7 +1043,7 @@ class Main:
 
             # Set the pixel color
             if readPixels:
-                self.jsonFrames = self.jsonReadFile['frames']
+                self.jsonFrames = self.projectData['frames']
                 try:
                     self.savedPixelColors = self.jsonFrames[0][f'frame_'+self.currentFrame.get()]
 
@@ -1095,20 +1098,9 @@ class Main:
                 if not self.canvas.itemcget(self.selectedPixel, option='fill') == self.colorPickerData[1]: # If the pixel color is already the pen color
                     self.canvas.itemconfig(self.selectedPixel, fill=self.colorPickerData[1])
 
-                    # if self.isComplexProject.get():
-                    #     self.savedPixelColors[str(self.pixels[int(self.selectedPixel[0]-1)])][0] = self.colorPickerData[1]
-                    #     self.savedPixelColors[str(self.pixels[int(self.selectedPixel[0]-1)])][1] = self.colorPickerData[1]
-                    # else:
-                    #     self.savedPixelColors[str(self.pixels[int(self.selectedPixel[0]-1)])] = self.colorPickerData[1]
-
             elif self.eraserFrame['highlightbackground'] == 'red': # If the eraser mode is selected...
                 self.canvas.itemconfig(self.selectedPixel, fill='white')
 
-                # if self.isComplexProject.get():
-                #     self.savedPixelColors[str(self.pixels[int(self.selectedPixel[0]-1)])][0] = 'white'
-                #     self.savedPixelColors[str(self.pixels[int(self.selectedPixel[0]-1)])][1] = 'white'
-                # else:
-                #     self.savedPixelColors[str(self.pixels[int(self.selectedPixel[0]-1)])] = 'white'
 
             elif self.removeFrame['highlightbackground'] == 'red': # If the remove mode is selected...
                 self.canvas_remove_color()
@@ -1129,16 +1121,14 @@ class Main:
                     pos_y = tags['y_0'] + ((tags['y_1'] - tags['y_0']) / 2)
 
                     self.canvas_fill_recursive((pos_x, pos_y), offset, selectedColor)
-        except IndentationError:
+        except:
             pass # I don't want it to yell at me
         
     def on_release(self):
-        return
-        if self.isPlaying or self.showAlphaVar.get():
+        if self.isPlaying or self.showAlphaVar.get() or not self.autoSave.get():
             return
-
-        self.jsonFrames[0][f'frame_' + self.currentFrame.get()] = self.savedPixelColors
-        self.jsonReadFile['frames'] = self.jsonFrames
+        
+        self.save_frame(False)
 
     def canvas_clear(self) -> None:
         for pixel in self.pixels:
@@ -1163,28 +1153,12 @@ class Main:
             if self.canvas.itemcget(pixel, option='fill') == selectedColor:
                 self.canvas.itemconfig(pixel, fill='white')
                 
-                # try:
-                #     if self.isComplexProject.get():
-                #         self.savedPixelColors[str(self.pixels[pixel])][0] = 'white'
-                #         self.savedPixelColors[str(self.pixels[pixel])][1] = 'white'
-                #     else:
-                #         self.savedPixelColors[str(self.pixels[pixel])] = 'white'
-                # except IndexError: # Alpha 0
-                #     pass
-
     def canvas_replace_color(self) -> None:
         selectedPixel = self.canvas.find_closest(self.clickCoords.x, self.clickCoords.y)
         selectedColor = self.canvas.itemcget(selectedPixel, option='fill')
         for pixel in self.pixels:
             if self.canvas.itemcget(pixel, option='fill') == selectedColor:
                 self.canvas.itemconfig(pixel, fill=self.colorPickerData[1])
-                
-                # if self.isComplexProject.get():
-                #     self.savedPixelColors[str(self.pixels[pixel])][0] = self.colorPickerData[1]
-                #     self.savedPixelColors[str(self.pixels[pixel])][1] = self.colorPickerData[1]
-                # else:
-                #     self.savedPixelColors[str(self.pixels[pixel])] = self.colorPickerData[1]
-
         
     def canvas_fill_recursive(self, pos: tuple | list, offset: float, color: str) -> None:
         selectedPixel = self.canvas.find_closest(pos[0], pos[1])
@@ -1204,44 +1178,46 @@ class Main:
             self.canvas_fill_recursive((pos[0], pos[1] - offset), offset, color)
             
 
-    def save_frame(self, fullSave = False) -> None:
+    def save_frame(self, noWrite = False) -> None:
         root.title(root.title()[0:-1]) # Remove the star in the project title
         self.frameMiddle.config(highlightbackground="darkblue")
 
-        if not fullSave:
-            self.json_projectFile = json.load(self.fileOpen)
+        if not noWrite:
+            with open(self.projectDir, 'r+') as self.fileOpen:
+                self.projectData = json.load(self.fileOpen)
 
-            # Clear the project file
-            self.fileOpen.seek(0)
-            self.fileOpen.truncate(0)
+                # Clear the project file
+                self.fileOpen.seek(0)
+                self.fileOpen.truncate(0)
 
-        self.jsonFrames = self.json_projectFile['frames']
-        
-        self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = {}
+            self.jsonFrames = self.projectData['frames']
+            
+            self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = {}
 
-        self.color_Frame_Dict = {}
+        color_Frame_Dict = {}
         for pixel in self.pixels:
             self.pixelColor = self.canvas.itemcget(pixel, option='fill') # Get the colors of each pixel
             if self.pixelColor == 'white':
                 continue
 
             if self.isComplexProject.get():
-                self.color_Frame_Dict[pixel] = ["", ""]
-                self.color_Frame_Dict[pixel][0] = self.pixelColor
-                self.color_Frame_Dict[pixel][1] = self.pixelColor
+                color_Frame_Dict[pixel] = ["", ""]
+                color_Frame_Dict[pixel][0] = self.pixelColor
+                color_Frame_Dict[pixel][1] = self.pixelColor
             else:
-                self.color_Frame_Dict[pixel] = self.pixelColor
+                color_Frame_Dict[pixel] = self.pixelColor
 
-            self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = self.color_Frame_Dict
+            self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = color_Frame_Dict
 
-        if not fullSave:
-            self.jsonSampleDump = json.dumps(self.json_projectFile, indent=4, separators=(',', ':'))
+        if not noWrite:
+            with open(self.projectDir, 'r+') as self.fileOpen:
+                self.jsonSampleDump = json.dumps(self.projectData, indent=4, separators=(',', ':'))
 
-            self.fileOpen.write(self.jsonSampleDump)
-            
-            # Load new file data
-            self.jsonReadFile = json.loads(self.jsonSampleDump)
-            self.jsonFrames = self.jsonReadFile['frames']
+                self.fileOpen.write(self.jsonSampleDump)
+                
+                # Load new file data
+                self.projectData = json.loads(self.jsonSampleDump)
+                self.jsonFrames = self.projectData['frames']
 
     def insert_frame(self) -> None: # Inserts a frame after the current frame
         if self.frameMiddle['highlightbackground'] == "red":
@@ -1257,10 +1233,10 @@ class Main:
 
         # Create a new frame at the end of the sequence
         with open(self.projectDir, 'r+') as self.fileOpen:
-            self.jsonReadFile = json.load(self.fileOpen)
+            self.projectData = json.load(self.fileOpen)
 
             # Get the number of frames
-            self.jsonFrames = self.jsonReadFile['frames']
+            self.jsonFrames = self.projectData['frames']
             self.jsonFrames[0][f'frame_{int(len(self.jsonFrames[0])) + 1}'] = {}      
 
             for loop in range(int(len(self.jsonFrames[0])) - self.currentFrame_mem):
@@ -1272,7 +1248,7 @@ class Main:
         self.fileOpen = open(self.projectDir, 'r+')
         self.fileOpen.seek(0)
         self.fileOpen.truncate(0)
-        self.jsonSampleDump = json.dumps(self.jsonReadFile, indent=4, separators=(',', ':'))
+        self.jsonSampleDump = json.dumps(self.projectData, indent=4, separators=(',', ':'))
         self.fileOpen.write(self.jsonSampleDump)
         self.fileOpen.close()
         
@@ -1280,8 +1256,8 @@ class Main:
 
     def delete_frame(self) -> None:
         with open(self.projectDir, 'r+') as self.fileOpen:
-            self.jsonReadFile = json.load(self.fileOpen)
-            self.jsonFrames = self.jsonReadFile['frames'][0]
+            self.projectData = json.load(self.fileOpen)
+            self.jsonFrames = self.projectData['frames'][0]
             self.newData = copy.deepcopy(self.jsonFrames) # Create a copy of the frame list (as to not change the original durring iteration)
             
             if self.frameCount != 1:
@@ -1298,9 +1274,9 @@ class Main:
                         if loop + 1 == len(self.jsonFrames):
                             self.newData.pop(frame)
 
-            self.jsonReadFile['frames'][0] = self.newData # Set the frames to the new data
+            self.projectData['frames'][0] = self.newData # Set the frames to the new data
             
-            self.jsonDump = json.dumps(self.jsonReadFile, indent=4, separators=(',', ':'))
+            self.jsonDump = json.dumps(self.projectData, indent=4, separators=(',', ':'))
             self.fileOpen.seek(0)
             self.fileOpen.truncate(0)
             self.fileOpen.writelines(self.jsonDump)
@@ -1373,8 +1349,8 @@ class Main:
     def load_frame(self, loadFile): # Display the frame
         if loadFile:
             with open(self.projectDir, 'r') as self.fileOpen:
-                self.jsonReadFile = json.load(self.fileOpen)
-                self.jsonFrames = self.jsonReadFile['frames']
+                self.projectData = json.load(self.fileOpen)
+                self.jsonFrames = self.projectData['frames']
 
         if len(self.jsonFrames[0][f'frame_' + self.currentFrame.get()]) == 0: # If the frame is empty
             for pixel in range(int(self.res.get())**2):
@@ -1394,7 +1370,6 @@ class Main:
                     self.canvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColors[str(self.pixels[pixel])][1 if self.isComplexProject.get() else 0:])
                 else:
                     self.canvas.itemconfig(self.pixels[pixel], fill='white')
-
 
         if self.audioFile != None:
             self.get_playback_pos()
@@ -1953,7 +1928,7 @@ class Main:
                     end()
                     return
             if self.isPlaying:
-                time.sleep(max((self.framerateDelay - 0.000006165999999999 * int(self.res.get())) - (timeit.default_timer() - time1), 0))
+                time.sleep(max((self.framerateDelay - 0.000006174899999999 * int(self.res.get())) - (timeit.default_timer() - time1), 0))
         end()
 
     def play_button_mode(self, isControl):
