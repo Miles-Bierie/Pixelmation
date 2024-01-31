@@ -22,6 +22,8 @@ import copy
 import time
 import sys
 import os
+
+import pprint
     
 class Operator(tk.Frame):
     copied = None
@@ -408,7 +410,7 @@ class Main:
         self.fileMenu.add_separator()
         self.fileMenu.add_command(label="Quit", command=self.quit)
         self.fileMenu.add_separator()
-        self.fileMenu.add_checkbutton(label="Auto-Save", variable=self.autoSave)
+        self.fileMenu.add_checkbutton(label="Auto-Save", variable=self.autoSave, state=tk.DISABLED)
 
         # Setup edit cascade
         self.editMenu = tk.Menu(self.menubar, tearoff=0)
@@ -923,7 +925,7 @@ class Main:
         if not self.showAlphaVar.get(): # If show alpha is not toggled
             if '*' == root.title()[-1]:
                 with open(self.projectDir, 'r+') as self.fileOpen:
-                    self.projectData = json.load(self.fileOpen)
+                    #self.projectData = json.load(self.fileOpen)
                     self.projectData['data']['resolution'] = self.res.get()
                     self.projectData['data']['gridcolor'] = self.gridColor
                     self.projectData['data']['showgrid'] = int(self.showGridVar.get())
@@ -933,8 +935,10 @@ class Main:
 
                     if all:
                         self.save_frame(True)
-                        
+                    
+                   
                     self.jsonSampleDump = json.dumps(self.projectData, indent=4, separators=(',', ':')) # Read the project data as json text
+                    # pprint.pprint(self.jsonSampleDump)
                     self.fileOpen.seek(0)
                     self.fileOpen.truncate(0)
                     self.fileOpen.write(self.jsonSampleDump)
@@ -945,6 +949,49 @@ class Main:
                         self.jsonFrames = self.projectData['frames']
                         
                     root.title(root.title()[0:-1]) # Remove the star in the project title
+                    
+    def save_frame(self, noWrite = False) -> None:
+        self.frameMiddle.config(highlightbackground="darkblue")
+
+        if not noWrite:
+            root.title(root.title()[0:-1]) # Remove the star in the project title
+            
+            with open(self.projectDir, 'r+') as self.fileOpen:
+                self.projectData = json.load(self.fileOpen)
+
+                # Clear the project file
+                self.fileOpen.seek(0)
+                self.fileOpen.truncate(0)
+
+                self.jsonFrames = self.projectData['frames']
+            
+                self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = {}
+        
+        colorFrameDict = {}
+        for pixel in self.pixels:
+            pixelColor = self.canvas.itemcget(pixel, option='fill') # Get the colors of each pixel
+            if pixelColor == 'white':
+                continue
+
+            if self.isComplexProject.get():
+                colorFrameDict[str(pixel)] = ["", ""]
+                colorFrameDict[str(pixel)][0] = pixelColor
+                colorFrameDict[str(pixel)][1] = pixelColor
+            else:
+                colorFrameDict[str(pixel)] = pixelColor
+
+        self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = colorFrameDict
+        self.projectData['frames'] = self.jsonFrames
+
+        if not noWrite:
+            with open(self.projectDir, 'r+') as self.fileOpen:
+                self.jsonSampleDump = json.dumps(self.projectData, indent=4, separators=(',', ':'))
+
+                self.fileOpen.write(self.jsonSampleDump)
+                
+                # Load new file data
+                self.projectData = json.loads(self.jsonSampleDump)
+                self.jsonFrames = self.projectData['frames']
 
     def save_as(self) -> None:
         self.newDir = fd.asksaveasfilename(
@@ -1128,7 +1175,8 @@ class Main:
         if self.isPlaying or self.showAlphaVar.get() or not self.autoSave.get():
             return
         
-        self.save_frame(False)
+        self.save_frame(True)
+        pprint.pprint(self.projectData)
 
     def canvas_clear(self) -> None:
         for pixel in self.pixels:
@@ -1176,48 +1224,6 @@ class Main:
             self.canvas_fill_recursive((pos[0] - offset, pos[1]), offset, color)
             self.canvas_fill_recursive((pos[0], pos[1] + offset), offset, color)
             self.canvas_fill_recursive((pos[0], pos[1] - offset), offset, color)
-            
-
-    def save_frame(self, noWrite = False) -> None:
-        root.title(root.title()[0:-1]) # Remove the star in the project title
-        self.frameMiddle.config(highlightbackground="darkblue")
-
-        if not noWrite:
-            with open(self.projectDir, 'r+') as self.fileOpen:
-                self.projectData = json.load(self.fileOpen)
-
-                # Clear the project file
-                self.fileOpen.seek(0)
-                self.fileOpen.truncate(0)
-
-            self.jsonFrames = self.projectData['frames']
-            
-            self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = {}
-
-        color_Frame_Dict = {}
-        for pixel in self.pixels:
-            self.pixelColor = self.canvas.itemcget(pixel, option='fill') # Get the colors of each pixel
-            if self.pixelColor == 'white':
-                continue
-
-            if self.isComplexProject.get():
-                color_Frame_Dict[pixel] = ["", ""]
-                color_Frame_Dict[pixel][0] = self.pixelColor
-                color_Frame_Dict[pixel][1] = self.pixelColor
-            else:
-                color_Frame_Dict[pixel] = self.pixelColor
-
-            self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = color_Frame_Dict
-
-        if not noWrite:
-            with open(self.projectDir, 'r+') as self.fileOpen:
-                self.jsonSampleDump = json.dumps(self.projectData, indent=4, separators=(',', ':'))
-
-                self.fileOpen.write(self.jsonSampleDump)
-                
-                # Load new file data
-                self.projectData = json.loads(self.jsonSampleDump)
-                self.jsonFrames = self.projectData['frames']
 
     def insert_frame(self) -> None: # Inserts a frame after the current frame
         if self.frameMiddle['highlightbackground'] == "red":
@@ -1251,8 +1257,6 @@ class Main:
         self.jsonSampleDump = json.dumps(self.projectData, indent=4, separators=(',', ':'))
         self.fileOpen.write(self.jsonSampleDump)
         self.fileOpen.close()
-        
-        self.on_release()
 
     def delete_frame(self) -> None:
         with open(self.projectDir, 'r+') as self.fileOpen:
@@ -1263,12 +1267,12 @@ class Main:
             if self.frameCount != 1:
                 self.frameCount -= 1
                 
-            i = int(self.currentFrame.get())
+            frameIterate = int(self.currentFrame.get())
             
             for frame in range(int(self.currentFrame.get()), len(self.jsonFrames) + 1):
-                if i != len(self.jsonFrames): # If the frame is not the last frame, copy the data from the next frame
-                    self.newData[f'frame_{i}'] = self.jsonFrames[f'frame_{i + 1}']
-                    i += 1
+                if frameIterate != len(self.jsonFrames): # If the frame is not the last frame, copy the data from the next frame
+                    self.newData[f'frame_{frameIterate}'] = self.jsonFrames[f'frame_{frameIterate + 1}']
+                    frameIterate += 1
                 else: # Remove the last frame
                     for loop, frame in enumerate(self.jsonFrames):
                         if loop + 1 == len(self.jsonFrames):
@@ -1289,17 +1293,15 @@ class Main:
             self.currentFrame.set(1)
             self.canvas_clear()
             self.save_frame()
-            
-        self.on_release()
 
     def increase_frame(self) -> None:
-        # Get frame count
         if self.frameCount == 1:
             return
             
         if int(self.currentFrame.get()) != int(len(self.jsonFrames[0])):
             self.currentFrame.set(str(int(self.currentFrame.get()) + 1))
-        else:
+
+        else: # Go to beginning
             self.currentFrame.set(1)
             if self.audioFile != None:
                 if mixer.music.get_busy():
@@ -1356,9 +1358,9 @@ class Main:
             for pixel in range(int(self.res.get())**2):
                 self.canvas.itemconfig(self.pixels[pixel], fill='white') # Fill pixels with white (0 alpha)
             return
-        
-        if self.jsonFrames[0].get(f'frame_' + self.currentFrame.get()):
-            self.savedPixelColors = self.jsonFrames[0][f'frame_' + self.currentFrame.get()]
+
+        self.savedPixelColors = self.jsonFrames[0][f'frame_' + self.currentFrame.get()]
+        pprint.pprint(self.savedPixelColors)
 
         if self.showAlphaVar.get(): # If show alpha is selected
             for pixel in range(int(self.res.get())**2):
@@ -1370,6 +1372,8 @@ class Main:
                     self.canvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColors[str(self.pixels[pixel])][1 if self.isComplexProject.get() else 0:])
                 else:
                     self.canvas.itemconfig(self.pixels[pixel], fill='white')
+                    print("COLORS:\n")
+                    print(self.savedPixelColors)
 
         if self.audioFile != None:
             self.get_playback_pos()
