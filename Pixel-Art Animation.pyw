@@ -1129,6 +1129,7 @@ class Main:
             pass # I don't want it to yell at me
         
     def on_release(self):
+        return
         if self.isPlaying or self.showAlphaVar.get():
             return
 
