@@ -22,9 +22,6 @@ import copy
 import time
 import sys
 import os
-
-if sys.platform == 'win32':
-    import winsound
     
 class Operator(tk.Frame):
     copied = None
@@ -1161,11 +1158,14 @@ class Main:
             if self.canvas.itemcget(pixel, option='fill') == selectedColor:
                 self.canvas.itemconfig(pixel, fill='white')
                 
-                if self.isComplexProject.get():
-                    self.savedPixelColors[str(self.pixels[pixel])][0] = 'white'
-                    self.savedPixelColors[str(self.pixels[pixel])][1] = 'white'
-                else:
-                    self.savedPixelColors[str(self.pixels[pixel])] = 'white'
+                try:
+                    if self.isComplexProject.get():
+                        self.savedPixelColors[str(self.pixels[pixel])][0] = 'white'
+                        self.savedPixelColors[str(self.pixels[pixel])][1] = 'white'
+                    else:
+                        self.savedPixelColors[str(self.pixels[pixel])] = 'white'
+                except IndexError: # Alpha 0
+                    pass
 
     def canvas_replace_color(self) -> None:
         selectedPixel = self.canvas.find_closest(self.clickCoords.x, self.clickCoords.y)
@@ -1188,10 +1188,10 @@ class Main:
             self.canvas.itemconfig(selectedPixel, fill=self.colorPickerData[1])
             
             if self.isComplexProject.get():
-                self.savedPixelColors[str(self.pixels[int(self.selectedPixel[0]-1)])][0] = self.colorPickerData[1]
-                self.savedPixelColors[str(self.pixels[int(self.selectedPixel[0]-1)])][1] = self.colorPickerData[1]
+                self.savedPixelColors[str(self.pixels[int(selectedPixel[0]-1)])][0] = self.colorPickerData[1]
+                self.savedPixelColors[str(self.pixels[int(selectedPixel[0]-1)])][1] = self.colorPickerData[1]
             else:
-                self.savedPixelColors[str(self.pixels[int(self.selectedPixel[0]-1)])] = self.colorPickerData[1]
+                self.savedPixelColors[str(self.pixels[int(selectedPixel[0]-1)])] = self.colorPickerData[1]
                 
             self.canvas_fill_recursive((pos[0] + offset, pos[1]), offset, color)
             self.canvas_fill_recursive((pos[0] - offset, pos[1]), offset, color)
@@ -1217,6 +1217,8 @@ class Main:
             self.color_Frame_Dict = {}
             for pixel in self.pixels:
                 self.pixelColor = self.canvas.itemcget(pixel, option='fill') # Get the colors of each pixel
+                if self.pixelColor == 'white':
+                    continue
 
                 if self.isComplexProject.get():
                     self.color_Frame_Dict[pixel] = ["", ""]
@@ -1236,7 +1238,7 @@ class Main:
             self.jsonFrames = self.jsonReadFile['frames']
 
     def insert_frame(self) -> None: # Inserts a frame after the current frame
-        if self.frameMiddle['highlightbackground'] == "red" and self.frameCount > 1:
+        if self.frameMiddle['highlightbackground'] == "red":
             answer = mb.askyesnocancel(title="Unsaved Changes", message="Would you like to save the current frame?")
             if answer:
                 self.save_frame()
@@ -1376,18 +1378,17 @@ class Main:
         if self.jsonFrames[0].get(f'frame_' + self.currentFrame.get()):
             self.savedPixelColors = self.jsonFrames[0][f'frame_' + self.currentFrame.get()]
 
-        for pixel in range(int(self.res.get())**2):
-            # try:
-            if self.showAlphaVar.get(): # If show alpha is selected
-                self.canvas.itemconfig(self.pixels[pixel], fill=('black' if self.savedPixelColors[str(self.pixels[pixel])][1 if self.isComplexProject.get() else 0:] == 'white' else 'white'))
-            else:
-                self.canvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColors[str(self.pixels[pixel])][1 if self.isComplexProject.get() else 0:])
+        if self.showAlphaVar.get(): # If show alpha is selected
+            for pixel in range(int(self.res.get())**2):
+                index = self.savedPixelColors.get(str(self.pixels[pixel]))
+                self.canvas.itemconfig(self.pixels[pixel], fill=('black' if index else 'white'))
+        else:
+            for pixel in range(int(self.res.get())**2):
+                if self.savedPixelColors.get(str(self.pixels[pixel])):
+                    self.canvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColors[str(self.pixels[pixel])][1 if self.isComplexProject.get() else 0:])
+                else:
+                    self.canvas.itemconfig(self.pixels[pixel], fill='white')
 
-            # except KeyError: # If the pixel is not present within the json file
-            #     if self.showAlphaVar.get():
-            #         self.canvas.itemconfig(self.pixels[pixel], fill='black') # Fill pixels with black (0 alpha)
-            #     else:
-            #         self.canvas.itemconfig(self.pixels[pixel], fill='white') # Fill pixels with white (0 alpha)
 
         if self.audioFile != None:
             self.get_playback_pos()
@@ -1451,10 +1452,9 @@ class Main:
         gotoTL.title("Goto...")
         gotoTL.geometry('240x64')
         gotoTL.resizable(False, False)
-        # gotoTL.attributes('-toolwindow', True)
         gotoTL.focus()
         
-        label = tk.Label(gotoTL, width=1000, height=10, textvariable=text, font=('Calibri', 16), justify=tk.LEFT).pack()
+        tk.Label(gotoTL, width=1000, height=10, textvariable=text, font=('Calibri', 16), justify=tk.LEFT).pack()
         
         gotoTL.bind('<FocusOut>', lambda e: remove(False))
         gotoTL.bind('<Escape>', lambda e: remove(False))
@@ -1693,7 +1693,7 @@ class Main:
             root.update()
             
             if renderTL.focus_get() != None:
-                winsound.MessageBeep()
+                root.bell()
                 
         def cancelDialog():
             self.rendering = not mb.askyesno(title="Cancel Render", message="Are you sure you want to cancel the current render?")
