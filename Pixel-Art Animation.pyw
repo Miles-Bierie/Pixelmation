@@ -350,6 +350,7 @@ class Main:
         root.bind_all('<Command-s>', lambda event: self.save(True))
         root.bind('<Control-z>', lambda event: self.undo())
         root.bind('<Command-z>', lambda event: self.undo())
+        root.bind('<l>', lambda event: self.load_frame(False))
         
         root.bind('<*>', lambda e: self.root_nodrag())
 
@@ -917,27 +918,30 @@ class Main:
 
     def save(self, all) -> None:
         if not self.showAlphaVar.get(): # If show alpha is not toggled
-            try:
-                if '*' == root.title()[-1]:
-                    with open(self.projectDir, 'r+') as self.fileOpen:
-                        self.json_projectFile = json.load(self.fileOpen)
-                        self.json_projectFile['data']['resolution'] = self.res.get()
-                        self.json_projectFile['data']['gridcolor'] = self.gridColor
-                        self.json_projectFile['data']['showgrid'] = int(self.showGridVar.get())
-                        self.json_projectFile['data']['audio'] = self.audioFile
-                        self.json_projectFile['data']['framerate'] = self.framerate
-                        self.json_projectFile['data']['output'] = self.outputDirectory.get()
-                        self.jsonSampleDump = json.dumps(self.json_projectFile, indent=4, separators=(',', ':')) # Read the project data as json text
-                        self.fileOpen.seek(0)
-                        self.fileOpen.truncate(0)
-                        self.fileOpen.write(self.jsonSampleDump)
-                    
-                    root.title(root.title()[0:-1]) # Remove the star in the project title
+            if '*' == root.title()[-1]:
+                with open(self.projectDir, 'r+') as self.fileOpen:
+                    self.json_projectFile = json.load(self.fileOpen)
+                    self.json_projectFile['data']['resolution'] = self.res.get()
+                    self.json_projectFile['data']['gridcolor'] = self.gridColor
+                    self.json_projectFile['data']['showgrid'] = int(self.showGridVar.get())
+                    self.json_projectFile['data']['audio'] = self.audioFile
+                    self.json_projectFile['data']['framerate'] = self.framerate
+                    self.json_projectFile['data']['output'] = self.outputDirectory.get()
 
                     if all:
-                        self.save_frame()
-            except: # In case a project is not open
-                pass
+                        self.save_frame(True)
+                        
+                    self.jsonSampleDump = json.dumps(self.json_projectFile, indent=4, separators=(',', ':')) # Read the project data as json text
+                    self.fileOpen.seek(0)
+                    self.fileOpen.truncate(0)
+                    self.fileOpen.write(self.jsonSampleDump)
+                    
+                    if all:
+                        # Load new file data
+                        self.jsonReadFile = json.loads(self.jsonSampleDump)
+                        self.jsonFrames = self.jsonReadFile['frames']
+                        
+                    root.title(root.title()[0:-1]) # Remove the star in the project title
 
     def save_as(self) -> None:
         self.newDir = fd.asksaveasfilename(
@@ -1091,20 +1095,20 @@ class Main:
                 if not self.canvas.itemcget(self.selectedPixel, option='fill') == self.colorPickerData[1]: # If the pixel color is already the pen color
                     self.canvas.itemconfig(self.selectedPixel, fill=self.colorPickerData[1])
 
-                    if self.isComplexProject.get():
-                        self.savedPixelColors[str(self.pixels[int(self.selectedPixel[0]-1)])][0] = self.colorPickerData[1]
-                        self.savedPixelColors[str(self.pixels[int(self.selectedPixel[0]-1)])][1] = self.colorPickerData[1]
-                    else:
-                        self.savedPixelColors[str(self.pixels[int(self.selectedPixel[0]-1)])] = self.colorPickerData[1]
+                    # if self.isComplexProject.get():
+                    #     self.savedPixelColors[str(self.pixels[int(self.selectedPixel[0]-1)])][0] = self.colorPickerData[1]
+                    #     self.savedPixelColors[str(self.pixels[int(self.selectedPixel[0]-1)])][1] = self.colorPickerData[1]
+                    # else:
+                    #     self.savedPixelColors[str(self.pixels[int(self.selectedPixel[0]-1)])] = self.colorPickerData[1]
 
             elif self.eraserFrame['highlightbackground'] == 'red': # If the eraser mode is selected...
                 self.canvas.itemconfig(self.selectedPixel, fill='white')
 
-                if self.isComplexProject.get():
-                    self.savedPixelColors[str(self.pixels[int(self.selectedPixel[0]-1)])][0] = 'white'
-                    self.savedPixelColors[str(self.pixels[int(self.selectedPixel[0]-1)])][1] = 'white'
-                else:
-                    self.savedPixelColors[str(self.pixels[int(self.selectedPixel[0]-1)])] = 'white'
+                # if self.isComplexProject.get():
+                #     self.savedPixelColors[str(self.pixels[int(self.selectedPixel[0]-1)])][0] = 'white'
+                #     self.savedPixelColors[str(self.pixels[int(self.selectedPixel[0]-1)])][1] = 'white'
+                # else:
+                #     self.savedPixelColors[str(self.pixels[int(self.selectedPixel[0]-1)])] = 'white'
 
             elif self.removeFrame['highlightbackground'] == 'red': # If the remove mode is selected...
                 self.canvas_remove_color()
@@ -1159,14 +1163,14 @@ class Main:
             if self.canvas.itemcget(pixel, option='fill') == selectedColor:
                 self.canvas.itemconfig(pixel, fill='white')
                 
-                try:
-                    if self.isComplexProject.get():
-                        self.savedPixelColors[str(self.pixels[pixel])][0] = 'white'
-                        self.savedPixelColors[str(self.pixels[pixel])][1] = 'white'
-                    else:
-                        self.savedPixelColors[str(self.pixels[pixel])] = 'white'
-                except IndexError: # Alpha 0
-                    pass
+                # try:
+                #     if self.isComplexProject.get():
+                #         self.savedPixelColors[str(self.pixels[pixel])][0] = 'white'
+                #         self.savedPixelColors[str(self.pixels[pixel])][1] = 'white'
+                #     else:
+                #         self.savedPixelColors[str(self.pixels[pixel])] = 'white'
+                # except IndexError: # Alpha 0
+                #     pass
 
     def canvas_replace_color(self) -> None:
         selectedPixel = self.canvas.find_closest(self.clickCoords.x, self.clickCoords.y)
@@ -1175,11 +1179,11 @@ class Main:
             if self.canvas.itemcget(pixel, option='fill') == selectedColor:
                 self.canvas.itemconfig(pixel, fill=self.colorPickerData[1])
                 
-                if self.isComplexProject.get():
-                    self.savedPixelColors[str(self.pixels[pixel])][0] = self.colorPickerData[1]
-                    self.savedPixelColors[str(self.pixels[pixel])][1] = self.colorPickerData[1]
-                else:
-                    self.savedPixelColors[str(self.pixels[pixel])] = self.colorPickerData[1]
+                # if self.isComplexProject.get():
+                #     self.savedPixelColors[str(self.pixels[pixel])][0] = self.colorPickerData[1]
+                #     self.savedPixelColors[str(self.pixels[pixel])][1] = self.colorPickerData[1]
+                # else:
+                #     self.savedPixelColors[str(self.pixels[pixel])] = self.colorPickerData[1]
 
         
     def canvas_fill_recursive(self, pos: tuple | list, offset: float, color: str) -> None:
@@ -1188,11 +1192,11 @@ class Main:
         if self.canvas.itemcget(selectedPixel, 'fill') == color:
             self.canvas.itemconfig(selectedPixel, fill=self.colorPickerData[1])
             
-            if self.isComplexProject.get():
-                self.savedPixelColors[str(self.pixels[int(selectedPixel[0]-1)])][0] = self.colorPickerData[1]
-                self.savedPixelColors[str(self.pixels[int(selectedPixel[0]-1)])][1] = self.colorPickerData[1]
-            else:
-                self.savedPixelColors[str(self.pixels[int(selectedPixel[0]-1)])] = self.colorPickerData[1]
+            # if self.isComplexProject.get():
+            #     self.savedPixelColors[str(self.pixels[int(selectedPixel[0]-1)])][0] = self.colorPickerData[1]
+            #     self.savedPixelColors[str(self.pixels[int(selectedPixel[0]-1)])][1] = self.colorPickerData[1]
+            # else:
+            #     self.savedPixelColors[str(self.pixels[int(selectedPixel[0]-1)])] = self.colorPickerData[1]
                 
             self.canvas_fill_recursive((pos[0] + offset, pos[1]), offset, color)
             self.canvas_fill_recursive((pos[0] - offset, pos[1]), offset, color)
@@ -1200,37 +1204,38 @@ class Main:
             self.canvas_fill_recursive((pos[0], pos[1] - offset), offset, color)
             
 
-    def save_frame(self) -> None:
+    def save_frame(self, fullSave = False) -> None:
         root.title(root.title()[0:-1]) # Remove the star in the project title
         self.frameMiddle.config(highlightbackground="darkblue")
 
-        with open(self.projectDir, 'r+') as self.fileOpen:
-            self.jsonReadFile = json.load(self.fileOpen)
+        if not fullSave:
+            self.json_projectFile = json.load(self.fileOpen)
 
             # Clear the project file
             self.fileOpen.seek(0)
             self.fileOpen.truncate(0)
 
-            self.jsonFrames = self.jsonReadFile['frames']
-           
-            self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = {}
+        self.jsonFrames = self.json_projectFile['frames']
+        
+        self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = {}
 
-            self.color_Frame_Dict = {}
-            for pixel in self.pixels:
-                self.pixelColor = self.canvas.itemcget(pixel, option='fill') # Get the colors of each pixel
-                if self.pixelColor == 'white':
-                    continue
+        self.color_Frame_Dict = {}
+        for pixel in self.pixels:
+            self.pixelColor = self.canvas.itemcget(pixel, option='fill') # Get the colors of each pixel
+            if self.pixelColor == 'white':
+                continue
 
-                if self.isComplexProject.get():
-                    self.color_Frame_Dict[pixel] = ["", ""]
-                    self.color_Frame_Dict[pixel][0] = self.pixelColor
-                    self.color_Frame_Dict[pixel][1] = self.pixelColor
-                else:
-                    self.color_Frame_Dict[pixel] = self.pixelColor
+            if self.isComplexProject.get():
+                self.color_Frame_Dict[pixel] = ["", ""]
+                self.color_Frame_Dict[pixel][0] = self.pixelColor
+                self.color_Frame_Dict[pixel][1] = self.pixelColor
+            else:
+                self.color_Frame_Dict[pixel] = self.pixelColor
 
-                self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = self.color_Frame_Dict
+            self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = self.color_Frame_Dict
 
-            self.jsonSampleDump = json.dumps(self.jsonReadFile, indent=4, separators=(',', ':'))
+        if not fullSave:
+            self.jsonSampleDump = json.dumps(self.json_projectFile, indent=4, separators=(',', ':'))
 
             self.fileOpen.write(self.jsonSampleDump)
             
