@@ -1,4 +1,4 @@
-#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Wednesday, January 31, 2024  |=========---------  #
+#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Thursday, February, 2024  |=========---------  #
 
 
 from tkinter import colorchooser as ch
@@ -23,8 +23,7 @@ import time
 import sys
 import os
 
-import pprint
-    
+
 class Operator(tk.Frame):
     copied = None
     modifier_count = 0
@@ -916,7 +915,10 @@ class Main:
                 mixer.music.unload()
                 
         else:
-            self.fileMenu.entryconfig('Unload Audio', label='Load Audio')
+            try:
+                self.fileMenu.entryconfig('Unload Audio', label='Load Audio')
+            except error:
+                pass
             root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
             self.audioFile = None
 
@@ -1172,11 +1174,10 @@ class Main:
             pass # I don't want it to yell at me
         
     def on_release(self):
-        if self.isPlaying or self.showAlphaVar.get() or not self.autoSave.get():
+        if self.isPlaying or self.showAlphaVar.get():
             return
         
         self.save_frame(True)
-        pprint.pprint(self.projectData)
 
     def canvas_clear(self) -> None:
         for pixel in self.pixels:
@@ -1233,30 +1234,25 @@ class Main:
             elif answer == None:
                 return
             self.frameMiddle.config(highlightbackground="darkblue")
+
+        self.save_frame(True)
             
         self.currentFrame_mem = int(self.currentFrame.get())
         self.frameCount += 1
 
         # Create a new frame at the end of the sequence
-        with open(self.projectDir, 'r+') as self.fileOpen:
-            self.projectData = json.load(self.fileOpen)
 
-            # Get the number of frames
-            self.jsonFrames = self.projectData['frames']
-            self.jsonFrames[0][f'frame_{int(len(self.jsonFrames[0])) + 1}'] = {}      
+        # Get the number of frames
+        self.jsonFrames = self.projectData['frames']
+        self.jsonFrames[0][f'frame_{int(len(self.jsonFrames[0])) + 1}'] = {}      
 
-            for loop in range(int(len(self.jsonFrames[0])) - self.currentFrame_mem):
-                # Get the data from the previous frame and copy it to the current frame
-                self.jsonFrames[0][f'frame_{int(len(self.jsonFrames[0])) - loop}'] = self.jsonFrames[0][f'frame_{int(len(self.jsonFrames[0])) - loop - 1}']
+        for loop in range(int(len(self.jsonFrames[0])) - self.currentFrame_mem):
+            # Get the data from the previous frame and copy it to the current frame
+            self.jsonFrames[0][f'frame_{int(len(self.jsonFrames[0])) - loop}'] = self.jsonFrames[0][f'frame_{int(len(self.jsonFrames[0])) - loop - 1}']
            
-            self.currentFrame.set(self.currentFrame_mem + 1)
+        self.currentFrame.set(self.currentFrame_mem + 1)
 
-        self.fileOpen = open(self.projectDir, 'r+')
-        self.fileOpen.seek(0)
-        self.fileOpen.truncate(0)
-        self.jsonSampleDump = json.dumps(self.projectData, indent=4, separators=(',', ':'))
-        self.fileOpen.write(self.jsonSampleDump)
-        self.fileOpen.close()
+        
 
     def delete_frame(self) -> None:
         with open(self.projectDir, 'r+') as self.fileOpen:
@@ -1360,7 +1356,6 @@ class Main:
             return
 
         self.savedPixelColors = self.jsonFrames[0][f'frame_' + self.currentFrame.get()]
-        pprint.pprint(self.savedPixelColors)
 
         if self.showAlphaVar.get(): # If show alpha is selected
             for pixel in range(int(self.res.get())**2):
@@ -1372,8 +1367,6 @@ class Main:
                     self.canvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColors[str(self.pixels[pixel])][1 if self.isComplexProject.get() else 0:])
                 else:
                     self.canvas.itemconfig(self.pixels[pixel], fill='white')
-                    print("COLORS:\n")
-                    print(self.savedPixelColors)
 
         if self.audioFile != None:
             self.get_playback_pos()
@@ -1747,7 +1740,7 @@ class Main:
             cancelButton.pack()
             
             subStr = '0' * len(str(frameCount + 1))
-            position = 0
+            position = -1
             index = len(str(frameCount + 1)) - 1
             
             renderTL.update()
@@ -1758,8 +1751,8 @@ class Main:
                 if self.rendering:
                     position += 1
                     index = len(str(frameCount + 1)) - 1
-                    subStr = subStr[:len(str(index)) - len(str(position)) - 1]
-                    subStr += str(position)
+                    subStr = subStr[:len(str(index)) - len(str(position)) - len(str(args[0]))]
+                    subStr += str(position + args[0])
                     
                     if position % args[2] == 0:
                         img = Image.new(size=(int(self.res.get()), int(self.res.get())), mode=('RGBA' if alpha and usingAlpha else 'RGB'))
