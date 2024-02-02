@@ -2,5 +2,3 @@ tk
 pygame
 mutagen
 pillow
-winsound
-send2trash

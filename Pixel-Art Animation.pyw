@@ -1,4 +1,4 @@
-#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Thursday, February, 2024  |=========---------  #
+#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Friday, February 2, 2024  |=========---------  #
 
 
 from tkinter import colorchooser as ch
@@ -1917,6 +1917,8 @@ class Main:
             play_audio()
 
             time.sleep(self.framerateDelay)
+            
+            correction = (0.000006426899999999 if sys.platform == 'win32' else 0.000005014899999999)
 
         while self.isPlaying:
             time1 = timeit.default_timer()
@@ -1927,7 +1929,7 @@ class Main:
                     end()
                     return
             if self.isPlaying:
-                time.sleep(max((self.framerateDelay - 0.000006214899999999 * int(self.res.get())) - (timeit.default_timer() - time1), 0))
+                time.sleep(max((self.framerateDelay - correction * int(self.res.get())) - (timeit.default_timer() - time1), 0))
         end()
 
     def play_button_mode(self, isControl):
