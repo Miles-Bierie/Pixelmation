@@ -409,7 +409,7 @@ class Main:
         self.fileMenu.add_separator()
         self.fileMenu.add_command(label="Quit", command=self.quit)
         self.fileMenu.add_separator()
-        self.fileMenu.add_checkbutton(label="Auto-Save", variable=self.autoSave, state=tk.DISABLED)
+        # self.fileMenu.add_checkbutton(label="Auto-Save", variable=self.autoSave, state=tk.DISABLED)
 
         # Setup edit cascade
         self.editMenu = tk.Menu(self.menubar, tearoff=0)
@@ -1214,13 +1214,7 @@ class Main:
 
         if self.canvas.itemcget(selectedPixel, 'fill') == color:
             self.canvas.itemconfig(selectedPixel, fill=self.colorPickerData[1])
-            
-            # if self.isComplexProject.get():
-            #     self.savedPixelColors[str(self.pixels[int(selectedPixel[0]-1)])][0] = self.colorPickerData[1]
-            #     self.savedPixelColors[str(self.pixels[int(selectedPixel[0]-1)])][1] = self.colorPickerData[1]
-            # else:
-            #     self.savedPixelColors[str(self.pixels[int(selectedPixel[0]-1)])] = self.colorPickerData[1]
-                
+
             self.canvas_fill_recursive((pos[0] + offset, pos[1]), offset, color)
             self.canvas_fill_recursive((pos[0] - offset, pos[1]), offset, color)
             self.canvas_fill_recursive((pos[0], pos[1] + offset), offset, color)
@@ -1251,8 +1245,6 @@ class Main:
             self.jsonFrames[0][f'frame_{int(len(self.jsonFrames[0])) - loop}'] = self.jsonFrames[0][f'frame_{int(len(self.jsonFrames[0])) - loop - 1}']
            
         self.currentFrame.set(self.currentFrame_mem + 1)
-
-        
 
     def delete_frame(self) -> None:
         with open(self.projectDir, 'r+') as self.fileOpen:
@@ -1378,7 +1370,6 @@ class Main:
 
                 if self.canvas.itemcget(self.pixels[pixel], option='fill') != self.savedPixelColors[str(self.pixels[pixel])][1 if self.isComplexProject.get() else 0:]:
                     root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
-
                 self.canvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColors[str(self.pixels[pixel])][1 if self.isComplexProject.get() else 0:])
             except:
                 self.canvas.itemconfig(self.pixels[pixel], fill='white')
@@ -1746,9 +1737,9 @@ class Main:
             cancelButton.pack()
             
             subStr = '0' * len(str(frameCount + 1))
-            position = -1
-            index = len(str(frameCount + 1)) - 1
-            
+            position = 0
+            incr = 0
+
             renderTL.update()
             
             frame = 0 # The frame we are rendering
