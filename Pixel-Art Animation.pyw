@@ -12,7 +12,6 @@ from pygame import mixer
 from pygame import error
 from tkinter import ttk
 import tkinter as tk
-import send2trash
 import threading
 import mutagen
 import timeit
@@ -1475,8 +1474,9 @@ class Main:
         sucess = True
         if len(os.listdir()) > 0:
             try:
-                send2trash.send2trash(os.listdir())
-            except:
+                for i in os.listdir():
+                    os.remove(i)
+            except IndentationError:
                 sucess = False
         else:
             sucess = None
@@ -1673,8 +1673,12 @@ class Main:
             if renderTL.focus_get() != None:
                 root.bell()
                 
-        def cancelDialog():
+        def cancelDialog(button = None):
+            if button != None:
+                button.config(state=tk.DISABLED)
             self.rendering = not mb.askyesno(title="Cancel Render", message="Are you sure you want to cancel the current render?")
+            if (self.rendering or self.rendering == None) and button != None:
+                button.config(state=tk.NORMAL)
                 
         fileName = f"{self.outputDirectory.get()}/{fileName}"
                 
@@ -1730,18 +1734,19 @@ class Main:
             imageDisplay.pack(expand=True)
             imageDisplay.create_text(20, 20, text="")
             
-            infoLabel = tk.Label(renderFrameMiddle, text="Starting Up...")
+            infoLabel = tk.Label(renderFrameMiddle, text=f"Rendering frame 1 of {floor(frameCount / args[2] + 1)}")
             infoLabel.pack(anchor=tk.W)
             
             progressBar = ttk.Progressbar(renderFrameMiddle, length=420, maximum=frameCount, style="blue.Horizontal.TProgressbar")
             progressBar.pack(pady=(4, 6))
             
-            cancelButton = ttk.Button(renderFrameBottom, text="Cancel", width=64, command=lambda: cancelDialog())
+            cancelButton = ttk.Button(renderFrameBottom, text="Cancel", width=64)
+            cancelButton.config(command=lambda b = cancelButton: cancelDialog(b))
             cancelButton.pack()
             
             subStr = '0' * len(str(frameCount + 1))
-            position = -1
-            index = len(str(frameCount + 1)) - 1
+            position = args[0] - 1
+            incr = 0
             
             renderTL.update()
             
@@ -1749,10 +1754,11 @@ class Main:
 
             for i in range(args[0], args[1] + 1):
                 if self.rendering:
+                    incr += 1
                     position += 1
                     index = len(str(frameCount + 1)) - 1
-                    subStr = subStr[:len(str(index)) - len(str(position)) - len(str(args[0]))]
-                    subStr += str(position + args[0])
+                    subStr = subStr[:(len(str(args[1] + 1)) - len(str(args[0]))) - (len(str(incr)) - 1)]
+                    subStr += str(position)
                     
                     if position % args[2] == 0:
                         img = Image.new(size=(int(self.res.get()), int(self.res.get())), mode=('RGBA' if alpha and usingAlpha else 'RGB'))
@@ -1782,7 +1788,7 @@ class Main:
                         renderedImage = ImageTk.PhotoImage(image=(Image.open(fileName + "_" + subStr + extension).resize((imageDisplay.winfo_width(), imageDisplay.winfo_height()), resample=0)))
                         imageDisplay.create_image(1, 1, anchor=tk.NW, image=renderedImage)
                         
-                        infoLabel.config(text=f"Rendered frame {frame} of {floor(frameCount / args[2] + 1)}")
+                        infoLabel.config(text=f"Rendering frame {min(frame + 1, floor(frameCount / args[2] + 1))} of {floor(frameCount / args[2] + 1)}")
                         
                         progressBar.config(value=position)
                         renderTL.update()
@@ -1795,6 +1801,7 @@ class Main:
 
             if self.rendering:
                 progressBar.config(style='green.Horizontal.TProgressbar')
+                infoLabel.config(text="Finished Rendering!")
                 renderTL.grab_release()
                 
                 mb.showinfo(title="Render", message="Render complete!")
