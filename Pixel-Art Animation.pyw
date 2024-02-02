@@ -12,6 +12,7 @@ from pygame import mixer
 from pygame import error
 from tkinter import ttk
 import tkinter as tk
+import send2trash
 import threading
 import mutagen
 import timeit
@@ -1745,8 +1746,8 @@ class Main:
             cancelButton.pack()
             
             subStr = '0' * len(str(frameCount + 1))
-            position = args[0] - 1
-            incr = 0
+            position = -1
+            index = len(str(frameCount + 1)) - 1
             
             renderTL.update()
             
