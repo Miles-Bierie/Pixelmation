@@ -12,7 +12,6 @@ from pygame import mixer
 from pygame import error
 from tkinter import ttk
 import tkinter as tk
-import send2trash
 import threading
 import mutagen
 import timeit
