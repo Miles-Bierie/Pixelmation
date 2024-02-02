@@ -1348,16 +1348,23 @@ class Main:
 
         self.savedPixelColors = self.jsonFrames[0][f'frame_' + self.currentFrame.get()]
 
+        # Code here is spread out to maximize speed
         if self.showAlphaVar.get(): # If show alpha is selected
             for pixel in range(int(self.res.get())**2):
-                index = self.savedPixelColors.get(str(self.pixels[pixel]))
-                self.canvas.itemconfig(self.pixels[pixel], fill=('black' if index else 'white'))
+                self.canvas.itemconfig(self.pixels[pixel], fill=('black' if self.savedPixelColors.get(str(self.pixels[pixel])) else 'white'))
         else:
-            for pixel in range(int(self.res.get())**2):
-                if self.savedPixelColors.get(str(self.pixels[pixel])):
-                    self.canvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColors[str(self.pixels[pixel])][1 if self.isComplexProject.get() else 0:])
-                else:
-                    self.canvas.itemconfig(self.pixels[pixel], fill='white')
+            if self.isComplexProject.get():
+                for pixel in range(int(self.res.get())**2):
+                    if self.savedPixelColors.get(str(self.pixels[pixel])):
+                        self.canvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColors[str(self.pixels[pixel])][1])
+                    else:
+                        self.canvas.itemconfig(self.pixels[pixel], fill='white')
+            else:
+                for pixel in range(int(self.res.get())**2):
+                    if self.savedPixelColors.get(str(self.pixels[pixel])):
+                        self.canvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColors[str(self.pixels[pixel])])
+                    else:
+                        self.canvas.itemconfig(self.pixels[pixel], fill='white')
 
         if self.audioFile != None:
             self.get_playback_pos()
@@ -1734,22 +1741,19 @@ class Main:
             cancelButton = ttk.Button(renderFrameBottom, text="Cancel", width=64)
             cancelButton.config(command=lambda b = cancelButton: cancelDialog(b))
             cancelButton.pack()
-            
-            subStr = '0' * len(str(frameCount + 1))
-            position = 0
-            incr = 0
 
             renderTL.update()
             
             frame = 0 # The frame we are rendering
+            position = 0
 
             for i in range(args[0], args[1] + 1):
                 if self.rendering:
-                    incr += 1
                     position += 1
-                    index = len(str(frameCount + 1)) - 1
-                    subStr = subStr[:(len(str(args[1] + 1)) - len(str(args[0]))) - (len(str(incr)) - 1)]
-                    subStr += str(position)
+                    subStr = '0' * len(str(args[1]))
+
+                    subStr = subStr[: (len(str(args[1])) - len(str(args[0]))) - (len(str(i))-len(str(args[0])))]
+                    subStr += str(i)
                     
                     if position % args[2] == 0:
                         img = Image.new(size=(int(self.res.get()), int(self.res.get())), mode=('RGBA' if alpha and usingAlpha else 'RGB'))
@@ -1923,7 +1927,7 @@ class Main:
                     end()
                     return
             if self.isPlaying:
-                time.sleep(max((self.framerateDelay - 0.000006174899999999 * int(self.res.get())) - (timeit.default_timer() - time1), 0))
+                time.sleep(max((self.framerateDelay - 0.000006214899999999 * int(self.res.get())) - (timeit.default_timer() - time1), 0))
         end()
 
     def play_button_mode(self, isControl):
