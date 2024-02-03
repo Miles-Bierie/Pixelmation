@@ -59,6 +59,7 @@ class Operator(tk.Frame):
         
         self.nameLabel = tk.Label(self.titleFrame, text=self.name, bg='lightblue', font=('Consolas', 9))
         self.nameLabel.pack(anchor=tk.W, side=tk.LEFT)
+        # To stop us from focusing on two instances of the operator class at the same time
         self.nameLabel.bind('<Double-Button-1>', lambda e: self.__rename_dialog__())
         
         # Only visible when renaming
@@ -296,7 +297,7 @@ class Main:
         self.frameStorage = None # Stores a frame when copying and pasting
         self.frameCount = 0
 
-        self.clickCoords = {}
+        self.clickCoords = {} # Where we clicked on the canvas
 
         self.showAlphaVar = tk.BooleanVar()
         self.showGridVar = tk.BooleanVar(value=True)
@@ -407,7 +408,7 @@ class Main:
         self.fileMenu.add_command(label="Load Audio", command=self.load_audio, state=tk.DISABLED)
         self.fileMenu.add_separator()
         self.fileMenu.add_command(label="Quit", command=self.quit)
-        self.fileMenu.add_separator()
+        # self.fileMenu.add_separator()
         # self.fileMenu.add_checkbutton(label="Auto-Save", variable=self.autoSave, state=tk.DISABLED)
 
         # Setup edit cascade
@@ -1918,7 +1919,7 @@ class Main:
 
             time.sleep(self.framerateDelay)
             
-            correction = (0.000006426899999999 if sys.platform == 'win32' else 0.000005014899999999)
+            correction = (0.000006427299999999 if sys.platform == 'win32' else 0.000005014899999999)
 
         while self.isPlaying:
             time1 = timeit.default_timer()
@@ -1963,6 +1964,13 @@ class Main:
                     self.previewCanvas.itemconfig(str(i+1), outline=self.gridColor)
                 else:
                     self.previewCanvas.itemconfig(str(i+1), outline='')
+                    
+        # TEMP FUNCTION
+        def get():
+            for oper in self.operatorFrame.winfo_children():
+                if hasattr(oper, 'UUID'):
+                    print(oper.UUID)
+        # TEMP FUNCTION
         
         if self.modifierUIOpened:
             self.modifierTL.deiconify()
@@ -1977,6 +1985,9 @@ class Main:
             self.modifierTL.focus()
             
             PADDING = 23
+            
+            self.modifierTL.bind('<u>', lambda e: get())
+            self.modifierTL.bind('<Button-1>', lambda e: self.modifierTL.focus())
             
             previewVar = tk.BooleanVar(master=self.modifierTL, value=True)
             gridVar = tk.BooleanVar(master=self.modifierTL, value=True)
@@ -1995,8 +2006,10 @@ class Main:
             self.operatorFrame = tk.Frame(operatorCanvas, width=Operator.WIDTH+PADDING, height=940)
             self.operatorFrame.bind('<Configure>', lambda e: operatorCanvas.configure(scrollregion=operatorCanvas.bbox('all')))
             
+            
             operatorCanvas.create_window((0, 0), window=self.operatorFrame, anchor=tk.NW)
             operatorCanvas.configure(yscrollcommand=scrollbar.set)
+            operatorCanvas.bind('<Button-1>', lambda e: self.modifierTL.focus())
             
             self.previewFrame = tk.Frame(self.modifierTL, width=560, height=560, highlightbackground='green', highlightthickness=2)
             self.previewFrame.pack(side=tk.TOP, anchor=tk.NW)
@@ -2004,10 +2017,12 @@ class Main:
             self.variableFrame = tk.Frame(self.modifierTL, width=568, height=340, bg='black', highlightbackground='darkblue', highlightthickness=2)
             self.variableFrame.pack(side=tk.BOTTOM, anchor=tk.SW)
             self.variableFrame.pack_propagate(False)
+            self.variableFrame.bind('<Button-1>', lambda e: self.modifierTL.focus())
             
             self.previewCanvas = tk.Canvas(self.previewFrame, width=560, height=560, bg='lightblue')
             self.previewCanvas.pack()
             self.previewCanvas.pack_propagate(False)
+            self.previewCanvas.bind('<Button-1>', lambda e: self.modifierTL.focus())
             
             root.update()
             
