@@ -272,6 +272,13 @@ class MonochromeOperator(Operator):
 
 class Main:
     def __init__(self):
+        def try_delete_guide():
+            if not self.isPlaying:
+                try:
+                    self.canvas.delete(self.canvas.find_withtag('guide'))
+                except AttributeError:
+                    pass
+
         self.projectDir = ''
         self.extension = 'pxproj' # Project file name extension
         self.projectData = {} # Loads the project file into json format
@@ -350,17 +357,18 @@ class Main:
                 ]
             }
 
-        root.bind_all('<Control-s>', lambda event: self.save(True))
-        root.bind_all('<Command-s>', lambda event: self.save(True))
+        root.bind_all('<Control-s>', lambda e: self.save(True))
+        root.bind_all('<Command-s>', lambda e: self.save(True))
         
-        root.bind_all('<KeyRelease-Shift_L>', lambda event: self.no_shift())
-        root.bind_all('<KeyRelease-Shift_R>', lambda event: self.no_shift())
+        root.bind_all('<KeyRelease-Shift_L>', lambda e: self.no_shift())
+        root.bind_all('<KeyRelease-Shift_R>', lambda e: self.no_shift())
         
-        root.bind('<Control-z>', lambda event: self.undo())
-        root.bind('<Command-z>', lambda event: self.undo())
+        root.bind('<Control-z>', lambda e: self.undo())
+        root.bind('<Command-z>', lambda e: self.undo())
         
-        root.bind('<l>', lambda event: self.load_frame())
+        root.bind('<l>', lambda e: self.load_frame())
         root.bind('<*>', lambda e: self.root_nodrag())
+        root.bind('<Shift-Leave>', lambda e: try_delete_guide())
 
         self.load()
         
@@ -470,19 +478,19 @@ class Main:
         # Add the tools:
 
         # Key binds
-        root.bind('q', lambda event: self.tool_select(1))
-        root.bind('w', lambda event: self.tool_select(2))
-        root.bind('e', lambda event: self.tool_select(3))
-        root.bind('r', lambda event: self.tool_select(4))
-        root.bind('t', lambda event: self.tool_select(5))
+        root.bind('q', lambda e: self.tool_select(1))
+        root.bind('w', lambda e: self.tool_select(2))
+        root.bind('e', lambda e: self.tool_select(3))
+        root.bind('r', lambda e: self.tool_select(4))
+        root.bind('t', lambda e: self.tool_select(5))
 
-        root.bind('<Return>', lambda event: root.focus())
-        root.bind('<Escape>', lambda event: self.esc())
+        root.bind('<Return>', lambda e: root.focus())
+        root.bind('<Escape>', lambda e: self.esc())
         
-        root.bind('<p>', lambda event: (mixer.music.stop() if mixer.music.get_busy() else mixer.music.play()))
-        root.bind('<Control-n>', lambda event: self.new_file_dialog())
-        root.bind('<Control-o>', lambda event: self.open_file(True))
-        root.bind('<Control-q>', lambda event: self.quit())
+        root.bind('<p>', lambda e: (mixer.music.stop() if mixer.music.get_busy() else mixer.music.play()))
+        root.bind('<Control-n>', lambda e: self.new_file_dialog())
+        root.bind('<Control-o>', lambda e: self.open_file(True))
+        root.bind('<Control-q>', lambda e: self.quit())
 
         WIDTH = (6 if sys.platform == 'win32' else 2)
 
@@ -542,8 +550,8 @@ class Main:
         self.playButton = tk.Button(self.frameBottom, text="<No Project>", state='disabled', height=2, width=32, command=lambda: self.play_init(False))
         self.playButton.place(relx=.5, rely=.5, anchor='center')
         
-        root.bind('<KeyPress-Control_L>', lambda event: self.play_button_mode(True))
-        root.bind('<KeyRelease-Control_L>', lambda event: self.play_button_mode(False))
+        root.bind('<KeyPress-Control_L>', lambda e: self.play_button_mode(True))
+        root.bind('<KeyRelease-Control_L>', lambda e: self.play_button_mode(False))
 
         # Add the frame button dropdown
         self.frameDisplayButton.menu = tk.Menu(self.frameDisplayButton, tearoff=0)
@@ -676,16 +684,16 @@ class Main:
 
         self.playButton.config(state='normal', text="Play")
         
-        root.bind('<Control-e>', lambda event: self.export_display())
+        root.bind('<Control-e>', lambda e: self.export_display())
 
-        root.bind('<KeyPress-Shift_L>', lambda event: self.frame_skip(True))
-        root.bind('<KeyPress-Shift_R>', lambda event: self.frame_skip(True))
-        root.bind('<KeyRelease-Shift_L>', lambda event: self.frame_skip(False))
-        root.bind('<KeyRelease-Shift_R>', lambda event: self.frame_skip(False))
+        root.bind('<KeyPress-Shift_L>', lambda e: self.frame_skip(True))
+        root.bind('<KeyPress-Shift_R>', lambda e: self.frame_skip(True))
+        root.bind('<KeyRelease-Shift_L>', lambda e: self.frame_skip(False))
+        root.bind('<KeyRelease-Shift_R>', lambda e: self.frame_skip(False))
 
-        root.bind('<Right>', lambda event: self.increase_frame())
-        root.bind('<space>', lambda event: self.play_space())
-        root.bind('<Left>', lambda event: self.decrease_frame())
+        root.bind('<Right>', lambda e: self.increase_frame())
+        root.bind('<space>', lambda e: self.play_space())
+        root.bind('<Left>', lambda e: self.decrease_frame())
         
         # For goto
         for i in range(1, 10):
@@ -711,8 +719,8 @@ class Main:
         self.newFileTL.resizable(False, False)
         self.newFileTL.title("New File")
         self.newFileTL.focus()
-        self.newFileTL.bind('<Escape>', lambda event: quit)
-        self.newFileTL.bind('<Return>', lambda event: self.create_new_file(newRes))
+        self.newFileTL.bind('<Escape>', lambda e: quit)
+        self.newFileTL.bind('<Return>', lambda e: self.create_new_file(newRes))
        
         #Add the main frame
         newFileFrame = tk.Frame(self.newFileTL, height=156, width=256)
@@ -730,8 +738,8 @@ class Main:
         
         tk.Checkbutton(self.newFileTL, text='Complex Project', variable=self.isComplexProject, font=('Courier New', 12)).pack(side=tk.BOTTOM, pady=8)
 
-        newRes.trace_add('write', lambda event1, event2, event3: self.new_project_name_filter(newRes))
-        newFramerate.trace_add('write', lambda event1, event2, event3: self.new_project_framerate_filter(newFramerate))
+        newRes.trace_add('write', lambda e1, event2, event3: self.new_project_name_filter(newRes))
+        newFramerate.trace_add('write', lambda e1, event2, event3: self.new_project_framerate_filter(newFramerate))
        
     def create_new_file(self, res, framerate):
         if res.get() == '' or framerate.get() == '':
@@ -1036,8 +1044,8 @@ class Main:
         renameTL.title("Rename Project")
         renameTL.attributes('-topmost', True)
         
-        renameTL.bind('<Return>', lambda event: self.rename(renameTL))
-        renameTL.bind('<Escape>', lambda event: renameTL.destroy())
+        renameTL.bind('<Return>', lambda e: self.rename(renameTL))
+        renameTL.bind('<Escape>', lambda e: renameTL.destroy())
 
         # Add the rename entry and button:
         rename = tk.Entry(renameTL, width=26, textvariable=self.renameVar, font=('Courier New', 14))
@@ -1098,9 +1106,9 @@ class Main:
         for pix in range(int(self.res.get())**2):                                                                                                       # Save coords for use with the fill tool
             pixel = self.canvas.create_rectangle(self.posX, self.posY, self.posX + pixelate, self.posY + pixelate, fill='white', tags=f'^"x_0":{self.posX},"y_0":{self.posY},"x_1":{self.posX + pixelate},"y_1":{self.posY + pixelate}&'.replace('^', '{').replace('&', '}'))
 
-            self.canvas.tag_bind(pixel, "<ButtonPress-1>", lambda event: self.on_press(event))
-            self.canvas.tag_bind(pixel, "<B1-Motion>", lambda event: self.on_press(event))
-            self.canvas.tag_bind(pixel, "<ButtonRelease-1>", lambda event: self.on_release())
+            self.canvas.tag_bind(pixel, "<ButtonPress-1>", lambda e: self.on_press(e))
+            self.canvas.tag_bind(pixel, "<B1-Motion>", lambda e: self.on_press(e))
+            self.canvas.tag_bind(pixel, "<ButtonRelease-1>", lambda e: self.on_release())
 
             self.pixels.append(pixel)
 
@@ -1124,16 +1132,16 @@ class Main:
 
         # Get number of frames
         self.frameCount = len(self.jsonFrames[0].values())
-        
+
         self.fileOpen.close()
-        
+
         # Add the popup color picker
         self.canvas.bind('<Button-3>', self.pick_color)
 
         self.set_grid_color(False)
         self.update_grid(False)
         self.on_unlock()
-        
+
         loading.destroy() # Remove the loading text
 
     def on_press(self, event: dict):
@@ -1144,15 +1152,15 @@ class Main:
 
         if self.showAlphaVar.get(): # Stop the user from drawing in show alpha mode
             return
-       
+
         self.cursor_X = event.x
         self.cursor_Y = event.y
         self.selectedPixel = self.canvas.find_closest(event.x, event.y)
-       
+
         try:
             root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
             self.frameMiddle.config(highlightbackground="red")
-            
+
             if self.penFrame['highlightbackground'] == 'red': # If pen mode is selected...
                 if not self.canvas.itemcget(self.selectedPixel, option='fill') == self.colorPickerData[1]: # If the pixel color is already the pen color
                     self.canvas.itemconfig(self.selectedPixel, fill=self.colorPickerData[1])
@@ -1160,14 +1168,13 @@ class Main:
             elif self.eraserFrame['highlightbackground'] == 'red': # If the eraser mode is selected...
                 self.canvas.itemconfig(self.selectedPixel, fill='white')
 
-
             elif self.removeFrame['highlightbackground'] == 'red': # If the remove mode is selected...
                 self.canvas_remove_color()
 
             elif self.replaceFrame['highlightbackground'] == 'red': # If the replace mode is selected...
                 if not self.canvas.itemcget(self.selectedPixel, option='fill') == self.colorPickerData[1]: # If the pixel color is already the pen color
                     self.canvas_replace_color()
-                    
+
             elif self.fillFrame['highlightbackground'] == 'red': # If the fill mode is selected...
                 if not self.canvas.itemcget(self.selectedPixel, option='fill') == self.colorPickerData[1]: # If the pixel color is already the pen color
                     selectedPixel = self.canvas.find_closest(self.clickCoords.x, self.clickCoords.y)
@@ -1268,19 +1275,13 @@ class Main:
 
     def insert_frame(self) -> None: # Inserts a frame after the current frame
         if self.frameMiddle['highlightbackground'] == "red":
-            answer = mb.askyesnocancel(title="Unsaved Changes", message="Would you like to save the current frame?")
-            if answer:
-                self.save_frame()
-            elif answer == None:
-                return
+            self.save_frame(True)
             self.frameMiddle.config(highlightbackground="darkblue")
-
-        self.save_frame(True)
             
         self.currentFrame_mem = int(self.currentFrame.get())
         self.frameCount += 1
 
-        # Create a new frame at the end of the sequence
+        root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
 
         # Get the number of frames
         self.jsonFrames = self.projectData['frames']
@@ -1293,40 +1294,36 @@ class Main:
         self.currentFrame.set(self.currentFrame_mem + 1)
 
     def delete_frame(self) -> None:
-        with open(self.projectDir, 'r+') as self.fileOpen:
-            self.projectData = json.load(self.fileOpen)
-            self.jsonFrames = self.projectData['frames'][0]
-            self.newData = copy.deepcopy(self.jsonFrames) # Create a copy of the frame list (as to not change the original durring iteration)
+        root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
+        newData = copy.deepcopy(self.jsonFrames) # Create a copy of the frame list (as to not change the original durring iteration)
+        
+        if self.frameCount != 1:
+            self.frameCount -= 1
             
-            if self.frameCount != 1:
-                self.frameCount -= 1
-                
-            frameIterate = int(self.currentFrame.get())
-            
-            for frame in range(int(self.currentFrame.get()), len(self.jsonFrames) + 1):
-                if frameIterate != len(self.jsonFrames): # If the frame is not the last frame, copy the data from the next frame
-                    self.newData[f'frame_{frameIterate}'] = self.jsonFrames[f'frame_{frameIterate + 1}']
-                    frameIterate += 1
-                else: # Remove the last frame
-                    for loop, frame in enumerate(self.jsonFrames):
-                        if loop + 1 == len(self.jsonFrames):
-                            self.newData.pop(frame)
+        frameIterate = int(self.currentFrame.get())
+        
+        for frame in range(int(self.currentFrame.get()), len(self.jsonFrames[0]) + 1):
+            if frameIterate != len(self.jsonFrames[0]): # If the frame is not the last frame, copy the data from the next frame
+                newData[0][f'frame_{frameIterate}'] = self.jsonFrames[0][f'frame_{frameIterate + 1}']
+                frameIterate += 1
+                print('Iterate')
+            else: # Remove the last frame
+                for loop, frame in enumerate(self.jsonFrames[0]):
+                    if loop + 1 == len(self.jsonFrames[0]):
+                        del newData[0][frame]
+        
+        
 
-            self.projectData['frames'][0] = self.newData # Set the frames to the new data
-            
-            self.jsonDump = json.dumps(self.projectData, indent=4, separators=(',', ':'))
-            self.fileOpen.seek(0)
-            self.fileOpen.truncate(0)
-            self.fileOpen.writelines(self.jsonDump)
-
-        if int(self.currentFrame.get()) - 1 == len(self.jsonFrames) - 1 and self.currentFrame.get() != "0": # If you are on the previous last frame, move back one frame
+        if int(self.currentFrame.get()) == len(self.jsonFrames[0]) and self.currentFrame.get() != "0": # If you are on the previous last frame, move back one frame
             self.currentFrame.set(int(self.currentFrame.get()) - 1)
         try:
-            self.load_frame(True)  
+            self.jsonFrames[0] = newData[0]
+            self.load_frame()
+            self.save_frame(True)
         except KeyError:
             self.currentFrame.set(1)
             self.canvas_clear()
-            self.save_frame()
+            self.save_frame(True)
 
     def increase_frame(self) -> None:
         if self.frameCount == 1:
@@ -1365,14 +1362,14 @@ class Main:
             self.increaseFrameButton.config(text="→", command=self.to_last)
             self.decreaseFrameButton.config(text="←", command=self.to_first)
 
-            root.bind('<Right>', lambda event: self.to_last())
-            root.bind('<Left>', lambda event: self.to_first())
+            root.bind('<Right>', lambda e: self.to_last())
+            root.bind('<Left>', lambda e: self.to_first())
         else:
             self.increaseFrameButton.config(text="+", command=self.increase_frame)
             self.decreaseFrameButton.config(text="-", command=self.decrease_frame)
 
-            root.bind('<Right>', lambda event: self.increase_frame())
-            root.bind('<Left>', lambda event: self.decrease_frame())
+            root.bind('<Right>', lambda e: self.increase_frame())
+            root.bind('<Left>', lambda e: self.decrease_frame())
 
     def to_first(self): # Go to first frame
         self.currentFrame.set(1)
@@ -1426,10 +1423,10 @@ class Main:
                 self.canvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColors[str(self.pixels[pixel])][1 if self.isComplexProject.get() else 0:])
             except:
                 self.canvas.itemconfig(self.pixels[pixel], fill='white')
-                    
+
         self.save_frame()
 
-    def display_alpha(self, triggered):
+    def display_alpha(self, triggered) -> None:
         if triggered and self.showAlphaVar.get(): #If this was triggered by pressing the show alpha button
             if '*' == root.title()[-1]:
                 self.save_frame() # Save the current image
@@ -1441,7 +1438,7 @@ class Main:
         else: # Reload the colors from the file
             self.frameDisplayButton.config(state=tk.NORMAL)
             self.load_frame()
-            
+
     def goto(self, start):
         text = tk.StringVar(value=start)
         
@@ -1457,7 +1454,7 @@ class Main:
                 if mixer.music.get_busy():
                     self.get_playback_pos()
                     mixer.music.set_pos(self.playback)
-            
+
         def display(char):
             if char != None:
                 if len(text.get()) < len(str(self.frameCount)):
@@ -1465,10 +1462,10 @@ class Main:
             else:
                 if len(text.get()) > 1:
                     text.set(text.get()[:-1])
-            
+
         if self.gotoOpen:
-            return None
-        
+            return
+
         self.gotoOpen = True
         gotoTL = tk.Toplevel()
         gotoTL.title("Goto...")
