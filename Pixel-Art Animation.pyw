@@ -359,7 +359,7 @@ class Main:
         root.bind('<Control-z>', lambda event: self.undo())
         root.bind('<Command-z>', lambda event: self.undo())
         
-        root.bind('<l>', lambda event: self.load_frame(False))
+        root.bind('<l>', lambda event: self.load_frame())
         root.bind('<*>', lambda e: self.root_nodrag())
 
         self.load()
@@ -885,7 +885,7 @@ class Main:
             self.modifierUIOpened = False
             
             if self.showAlphaVar.get():
-                self.load_frame(False)
+                self.load_frame()
             
             self.exportOpen = False
             root.focus_force()
@@ -1023,7 +1023,7 @@ class Main:
             self.frameStorage = f'frame_{self.currentFrame.get()}'
         elif mode == 'paste':
             self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = self.jsonFrames[0][self.frameStorage]
-            self.load_frame(False)
+            self.load_frame()
             self.save_frame()
 
     def rename_dialog(self) -> None:
@@ -1199,7 +1199,8 @@ class Main:
             self.canvas.delete(self.canvas.find_withtag('guide')[0])
 
         line = self.canvas.create_line(self.shiftCoords['x'], self.shiftCoords['y'], event.x, event.y, tags='guide', width=8, activefill=self.colorPickerData[1], capstyle=tk.ROUND)
-        self.canvas.tag_bind(line, '<Leave>', lambda e: self.canvas.delete(self.canvas.find_withtag('guide')[0]))
+        self.canvas.tag_bind(line, '<Leave>', lambda e: self.canvas.delete(line))
+        self.canvas.tag_bind(line, '<Shift-Leave>', lambda e: self.canvas.delete(line))
         self.canvas.tag_bind(line, '<Button-1>', lambda e: self.draw_line(line))
             
     def draw_line(self, line):
@@ -1343,7 +1344,7 @@ class Main:
                     if self.isPlaying:
                         mixer.music.play()
             
-        self.load_frame(False)
+        self.load_frame()
        
     def decrease_frame(self) -> None:
         if self.frameCount == 1:
@@ -1357,7 +1358,7 @@ class Main:
         if self.audioFile != None:
             self.get_playback_pos()
 
-        self.load_frame(False)
+        self.load_frame()
 
     def frame_skip(self, mode: bool) -> None: # Displays the '→←' text or the '+-' text, depending on current functionality
         if mode == True:
@@ -1375,13 +1376,13 @@ class Main:
 
     def to_first(self): # Go to first frame
         self.currentFrame.set(1)
-        self.load_frame(False)
+        self.load_frame()
 
     def to_last(self): # Go to last frame
         self.currentFrame.set(self.frameCount)
-        self.load_frame(False)
+        self.load_frame()
 
-    def load_frame(self, loadFile): # Display the frame
+    def load_frame(self, loadFile = False): # Display the frame
         if loadFile:
             with open(self.projectDir, 'r') as self.fileOpen:
                 self.projectData = json.load(self.fileOpen)
@@ -1439,7 +1440,7 @@ class Main:
                     self.canvas.itemconfig(pixel, fill=['black' if self.canvas.itemcget(pixel, option='fill') == 'white' else 'white']) # Show the alpha
         else: # Reload the colors from the file
             self.frameDisplayButton.config(state=tk.NORMAL)
-            self.load_frame(False)
+            self.load_frame()
             
     def goto(self, start):
         text = tk.StringVar(value=start)
@@ -1449,10 +1450,10 @@ class Main:
             self.gotoOpen = False
             if goto:
                 if int(text.get()) > self.frameCount:
-                    self.currentFrame.set(self.frameCount - 1)
+                    self.currentFrame.set(self.frameCount)
                 else:
-                    self.currentFrame.set(int(text.get()) - 1)
-                self.increase_frame()
+                    self.currentFrame.set(int(text.get()))
+                self.load_frame()
                 if mixer.music.get_busy():
                     self.get_playback_pos()
                     mixer.music.set_pos(self.playback)
@@ -1931,7 +1932,7 @@ class Main:
             if stopMode:
                 self.currentFrame.set(self.currentFrame_mem)
 
-                self.load_frame(False)
+                self.load_frame()
                 self.isPlaying = False
 
                 if self.audioFile != None:  # Restart and stop the audio
@@ -1964,7 +1965,7 @@ class Main:
 
             time.sleep(self.framerateDelay)
             
-            correction = (0.000006427299999999 if sys.platform == 'win32' else 0.000005014899999999)
+            correction = (0.000006767699999999 if sys.platform == 'win32' else 0.000005014499999999)
 
         while self.isPlaying:
             time1 = timeit.default_timer()
