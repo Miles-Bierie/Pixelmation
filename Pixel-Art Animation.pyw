@@ -298,12 +298,14 @@ class Main:
         self.frameCount = 0
 
         self.clickCoords = {} # Where we clicked on the canvas
+        self.shiftCoords = {} # Where we shifted on the canvas
 
         self.showAlphaVar = tk.BooleanVar()
         self.showGridVar = tk.BooleanVar(value=True)
         self.gridColor = '#000000'
         self.colorPickerData = ('0,0,0', '#000000') #Stores the data from the color picker
 
+        self.isShifting = False
         self.isPlaying = False
         self.control = False
         self.gotoOpen = False
@@ -350,10 +352,14 @@ class Main:
 
         root.bind_all('<Control-s>', lambda event: self.save(True))
         root.bind_all('<Command-s>', lambda event: self.save(True))
+        
+        root.bind_all('<KeyRelease-Shift_L>', lambda event: self.no_shift())
+        root.bind_all('<KeyRelease-Shift_R>', lambda event: self.no_shift())
+        
         root.bind('<Control-z>', lambda event: self.undo())
         root.bind('<Command-z>', lambda event: self.undo())
-        root.bind('<l>', lambda event: self.load_frame(False))
         
+        root.bind('<l>', lambda event: self.load_frame(False))
         root.bind('<*>', lambda e: self.root_nodrag())
 
         self.load()
@@ -1057,6 +1063,8 @@ class Main:
 
     def add_canvas(self, readPixels):
         self.returnData = False
+        
+
         # Update the title
         self.update_title()
 
@@ -1066,6 +1074,8 @@ class Main:
 
         self.canvas = tk.Canvas(self.frameMiddle, height=866, width=866)
         self.canvas.pack()
+        self.canvas.bind('<Shift-Motion>', self.draw_line_guide)
+        
 
         # Create pixels
         self.toY = int(self.res.get())
@@ -1079,15 +1089,19 @@ class Main:
         self.fileOpen = open(self.projectDir, 'r')
         if readPixels:
             self.projectData = json.load(self.fileOpen)
+            
+        if self.showAlphaVar.get(): # If show alpha is selected, disable it before drawing to the canvas
+            self.display_alpha(False)
                 
         pixelate = (self.canvas.winfo_width()-5)/int(self.res.get())
 
         for pix in range(int(self.res.get())**2):                                                                                                       # Save coords for use with the fill tool
             pixel = self.canvas.create_rectangle(self.posX, self.posY, self.posX + pixelate, self.posY + pixelate, fill='white', tags=f'^"x_0":{self.posX},"y_0":{self.posY},"x_1":{self.posX + pixelate},"y_1":{self.posY + pixelate}&'.replace('^', '{').replace('&', '}'))
 
-            self.canvas.tag_bind(f'{pix + 1}', "<ButtonPress-1>", lambda event: self.on_press(event))
-            self.canvas.tag_bind(f'{pix + 1}', "<B1-Motion>", lambda event: self.on_press(event))
-            self.canvas.tag_bind(f'{pix + 1}', "<ButtonRelease-1>", lambda event: self.on_release())
+            self.canvas.tag_bind(pixel, "<ButtonPress-1>", lambda event: self.on_press(event))
+            self.canvas.tag_bind(pixel, "<B1-Motion>", lambda event: self.on_press(event))
+            self.canvas.tag_bind(pixel, "<ButtonRelease-1>", lambda event: self.on_release())
+
             self.pixels.append(pixel)
 
             # Set the pixel color
@@ -1095,11 +1109,7 @@ class Main:
                 self.jsonFrames = self.projectData['frames']
                 try:
                     self.savedPixelColors = self.jsonFrames[0][f'frame_'+self.currentFrame.get()]
-
-                    if self.showAlphaVar.get(): # If show alpha is selected
-                        self.display_alpha(False)
-                    else:
-                        self.canvas.itemconfig(pixel, fill=self.savedPixelColors[str(pixel)][1 if self.isComplexProject.get() else 0:])
+                    self.canvas.itemconfig(pixel, fill=self.savedPixelColors[str(pixel)][1 if self.isComplexProject.get() else 0:])
 
                 except KeyError: # If the pixel is not present within the json file
                     self.canvas.itemconfig(pixel, fill='white') # Fill pixels with white (0 alpha)
@@ -1172,6 +1182,41 @@ class Main:
                     self.canvas_fill_recursive((pos_x, pos_y), offset, selectedColor)
         except:
             pass # I don't want it to yell at me
+        
+    def set_shift_coords(self, event):
+        self.shiftCoords['x'] = event.x
+        self.shiftCoords['y'] = event.y
+        
+    def draw_line_guide(self, event): # Guess
+        if not self.penFrame.cget('highlightbackground') == 'red' or self.isPlaying:
+            return
+
+        if not self.isShifting:
+            self.set_shift_coords(event)
+            self.isShifting = True
+
+        if self.canvas.find_withtag('guide') != ():
+            self.canvas.delete(self.canvas.find_withtag('guide')[0])
+
+        line = self.canvas.create_line(self.shiftCoords['x'], self.shiftCoords['y'], event.x, event.y, tags='guide', width=8, activefill=self.colorPickerData[1], capstyle=tk.ROUND)
+        self.canvas.tag_bind(line, '<Leave>', lambda e: self.canvas.delete(self.canvas.find_withtag('guide')[0]))
+        self.canvas.tag_bind(line, '<Button-1>', lambda e: self.draw_line(line))
+            
+    def draw_line(self, line):
+        root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
+        for pixel in self.pixels:
+            coords = self.canvas.coords(str(pixel))
+            overlap = self.canvas.find_overlapping(coords[0], coords[1], coords[2], coords[3])
+            for selected in overlap:
+                if self.canvas.itemcget(str(selected), 'tags')[0] == 'g': # 'g' is in 'guide'
+                    self.canvas.itemconfig(str(pixel), fill=self.colorPickerData[1])
+                    break
+
+        self.canvas.delete(line)
+        self.save_frame(True)
+        
+    def no_shift(self):
+        self.isShifting = False
         
     def on_release(self):
         if self.isPlaying or self.showAlphaVar.get():
@@ -1992,7 +2037,9 @@ class Main:
             previewVar = tk.BooleanVar(master=self.modifierTL, value=True)
             gridVar = tk.BooleanVar(master=self.modifierTL, value=True)
             
-            # Main frames
+            # Main frames:
+            
+            # Holds the canvas that holds the frame that holds the operators
             operatorContainer = tk.Frame(self.modifierTL, width=Operator.WIDTH+PADDING, height=940, highlightbackground='darkblue', highlightthickness=2)
             operatorContainer.pack(side=tk.RIGHT, anchor=tk.NE)
             operatorContainer.pack_propagate(False)
@@ -2005,7 +2052,6 @@ class Main:
             
             self.operatorFrame = tk.Frame(operatorCanvas, width=Operator.WIDTH+PADDING, height=940)
             self.operatorFrame.bind('<Configure>', lambda e: operatorCanvas.configure(scrollregion=operatorCanvas.bbox('all')))
-            
             
             operatorCanvas.create_window((0, 0), window=self.operatorFrame, anchor=tk.NW)
             operatorCanvas.configure(yscrollcommand=scrollbar.set)

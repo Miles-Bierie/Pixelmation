@@ -66,6 +66,7 @@ The button to enable/disable the alpha channel can be found under the edit menu.
 
 ## Tools
 + **Pen:** &nbsp; Does what you would expect; draws in the color selected by the color picker
+    + Hold down shift to draw a strait line
 + **Eraser:** &nbsp; Also does what you would expect; Erases the pixel. Erased pixels have an alpha of 0
 + **Remove:** &nbsp; Erases all pixels that have the selected pixels color
 + **Replace:** &nbsp; Replaces all pixels that have the selected pixels color with the current pen color
