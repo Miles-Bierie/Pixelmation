@@ -281,33 +281,32 @@ class Main:
                 except AttributeError:
                     pass
 
-        self.projectDir = ''
+        self.projectDir = '' # The directory of the current project
         self.extension = 'pxproj' # Project file name extension
         self.projectData = {} # Loads the project file into json format
         self.pixels = [] # Contains a list of the pixels on the screen (so they can be referanced)
-        self.audioFile = None
-        self.outputDirectory = tk.StringVar(value='')
+        self.audioFile = None # The path to the audio file
+        self.outputDirectory = tk.StringVar(value='') # The directory we render to
         self.isComplexProject = tk.BooleanVar()
-        self.autoSave = tk.BooleanVar()
+        # self.autoSave = tk.BooleanVar()
         
         self.paused = False
         self.playback = 0.0
-        self.playOffset = 0
         self.audioLength = 0
         self.volume = tk.IntVar(value=50)
-        
-        self.FRAMERATES = (1, 3, 8, 10, 12, 15, 20, 24, 30, 60)
 
         self.res = tk.StringVar(value=8) # The project resolution (8 is default)
         self.currentFrame = tk.StringVar(value='1')
-        self.currentFrame_mem = 1
+        self.currentFrame_mem = 1 # Remember the frame we started playing on
         self.framerateDelay = -1 # Default value (Unasigned)
-        self.framerate = -1
+        self.framerate = -1 # FPS
         self.frameStorage = None # Stores a frame when copying and pasting
-        self.frameCount = 0
+        self.frameCount = 0 # How many frame are in the project
+        self.undoIndex = 0 # Where we are in the history
 
         self.clickCoords = {} # Where we clicked on the canvas
         self.shiftCoords = {} # Where we shifted on the canvas
+        self.undoCache = [] # Stores the undo data in frame dictionaries
 
         self.showAlphaVar = tk.BooleanVar()
         self.showGridVar = tk.BooleanVar(value=True)
@@ -336,10 +335,10 @@ class Main:
                     }
                 ],
             "modifiers": [
-                {}
+                    {}
                 ],
             "variables": [
-                {}
+                    {}
                 ]
             }
         
@@ -951,7 +950,7 @@ class Main:
                     self.projectData['data']['output'] = self.outputDirectory.get()
 
                     if all:
-                        self.save_frame(True)
+                        self.save_frame()
                     
                    
                     self.jsonSampleDump = json.dumps(self.projectData, indent=4, separators=(',', ':')) # Read the project data as json text
@@ -966,24 +965,14 @@ class Main:
                         
                     root.title(root.title()[0:-1]) # Remove the star in the project title
                     
-    def save_frame(self, noWrite: bool = False) -> None:
+    def save_frame(self) -> None:
         self.frameMiddle.config(highlightbackground="darkblue")
-
-        if not noWrite:
-            root.title(root.title()[0:-1]) # Remove the star in the project title
-            
-            with open(self.projectDir, 'r+') as self.fileOpen:
-                self.projectData = json.load(self.fileOpen)
-
-                # Clear the project file
-                self.fileOpen.seek(0)
-                self.fileOpen.truncate(0)
-
-                self.jsonFrames = self.projectData['frames']
-            
-                self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = {}
         
         colorFrameDict = {}
+        
+        frameCache = {'frame_' + self.currentFrame.get(): ['', '']} # Store the data before and after saving
+        frameCache['frame_' + self.currentFrame.get()][0] = self.jsonFrames[0]['frame_' + self.currentFrame.get()]
+
         for pixel in self.pixels:
             pixelColor = self.canvas.itemcget(pixel, option='fill') # Get the colors of each pixel
             if pixelColor == 'white':
@@ -995,19 +984,11 @@ class Main:
                 colorFrameDict[str(pixel)][1] = pixelColor
             else:
                 colorFrameDict[str(pixel)] = pixelColor
-
+                
+        frameCache['frame_' + self.currentFrame.get()][1] = colorFrameDict
+        print(frameCache)
         self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = colorFrameDict
         self.projectData['frames'] = self.jsonFrames
-
-        if not noWrite:
-            with open(self.projectDir, 'r+') as self.fileOpen:
-                self.jsonSampleDump = json.dumps(self.projectData, indent=4, separators=(',', ':'))
-
-                self.fileOpen.write(self.jsonSampleDump)
-                
-                # Load new file data
-                self.projectData = json.loads(self.jsonSampleDump)
-                self.jsonFrames = self.projectData['frames']
 
     def save_as(self) -> None:
         self.newDir = fd.asksaveasfilename(
@@ -1221,7 +1202,7 @@ class Main:
                     break
         
         self.canvas.delete(line)
-        self.save_frame(True)
+        self.save_frame()
         
     def set_isShifting_false(self) -> None:
         self.isShifting = False
@@ -1230,7 +1211,7 @@ class Main:
         if self.isPlaying or self.showAlphaVar.get():
             return
         
-        self.save_frame(True)
+        self.save_frame()
 
     def canvas_clear(self) -> None:
         for pixel in self.pixels:
@@ -1275,7 +1256,7 @@ class Main:
 
     def insert_frame(self) -> None: # Inserts a frame after the current frame
         if self.frameMiddle['highlightbackground'] == "red":
-            self.save_frame(True)
+            self.save_frame()
             self.frameMiddle.config(highlightbackground="darkblue")
             
         self.currentFrame_mem = int(self.currentFrame.get())
@@ -1318,11 +1299,11 @@ class Main:
         try:
             self.jsonFrames[0] = newData[0]
             self.load_frame()
-            self.save_frame(True)
+            self.save_frame()
         except KeyError:
             self.currentFrame.set(1)
             self.canvas_clear()
-            self.save_frame(True)
+            self.save_frame()
 
     def increase_frame(self) -> None:
         if self.frameCount == 1:
@@ -2139,35 +2120,42 @@ class Main:
             root.update()
             
             variableListWindow.paneconfig(variableTypeFrame, minsize=10)
+            variableListWindow.paneconfig(variableNameFrame, minsize=10)
             variableListWindow.paneconfig(variableValueFrame, minsize=10)
             
-            tk.Label(variableTypeFrame, width=variableNameFrame.winfo_width(), text="Type:", font=('Calibri', 17), underline=True).pack(side=tk.TOP)
+            tk.Label(variableTypeFrame, width=variableTypeFrame.winfo_width(), text="Type:", font=('Calibri', 17), underline=True).pack(side=tk.TOP)
             tk.Label(variableNameFrame, width=variableNameFrame.winfo_width(), text="Name:", font=('Calibri', 17), underline=True).pack(side=tk.TOP)
-            tk.Label(variableValueFrame, width=variableNameFrame.winfo_width(), text="Value:", font=('Calibri', 17), underline=True).pack(side=tk.TOP)
+            tk.Label(variableValueFrame, width=variableValueFrame.winfo_width(), text="Value:", font=('Calibri', 17), underline=True).pack(side=tk.TOP)
             
             tk.Label(variableLinkFrame, width=variableLinkFrame.winfo_width(), text="Linker:", font=('Calibri', 17), underline=True).pack(side=tk.TOP)
             
             # Add var type menus
             for i in range(12):
-                button = ttk.Menubutton(variableTypeFrame, width=variableTypeFrame.winfo_width())
+                button = ttk.Menubutton(variableTypeFrame, width=variableTypeFrame.winfo_width(), name=str(i))
                 button.pack(side=tk.TOP)
                 button.menu = tk.Menu(button, tearoff=False)
                 button.variable = tk.StringVar(value='none')
                 button['menu'] = button.menu
                 button.config(textvariable=button.variable)
                 
-                button.menu.add_radiobutton(label='none', variable=button.variable)
-                button.menu.add_radiobutton(label='int', variable=button.variable)
-                button.menu.add_radiobutton(label='float', variable=button.variable)
-                button.menu.add_radiobutton(label='string', variable=button.variable)
+                button.menu.add_radiobutton(label='none', variable=button.variable, command=lambda _id=button.winfo_name(), var=button.variable: self.set_row(var, _id, variableNameFrame, variableValueFrame))
+                button.menu.add_radiobutton(label='int', variable=button.variable, command=lambda  _id=button.winfo_name(), var=button.variable: self.set_row(var, _id, variableNameFrame, variableValueFrame))
+                button.menu.add_radiobutton(label='float', variable=button.variable, command=lambda  _id=button.winfo_name(), var=button.variable: self.set_row(var, _id, variableNameFrame, variableValueFrame))
+                button.menu.add_radiobutton(label='string', variable=button.variable, command=lambda  _id=button.winfo_name(), var=button.variable: self.set_row(var, _id, variableNameFrame, variableValueFrame))
 
             # Add entries
-            for iterate, frame in enumerate('variableNameFrame', 'variableValueFrame'):
+            for iterate, frame in enumerate(('variableNameFrame', 'variableValueFrame')):
                 cf:tk.Frame = vars()[frame]
                 for i in range(12):
-                    tk.Entry(cf, width=cf.winfo_width(), font=('Calibri', 13), name=str(iterate) + '_' + str(i)).pack(side=tk.TOP)
+                    tk.Entry(cf, width=cf.winfo_width(), font=('Calibri', 13), name=str(iterate) + '_' + str(i), state=tk.DISABLED).pack(side=tk.TOP)
             
             self.modifierUIOpened = True
+            
+    def set_row(self, var: tk.StringVar, _id: str, *args: tk.Frame) -> None:
+        for frame in (args[0], args[1]):
+            for entry in frame.winfo_children():
+                if entry.winfo_name()[entry.winfo_name().find('_') + 1:] == str(_id):
+                    entry.config(state=tk.DISABLED if var.get() == 'none' else tk.NORMAL)
                 
     def add_modifier(self, modifier: int) -> None:
         match modifier:
@@ -2175,6 +2163,12 @@ class Main:
                 TintOperator(self.operatorFrame).pack(anchor=tk.NW)
             case 1:
                 MonochromeOperator(self.operatorFrame).pack(anchor=tk.NW)
+            case 2:
+                ... # TODO: ReplaceOperator(self.operatorFrame).pack(anchor=tk.NW)
+            case 3:
+                ... # TODO: FillOperator(self.operatorFrame).pack(anchor=tk.NW)
+            case 4:
+                ... # TODO: NoiseOperator(self.operatorFrame).pack(anchor=tk.NW)
 
 
 
@@ -2183,7 +2177,7 @@ sys.setrecursionlimit(64**2) # So the fill tool works
 
 root = tk.Tk()
 root.title("Pixel-Art Animatitor")
-root.geometry('990x1000')
+root.geometry('1000x1000')
 root.resizable(False, False)
 
 m_cls = Main()
