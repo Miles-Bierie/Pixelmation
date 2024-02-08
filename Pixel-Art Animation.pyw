@@ -150,6 +150,7 @@ class TintOperator(Operator):
         super().__init__(parent=parent, name=name, _uuid=_uuid)
         
         self.parent = parent
+        self.name = name
         
         # What is this?
         self.type = 'TintOperator'
@@ -228,6 +229,7 @@ class MonochromeOperator(Operator):
         super().__init__(parent=parent, name=name, _uuid=_uuid)
         
         self.parent = parent
+        self.name = name
         
         self.type = 'MonochromeOperator'
         
@@ -935,7 +937,6 @@ class Main:
                 pass
             root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
             self.audioFile = None
-
 
     def save(self, all) -> None:
         if not self.showAlphaVar.get(): # If show alpha is not toggled
@@ -1962,7 +1963,7 @@ class Main:
 
             time.sleep(self.framerateDelay)
             
-            correction = (0.000006767699999999 if sys.platform == 'win32' else 0.000005014499999999)
+            correction = (0.000006787699999999 if sys.platform == 'win32' else 0.000005014499999999)
 
         while self.isPlaying:
             time1 = timeit.default_timer()
@@ -1994,7 +1995,10 @@ class Main:
             for pixel in range(int(self.res.get())**2):
                 if self.jsonFrames[0].get(f'frame_' + self.currentFrame.get()):
                     self.savedPixelColors = self.jsonFrames[0][f'frame_' + self.currentFrame.get()]
-                    self.previewCanvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColors[str(self.pixels[pixel])][1 if self.isComplexProject.get() else 0:])
+                    try:
+                        self.previewCanvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColors[str(self.pixels[pixel])][1])
+                    except KeyError:
+                        self.previewCanvas.itemconfig(self.pixels[pixel], fill='white')
                 else:
                     self.savedPixelColors = 'white'
                     self.previewCanvas.itemconfig(self.pixels[pixel], fill='white')
@@ -2012,7 +2016,7 @@ class Main:
         def get():
             for oper in self.operatorFrame.winfo_children():
                 if hasattr(oper, 'UUID'):
-                    print(oper.UUID)
+                    print(oper.name + ' :: ' + str(oper.UUID))
         # TEMP FUNCTION
         
         if self.modifierUIOpened:
@@ -2030,7 +2034,6 @@ class Main:
             PADDING = 23
             
             self.modifierTL.bind('<u>', lambda e: get())
-            self.modifierTL.bind('<Button-1>', lambda e: self.modifierTL.focus())
             
             previewVar = tk.BooleanVar(master=self.modifierTL, value=True)
             gridVar = tk.BooleanVar(master=self.modifierTL, value=True)
@@ -2113,11 +2116,61 @@ class Main:
             tk.Frame(self.operatorFrame, width=Operator.WIDTH+PADDING, height=2, highlightbackground='darkblue', highlightthickness=2).pack(side=tk.TOP)
             
             # Variable frame setup:
-            variableLinkFrame = tk.Frame(self.variableFrame, width=self.variableFrame.winfo_width()/2-3, height=self.variableFrame.winfo_height())
+            variableLinkFrame = tk.Frame(self.variableFrame, width=self.variableFrame.winfo_width()*(1/3)-3, height=self.variableFrame.winfo_height())
             variableLinkFrame.pack(side=tk.LEFT, anchor=tk.W)
+            variableLinkFrame.pack_propagate(False)
             
-            variableListFrame = tk.Frame(self.variableFrame, width=self.variableFrame.winfo_width()/2-3, height=self.variableFrame.winfo_height())
+            variableListFrame = tk.Frame(self.variableFrame, width=self.variableFrame.winfo_width()*(2/3)-3, height=self.variableFrame.winfo_height())
             variableListFrame.pack(side=tk.RIGHT, anchor=tk.E)
+            
+            root.update()
+            
+            variableListWindow = tk.PanedWindow(variableListFrame, width=variableListFrame.winfo_width(), height=variableListFrame.winfo_height())
+            variableListWindow.pack()
+            
+            variableTypeFrame = tk.Frame(variableListWindow, width=variableListFrame.winfo_width()/4, height=variableListFrame.winfo_height())
+            variableNameFrame = tk.Frame(variableListWindow, width=variableListFrame.winfo_width()/2, height=variableListFrame.winfo_height())
+            variableValueFrame = tk.Frame(variableListWindow, width=variableListFrame.winfo_width()/4, height=variableListFrame.winfo_height())
+            variableTypeFrame.propagate(False)
+            variableNameFrame.propagate(False)
+            variableTypeFrame.propagate(False)
+            
+            variableListWindow.add(variableTypeFrame)
+            variableListWindow.add(variableNameFrame)
+            variableListWindow.add(variableValueFrame)
+            
+            
+            
+            root.update()
+            
+            variableListWindow.paneconfig(variableTypeFrame, minsize=10)
+            variableListWindow.paneconfig(variableValueFrame, minsize=10)
+            
+            tk.Label(variableTypeFrame, width=variableNameFrame.winfo_width(), text="Type:", font=('Calibri', 17), underline=True).pack(side=tk.TOP)
+            tk.Label(variableNameFrame, width=variableNameFrame.winfo_width(), text="Name:", font=('Calibri', 17), underline=True).pack(side=tk.TOP)
+            tk.Label(variableValueFrame, width=variableNameFrame.winfo_width(), text="Value:", font=('Calibri', 17), underline=True).pack(side=tk.TOP)
+            
+            tk.Label(variableLinkFrame, width=variableLinkFrame.winfo_width(), text="Linker:", font=('Calibri', 17), underline=True).pack(side=tk.TOP)
+            
+            # Add var type menus
+            for i in range(12):
+                button = ttk.Menubutton(variableTypeFrame, width=variableTypeFrame.winfo_width())
+                button.pack(side=tk.TOP)
+                button.menu = tk.Menu(button, tearoff=False)
+                button.variable = tk.StringVar(value='none')
+                button['menu'] = button.menu
+                button.config(textvariable=button.variable)
+                
+                button.menu.add_radiobutton(label='none', variable=button.variable)
+                button.menu.add_radiobutton(label='int', variable=button.variable)
+                button.menu.add_radiobutton(label='float', variable=button.variable)
+                button.menu.add_radiobutton(label='string', variable=button.variable)
+            
+            # Add entries
+            for frame in ('variableNameFrame', 'variableValueFrame'):
+                cf:tk.Frame = vars()[frame]
+                for i in range(12):
+                    tk.Entry(cf, width=cf.winfo_width(), font=('Calibri', 13)).pack(side=tk.TOP)
             
             self.modifierUIOpened = True
                 
