@@ -281,33 +281,32 @@ class Main:
                 except AttributeError:
                     pass
 
-        self.projectDir = ''
+        self.projectDir = '' # The directory of the current project
         self.extension = 'pxproj' # Project file name extension
         self.projectData = {} # Loads the project file into json format
         self.pixels = [] # Contains a list of the pixels on the screen (so they can be referanced)
-        self.audioFile = None
-        self.outputDirectory = tk.StringVar(value='')
+        self.audioFile = None # The path to the audio file
+        self.outputDirectory = tk.StringVar(value='') # The directory we render to
         self.isComplexProject = tk.BooleanVar()
-        self.autoSave = tk.BooleanVar()
+        # self.autoSave = tk.BooleanVar()
         
         self.paused = False
         self.playback = 0.0
-        self.playOffset = 0
         self.audioLength = 0
         self.volume = tk.IntVar(value=50)
-        
-        self.FRAMERATES = (1, 3, 8, 10, 12, 15, 20, 24, 30, 60)
 
         self.res = tk.StringVar(value=8) # The project resolution (8 is default)
         self.currentFrame = tk.StringVar(value='1')
-        self.currentFrame_mem = 1
+        self.currentFrame_mem = 1 # Remember the frame we started playing on
         self.framerateDelay = -1 # Default value (Unasigned)
-        self.framerate = -1
+        self.framerate = -1 # FPS
         self.frameStorage = None # Stores a frame when copying and pasting
-        self.frameCount = 0
+        self.frameCount = 0 # How many frame are in the project
+        self.undoIndex = 0 # Where we are in the history
 
         self.clickCoords = {} # Where we clicked on the canvas
         self.shiftCoords = {} # Where we shifted on the canvas
+        self.undoCache = [] # Stores the undo data in frame dictionaries
 
         self.showAlphaVar = tk.BooleanVar()
         self.showGridVar = tk.BooleanVar(value=True)
@@ -336,10 +335,10 @@ class Main:
                     }
                 ],
             "modifiers": [
-                {}
+                    {}
                 ],
             "variables": [
-                {}
+                    {}
                 ]
             }
         
@@ -984,6 +983,7 @@ class Main:
                 self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = {}
         
         colorFrameDict = {}
+        frameCache = {} # Store the data before and after saving
         for pixel in self.pixels:
             pixelColor = self.canvas.itemcget(pixel, option='fill') # Get the colors of each pixel
             if pixelColor == 'white':
@@ -1423,7 +1423,7 @@ class Main:
             except:
                 self.canvas.itemconfig(self.pixels[pixel], fill='white')
 
-        self.save_frame()
+        self.save_frame(True)
 
     def display_alpha(self, triggered: bool) -> None:
         if triggered and self.showAlphaVar.get(): #If this was triggered by pressing the show alpha button
@@ -2175,6 +2175,10 @@ class Main:
                 TintOperator(self.operatorFrame).pack(anchor=tk.NW)
             case 1:
                 MonochromeOperator(self.operatorFrame).pack(anchor=tk.NW)
+            case 2:
+                ... # TODO: ReplaceOperator(self.operatorFrame).pack(anchor=tk.NW)
+            case 3:
+                ... # TODO: FillOperator(self.operatorFrame).pack(anchor=tk.NW)
 
 
 
