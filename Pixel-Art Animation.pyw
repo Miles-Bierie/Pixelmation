@@ -396,8 +396,7 @@ class Main:
         self.cacheIndex -= 1
         cache: dict = self.undoCache[self.cacheIndex]
         frame: list = cache[frameIndex := str(list(cache.keys())[0])]
-        print(frame)
-        print()
+
         if (goto := (frameIndex[frameIndex.find('_') + 1:])) != self.currentFrame.get():
             self.currentFrame.set(str(goto))
             self.load_frame()
@@ -1027,15 +1026,21 @@ class Main:
                 colorFrameDict[str(pixel)] = pixelColor
 
         frameCache['frame_' + self.currentFrame.get()][1] = colorFrameDict
-        self.undoCache.append(frameCache) # Add the changes to the undo cache
+
+        if frameCache['frame_' + self.currentFrame.get()][0] != frameCache['frame_' + self.currentFrame.get()][1]: # If the frame was changed
+            self.cacheIndex += 1
+
+            if self.cacheIndex-1 < len(self.undoCache): # Reset later history if there is any
+                self.undoCache = self.undoCache[:self.cacheIndex]
+                self.undoCache[self.cacheIndex-1] = frameCache # Add the changes to the undo cache
+            else:
+                self.undoCache.append(frameCache) # Add the changes to the undo cache
         
         self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = colorFrameDict
         self.projectData['frames'] = self.jsonFrames
         
-        self.cacheIndex += 1
         
-        if self.cacheIndex < len(self.undoCache): # Reset later history if there is any
-            self.undoCache = self.undoCache[:self.cacheIndex]
+            
 
     def save_as(self) -> None:
         self.newDir = fd.asksaveasfilename(
@@ -1265,6 +1270,7 @@ class Main:
         
         root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
         # self.frameMiddle.config(highlightbackground="red")
+        self.save_frame()
 
     def canvas_fill(self) -> None:
         fillColor = ch.askcolor()
@@ -1274,6 +1280,7 @@ class Main:
 
             root.title("Pixel-Art Animator-" + self.projectDir + '*')
             # self.frameMiddle.config(highlightbackground="red")
+            self.save_frame()
 
     def canvas_remove_color(self) -> None:
         selectedPixel = self.canvas.find_closest(self.clickCoords.x, self.clickCoords.y)

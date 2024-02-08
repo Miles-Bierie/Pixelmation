@@ -21,20 +21,21 @@
 ## Shortcuts
 
 | Keybinds | Description |
-| :--------: | -----------    |
-| Ctrl+Q    | Quit            |
-| Ctrl+N    | New Project     |
-| Ctrl+O    | Open Project    |
-| Ctrl+E    | Export          |
-| Ctrl+S    | Save            |
+| :-------: | --------------------- |
+| Ctrl+Q    | Quit                  |
+| Ctrl+N    | New Project           |
+| Ctrl+O    | Open Project          |
+| Ctrl+E    | Export                |
+| Ctrl+S    | Save                  |
 | Ctrl+Z    | Undo stroke *\*wip\** |
-| Button 3  | Pick color      |
-| P         | Play/stop audio |
-| Q         | Pen tool        |
-| W         | Eraser Tool     |
-| E         | Remove tool     |
-| R         | Replace Tool    |
-| Spacebar  | Play/pause      |
+| Ctrl+Y    | Redo stroke *\*wip\** |
+| Button 3  | Pick color            |
+| P         | Play/stop audio       |
+| Q         | Pen tool              |
+| W         | Eraser Tool           |
+| E         | Remove tool           |
+| R         | Replace Tool          |
+| Spacebar  | Play/pause            |
 | Ctrl+Spacebar (while stopped) | Play through to current frame|
 | Ctrl+Spacebar (while playing) or Esc  | Return to initial frame      |
 
