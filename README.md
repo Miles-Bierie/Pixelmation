@@ -27,7 +27,7 @@
 | Ctrl+O    | Open Project    |
 | Ctrl+E    | Export          |
 | Ctrl+S    | Save            |
-| Ctrl+Z    | ***Restore last save (no redo!)*** |
+| Ctrl+Z    | Undo stroke *\*wip\** |
 | Button 3  | Pick color      |
 | P         | Play/stop audio |
 | Q         | Pen tool        |
@@ -174,7 +174,7 @@ Resolution:
 + Development:
     + This program was developed almost entirely on a Windows computer. Therefore, some features might not work on other platforms. I will try to make this program as cross-compatible as I can, but no promises.
 
-    + I am currently making a modifier ystem that will allow you to do color correction and stuff. This feature will take a long time to implament, and probably won't be very useful, but... I want to.
+    + I am currently making a modifier system that will allow you to do color correction and stuff. This feature will take a long time to implament, and probably won't be very useful, but... I want to.
 
 + Undo:
-    + Undo makes you go back to the last save. This action cannot be undone. Kind of ironic. I probably won't add a real undo/redo system because that sounds hard, so be careful!
+    + Proper undo system is being implementeded; currently breaks with certain actions!

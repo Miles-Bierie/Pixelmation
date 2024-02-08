@@ -302,7 +302,7 @@ class Main:
         self.framerate = -1 # FPS
         self.frameStorage = None # Stores a frame when copying and pasting
         self.frameCount = 0 # How many frame are in the project
-        self.undoIndex = 0 # Where we are in the history
+        self.cacheIndex = 0 # Where we are in the history
 
         self.clickCoords = {} # Where we clicked on the canvas
         self.shiftCoords = {} # Where we shifted on the canvas
@@ -366,6 +366,10 @@ class Main:
         
         root.bind('<Control-z>', lambda e: self.undo())
         root.bind('<Command-z>', lambda e: self.undo())
+        root.bind('<Control-y>', lambda e: self.redo())
+        root.bind('<Command-y>', lambda e: self.redo())
+        root.bind('<Control-Shift-Z>', lambda e: self.redo()) # 'Z' is capital because you are holding down shift
+        root.bind('<Command-Shift-Z>', lambda e: self.redo())
         
         root.bind('<l>', lambda e: self.load_frame())
         root.bind('<*>', lambda e: self.root_nodrag())
@@ -386,11 +390,47 @@ class Main:
             root.unbind("<Motion>")
 
     def undo(self) -> None:
-        answer = mb.askyesno(title="Undo", message="Are you sure you want to revert to the last save?")
-        if answer:
-            self.load_frame(True)
+        if self.cacheIndex == 0:
+            return
+
+        self.cacheIndex -= 1
+        cache: dict = self.undoCache[self.cacheIndex]
+        frame: list = cache[frameIndex := str(list(cache.keys())[0])]
+        print(frame)
+        print()
+        if (goto := (frameIndex[frameIndex.find('_') + 1:])) != self.currentFrame.get():
+            self.currentFrame.set(str(goto))
+            self.load_frame()
+
+        if self.isComplexProject.get():
+            pass
+        else:
+            self.jsonFrames[0][frameIndex] = frame[0]
             
-            self.frameMiddle.config(highlightbackground='darkblue')
+        self.projectData['frames'] = self.jsonFrames
+        self.load_frame()
+        
+    def redo(self) -> None:
+        if self.cacheIndex == len(self.undoCache):
+            return
+
+        
+        cache: dict = self.undoCache[self.cacheIndex]
+        frame: list = cache[frameIndex := str(list(cache.keys())[0])]
+        
+        if (goto := (frameIndex[frameIndex.find('_') + 1:])) != self.currentFrame.get():
+            self.currentFrame.set(str(goto))
+            self.load_frame()
+            
+        if self.isComplexProject.get():
+            pass
+        else:
+            self.jsonFrames[0][frameIndex] = frame[1]
+
+        self.projectData['frames'] = self.jsonFrames
+        self.load_frame()
+        
+        self.cacheIndex += 1
         
     def load(self) -> None:
         def openDir(): # Opens the project directory
@@ -484,6 +524,7 @@ class Main:
         root.bind('e', lambda e: self.tool_select(3))
         root.bind('r', lambda e: self.tool_select(4))
         root.bind('t', lambda e: self.tool_select(5))
+        root.bind('c', lambda e: print(self.undoCache))
 
         root.bind('<Return>', lambda e: root.focus())
         root.bind('<Escape>', lambda e: self.esc())
@@ -951,7 +992,8 @@ class Main:
 
                     if all:
                         self.save_frame()
-                    
+                        self.cacheIndex = 0
+                        self.undoCache.clear()
                    
                     self.jsonSampleDump = json.dumps(self.projectData, indent=4, separators=(',', ':')) # Read the project data as json text
                     self.fileOpen.seek(0)
@@ -969,7 +1011,6 @@ class Main:
         self.frameMiddle.config(highlightbackground="darkblue")
         
         colorFrameDict = {}
-        
         frameCache = {'frame_' + self.currentFrame.get(): ['', '']} # Store the data before and after saving
         frameCache['frame_' + self.currentFrame.get()][0] = self.jsonFrames[0]['frame_' + self.currentFrame.get()]
 
@@ -984,11 +1025,17 @@ class Main:
                 colorFrameDict[str(pixel)][1] = pixelColor
             else:
                 colorFrameDict[str(pixel)] = pixelColor
-                
+
         frameCache['frame_' + self.currentFrame.get()][1] = colorFrameDict
-        print(frameCache)
+        self.undoCache.append(frameCache) # Add the changes to the undo cache
+        
         self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = colorFrameDict
         self.projectData['frames'] = self.jsonFrames
+        
+        self.cacheIndex += 1
+        
+        if self.cacheIndex < len(self.undoCache): # Reset later history if there is any
+            self.undoCache = self.undoCache[:self.cacheIndex]
 
     def save_as(self) -> None:
         self.newDir = fd.asksaveasfilename(
@@ -1052,7 +1099,6 @@ class Main:
 
     def add_canvas(self, readPixels: bool) -> None:
         self.returnData = False
-        
 
         # Update the title
         self.update_title()
@@ -1218,7 +1264,7 @@ class Main:
             self.canvas.itemconfig(pixel, fill='white')
         
         root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
-        self.frameMiddle.config(highlightbackground="red")
+        # self.frameMiddle.config(highlightbackground="red")
 
     def canvas_fill(self) -> None:
         fillColor = ch.askcolor()
@@ -1227,7 +1273,7 @@ class Main:
                 self.canvas.itemconfig(pixel, fill=fillColor[1])
 
             root.title("Pixel-Art Animator-" + self.projectDir + '*')
-            self.frameMiddle.config(highlightbackground="red")
+            # self.frameMiddle.config(highlightbackground="red")
 
     def canvas_remove_color(self) -> None:
         selectedPixel = self.canvas.find_closest(self.clickCoords.x, self.clickCoords.y)
