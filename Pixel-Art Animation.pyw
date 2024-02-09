@@ -1260,7 +1260,6 @@ class Main:
             self.canvas.itemconfig(pixel, fill='white')
         
         root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
-        self.frameMiddle.config(highlightbackground="red")
         self.save_frame()
 
     def canvas_fill(self) -> None:
