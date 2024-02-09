@@ -1,4 +1,4 @@
-#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Thursday, February 8, 2024  |=========---------  #
+#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Friday, February 9, 2024  |=========---------  #
 
 
 from tkinter import colorchooser as ch
@@ -1270,6 +1270,7 @@ class Main:
             self.canvas.itemconfig(pixel, fill='white')
         
         root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
+        self.frameMiddle.config(highlightthickness=3, highlightbackground="red")
         self.save_frame()
 
     def canvas_fill(self) -> None:
@@ -1325,16 +1326,22 @@ class Main:
         self.save_frame()
 
     def delete_frame(self) -> None:
+        # Reset the undo cache if necessary
+        for frame in self.undoCache:
+            if ('frame_' + self.currentFrame.get()) in frame.keys():
+                if mb.askyesno(title='Undo Cache', message="Action will reset the undo cache! Do you wish to precede?"):
+                    self.cacheIndex = 0
+                    self.undoCache.clear()
+                    self.frameMiddle.config(highlightthickness=3, highlightbackground="darkblue")
+                else:
+                    return
+                break
+        
         root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
-        self.frameMiddle.config(highlightthickness=3, highlightbackground="darkblue")
         newData = copy.deepcopy(self.jsonFrames) # Create a copy of the frame list (as to not change the original durring iteration)
         
         if self.frameCount != 1:
             self.frameCount -= 1
-        
-        # Reset the undo cache (may change later)
-        self.cacheIndex = 0
-        self.undoCache = {}
             
         frameIterate = int(self.currentFrame.get())
         
@@ -2066,7 +2073,7 @@ class Main:
             
             PADDING = 23
             
-            self.modifierTL.bind('<u>', lambda e: get())
+            self.modifierTL.bind('<g>', lambda e: get())
             
             previewVar = tk.BooleanVar(master=self.modifierTL, value=True)
             gridVar = tk.BooleanVar(master=self.modifierTL, value=False)
