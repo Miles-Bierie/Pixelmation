@@ -297,7 +297,7 @@ class Main:
 
         self.res = tk.StringVar(value=8) # The project resolution (8 is default)
         self.currentFrame = tk.StringVar(value='1')
-        self.currentFrame_mem = 1 # Remember the frame we started playing on
+        self.currentFrame_mem = 1 # Remember the frame (for inserting a frame)
         self.framerateDelay = -1 # Default value (Unasigned)
         self.framerate = -1 # FPS
         self.frameStorage = None # Stores a frame when copying and pasting
@@ -399,12 +399,11 @@ class Main:
 
         if (goto := (frameIndex[frameIndex.find('_') + 1:])) != self.currentFrame.get():
             self.currentFrame.set(str(goto))
-            self.load_frame()
+            # if f'frame_' + self.currentFrame.get() not in self.jsonFrames[0].keys():
+            #     self.currentFrame.set(str(goto-1))
+            #     self.insert_frame()
 
-        if self.isComplexProject.get():
-            pass
-        else:
-            self.jsonFrames[0][frameIndex] = frame[0]
+        self.jsonFrames[0][frameIndex] = frame[0]
             
         self.projectData['frames'] = self.jsonFrames
         self.load_frame()
@@ -413,7 +412,6 @@ class Main:
         if self.cacheIndex == len(self.undoCache):
             return
 
-        
         cache: dict = self.undoCache[self.cacheIndex]
         frame: list = cache[frameIndex := str(list(cache.keys())[0])]
         
@@ -421,10 +419,7 @@ class Main:
             self.currentFrame.set(str(goto))
             self.load_frame()
             
-        if self.isComplexProject.get():
-            pass
-        else:
-            self.jsonFrames[0][frameIndex] = frame[1]
+        self.jsonFrames[0][frameIndex] = frame[1]
 
         self.projectData['frames'] = self.jsonFrames
         self.load_frame()
@@ -993,6 +988,7 @@ class Main:
                         self.save_frame()
                         self.cacheIndex = 0
                         self.undoCache.clear()
+                        self.frameMiddle.config(highlightthickness=3, highlightbackground="darkblue")
                    
                     self.jsonSampleDump = json.dumps(self.projectData, indent=4, separators=(',', ':')) # Read the project data as json text
                     self.fileOpen.seek(0)
@@ -1007,8 +1003,6 @@ class Main:
                     root.title(root.title()[0:-1]) # Remove the star in the project title
                     
     def save_frame(self) -> None:
-        self.frameMiddle.config(highlightbackground="darkblue")
-        
         colorFrameDict = {}
         frameCache = {'frame_' + self.currentFrame.get(): ['', '']} # Store the data before and after saving
         frameCache['frame_' + self.currentFrame.get()][0] = self.jsonFrames[0]['frame_' + self.currentFrame.get()]
@@ -1038,9 +1032,6 @@ class Main:
         
         self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = colorFrameDict
         self.projectData['frames'] = self.jsonFrames
-        
-        
-            
 
     def save_as(self) -> None:
         self.newDir = fd.asksaveasfilename(
@@ -1269,7 +1260,7 @@ class Main:
             self.canvas.itemconfig(pixel, fill='white')
         
         root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
-        # self.frameMiddle.config(highlightbackground="red")
+        self.frameMiddle.config(highlightbackground="red")
         self.save_frame()
 
     def canvas_fill(self) -> None:
@@ -1279,7 +1270,7 @@ class Main:
                 self.canvas.itemconfig(pixel, fill=fillColor[1])
 
             root.title("Pixel-Art Animator-" + self.projectDir + '*')
-            # self.frameMiddle.config(highlightbackground="red")
+            self.frameMiddle.config(highlightbackground="red")
             self.save_frame()
 
     def canvas_remove_color(self) -> None:
@@ -1308,10 +1299,6 @@ class Main:
             self.canvas_fill_recursive((pos[0], pos[1] - offset), offset, color)
 
     def insert_frame(self) -> None: # Inserts a frame after the current frame
-        if self.frameMiddle['highlightbackground'] == "red":
-            self.save_frame()
-            self.frameMiddle.config(highlightbackground="darkblue")
-            
         self.currentFrame_mem = int(self.currentFrame.get())
         self.frameCount += 1
 
@@ -1326,13 +1313,19 @@ class Main:
             self.jsonFrames[0][f'frame_{int(len(self.jsonFrames[0])) - loop}'] = self.jsonFrames[0][f'frame_{int(len(self.jsonFrames[0])) - loop - 1}']
            
         self.currentFrame.set(self.currentFrame_mem + 1)
+        self.save_frame()
 
     def delete_frame(self) -> None:
         root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
+        self.frameMiddle.config(highlightthickness=3, highlightbackground="darkblue")
         newData = copy.deepcopy(self.jsonFrames) # Create a copy of the frame list (as to not change the original durring iteration)
         
         if self.frameCount != 1:
             self.frameCount -= 1
+        
+        # Reset the undo cache (may change later)
+        self.cacheIndex = 0
+        self.undoCache = {}
             
         frameIterate = int(self.currentFrame.get())
         
@@ -1344,19 +1337,16 @@ class Main:
                 for loop, frame in enumerate(self.jsonFrames[0]):
                     if loop + 1 == len(self.jsonFrames[0]):
                         del newData[0][frame]
-        
-        
 
         if int(self.currentFrame.get()) == len(self.jsonFrames[0]) and self.currentFrame.get() != "0": # If you are on the previous last frame, move back one frame
             self.currentFrame.set(int(self.currentFrame.get()) - 1)
         try:
             self.jsonFrames[0] = newData[0]
             self.load_frame()
-            self.save_frame()
         except KeyError:
             self.currentFrame.set(1)
             self.canvas_clear()
-            self.save_frame()
+        self.save_frame()
 
     def increase_frame(self) -> None:
         if self.frameCount == 1:
