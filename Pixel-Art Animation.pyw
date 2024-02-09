@@ -1,4 +1,4 @@
-#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Friday, February 2, 2024  |=========---------  #
+#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Thursday, February 8, 2024  |=========---------  #
 
 
 from tkinter import colorchooser as ch
@@ -518,7 +518,6 @@ class Main:
         root.bind('e', lambda e: self.tool_select(3))
         root.bind('r', lambda e: self.tool_select(4))
         root.bind('t', lambda e: self.tool_select(5))
-        root.bind('c', lambda e: print(self.undoCache))
 
         root.bind('<Return>', lambda e: root.focus())
         root.bind('<Escape>', lambda e: self.esc())
@@ -731,6 +730,11 @@ class Main:
         root.bind('<space>', lambda e: self.play_space())
         root.bind('<Left>', lambda e: self.decrease_frame())
         
+        if self.isComplexProject.get():
+            root.bind('<m>', lambda e: self.modifier_ui())
+        else:
+            root.unbind('<m>')
+        
         # For goto
         for i in range(1, 10):
             root.bind(f'<KeyPress-{i}>', lambda e, num = i: self.goto(str(num)))
@@ -755,7 +759,7 @@ class Main:
         self.newFileTL.resizable(False, False)
         self.newFileTL.title("New File")
         self.newFileTL.focus()
-        self.newFileTL.bind('<Escape>', lambda e: quit)
+        self.newFileTL.bind('<Escape>', lambda e: quit())
         self.newFileTL.bind('<Return>', lambda e: self.create_new_file(newRes))
        
         #Add the main frame
@@ -853,9 +857,11 @@ class Main:
 
     def open_file(self, dialog: bool) -> None:
         if '*' in root.title():
-            self.saveMode = mb.askyesno(title="Unsaved Changes", message="Would you like to save the current project?")
-            if self.saveMode:
+            saveMode = mb.askyesnocancel(title="Unsaved Changes", message="Would you like to save the current project?")
+            if saveMode:
                 self.save(True)
+            elif saveMode == None:
+                return
 
         if dialog:
             self.fileOpen = fd.askopenfilename(
@@ -1351,8 +1357,8 @@ class Main:
         if self.frameCount == 1:
             return
             
-        if int(self.currentFrame.get()) != int(len(self.jsonFrames[0])):
-            self.currentFrame.set(str(int(self.currentFrame.get()) + 1))
+        if int(self.currentFrame.get()) != len(self.jsonFrames[0]):
+            self.currentFrame.set(int(self.currentFrame.get()) + 1)
 
         else: # Go to beginning
             self.currentFrame.set(1)
@@ -1983,7 +1989,7 @@ class Main:
 
             time.sleep(self.framerateDelay)
             
-            correction = (0.000006787699999999 if sys.platform == 'win32' else 0.000005014499999999)
+            correction = (0.000014187699999999 if sys.platform == 'win32' else 0.000005014499999999)
 
         while self.isPlaying:
             time1 = timeit.default_timer()
@@ -1993,8 +1999,7 @@ class Main:
                 if int(self.currentFrame.get()) == self.currentFrame_mem:
                     end()
                     return
-            if self.isPlaying:
-                time.sleep(max((self.framerateDelay - correction * int(self.res.get())) - (timeit.default_timer() - time1), 0))
+            time.sleep(max((self.framerateDelay - correction * int(self.res.get())) - (timeit.default_timer() - time1), 0))
         end()
 
     def play_button_mode(self, isControl: bool) -> None:
@@ -2184,6 +2189,7 @@ class Main:
                 button.menu.add_radiobutton(label='int', variable=button.variable, command=lambda  _id=button.winfo_name(), var=button.variable: self.set_row(var, _id, variableNameFrame, variableValueFrame))
                 button.menu.add_radiobutton(label='float', variable=button.variable, command=lambda  _id=button.winfo_name(), var=button.variable: self.set_row(var, _id, variableNameFrame, variableValueFrame))
                 button.menu.add_radiobutton(label='string', variable=button.variable, command=lambda  _id=button.winfo_name(), var=button.variable: self.set_row(var, _id, variableNameFrame, variableValueFrame))
+                button.menu.add_radiobutton(label='internal', variable=button.variable, command=lambda  _id=button.winfo_name(), var=button.variable: self.set_row(var, _id, variableNameFrame, variableValueFrame))
 
             # Add entries
             for iterate, frame in enumerate(('variableNameFrame', 'variableValueFrame')):
@@ -2193,11 +2199,14 @@ class Main:
             
             self.modifierUIOpened = True
             
-    def set_row(self, var: tk.StringVar, _id: str, *args: tk.Frame) -> None:
+    def set_row(self, var: tk.StringVar, _id: str, *args: tk.Frame) -> None: # Figure out what entries in that row should be enabled or disabled
         for frame in (args[0], args[1]):
             for entry in frame.winfo_children():
                 if entry.winfo_name()[entry.winfo_name().find('_') + 1:] == str(_id):
-                    entry.config(state=tk.DISABLED if var.get() == 'none' else tk.NORMAL)
+                    if var.get() != 'internal':
+                        entry.config(state=tk.DISABLED if var.get() == 'none' else tk.NORMAL)
+                    else:
+                        entry.config(state=tk.DISABLED if frame == args[1] else tk.NORMAL)
                 
     def add_modifier(self, modifier: int) -> None:
         match modifier:
