@@ -77,6 +77,11 @@ The button to enable/disable the alpha channel can be found under the edit menu.
 
 When you edit the frame, the canvas's border will turn red, indicating that there are unsaved changes. When you save, the border will revert back to dark blue.
 
++ ### Undo:
+    - Undoing will only effect the canvas, and won't take into account other setting changes.
+    - You may change the cache size by going to Edit -> Set Undo Limit (max is 1024)
+    - If you delete a frame that has been cached/edited, it will clear the cache
+
 ## Playback
 -You can play or pause the animation by pressing the play/pause button. Crazy, right? Pressing the spacebar will do the same.  
 -<u>Control-clicking</u> the play button or <u>pressing the escape key</u> while the animation is playing will stop and go back to the frame you started playing on. You can also use <u>control-spacebar</u>.  
@@ -177,7 +182,6 @@ Resolution:
 + Development:
     + This program was developed almost entirely on a Windows computer. Therefore, some features might not work on other platforms. I will try to make this program as cross-compatible as I can, but no promises.
 
-    + I am currently making a modifier system that will allow you to do color correction and stuff. This feature will take a long time to implament, and probably won't be very useful, but... I want to.
-
-+ Undo:
-    + Proper undo system is being implementeded; currently breaks with certain actions!
+    + I am currently making a modifier system that will allow you to do color correction and stuff. This feature will take a long time to implament, and probably won't be very useful, but... I want to, so yeah.
+        - This can be accessed by creating a file and checking the 'Complex Project' checkbox, then going to Display -> Modifier UI
+        - Currently doesn't do anything

@@ -289,7 +289,7 @@ class Main:
         self.outputDirectory = tk.StringVar(value='') # The directory we render to
         self.isComplexProject = tk.BooleanVar()
         # self.autoSave = tk.BooleanVar()
-        
+
         self.paused = False
         self.playback = 0.0
         self.audioLength = 0
@@ -303,6 +303,7 @@ class Main:
         self.frameStorage = {} # Stores a frame when copying and pasting
         self.frameCount = 0 # How many frame are in the project
         self.cacheIndex = 0 # Where we are in the history
+        self.undoCacheLimit = tk.IntVar(value=64) # How long the undo cache can be
 
         self.clickCoords = {} # Where we clicked on the canvas
         self.shiftCoords = {} # Where we shifted on the canvas
@@ -402,9 +403,6 @@ class Main:
 
         if (goto := (frameIndex[frameIndex.find('_') + 1:])) != self.currentFrame.get():
             self.currentFrame.set(str(goto))
-            # if f'frame_' + self.currentFrame.get() not in self.jsonFrames[0].keys():
-            #     self.currentFrame.set(str(goto-1))
-            #     self.insert_frame()
 
         self.jsonFrames[0][frameIndex] = frame[0]
             
@@ -469,14 +467,15 @@ class Main:
         self.editMenu.add_command(label="Fill", command=self.canvas_fill, state=tk.DISABLED)
         self.editMenu.add_separator()
         self.editMenu.add_command(label="Set Framerate", command=self.set_framerate, state=tk.DISABLED)
-        self.editMenu.add_separator()
-        self.editMenu.add_command(label="Modifier UI", command=self.modifier_ui, state=tk.DISABLED)
+        self.editMenu.add_command(label="Set Undo Limit", command=self.set_undo_limit)
         
         # Setup display cascasde
         self.displayMenu = tk.Menu(self.menubar, tearoff=0)
         self.displayMenu.add_checkbutton(label="Show Grid", variable=self.showGridVar, command=lambda: self.update_grid(True), state=tk.DISABLED)
         self.displayMenu.add_command(label="Grid Color", command=lambda: self.set_grid_color(True), state=tk.DISABLED)
         self.displayMenu.add_checkbutton(label="Show Alpha", variable=self.showAlphaVar, command=lambda: self.display_alpha(True), state=tk.DISABLED)
+        self.displayMenu.add_separator()
+        self.displayMenu.add_command(label="Modifier UI", command=self.modifier_ui, state=tk.DISABLED)
 
         # Add the file cascades
         self.menubar.add_cascade(label="File", menu=self.fileMenu)
@@ -704,17 +703,17 @@ class Main:
 
         try:
             self.fileMenu.entryconfig('Load Audio', state=tk.ACTIVE)
-        except tk.TclError:
+        except TclError:
             self.fileMenu.entryconfig('Unload Audio', state=tk.ACTIVE)
 
         self.editMenu.entryconfig('Clear', state=tk.ACTIVE)
         self.editMenu.entryconfig('Fill', state=tk.ACTIVE)
         self.editMenu.entryconfig('Set Framerate', state=tk.ACTIVE)
-        self.editMenu.entryconfig('Modifier UI', state=(tk.ACTIVE if self.isComplexProject.get() else tk.DISABLED))
        
         self.displayMenu.entryconfig('Show Grid', state=tk.ACTIVE)
         self.displayMenu.entryconfig('Grid Color', state=tk.ACTIVE)
         self.displayMenu.entryconfig('Show Alpha', state=tk.ACTIVE)
+        self.displayMenu.entryconfig('Modifier UI', state=(tk.ACTIVE if self.isComplexProject.get() else tk.DISABLED))
 
         self.increaseFrameButton['state'] = "normal"
         self.frameDisplayButton['state'] = "normal"
@@ -857,6 +856,16 @@ class Main:
         if framerate != None:
             self.delay(framerate)
             root.title("Pixel-Art Animator-" + self.projectDir + "*")
+            
+    def set_undo_limit(self) -> None:
+        mem = self.undoCacheLimit.get()
+        num = simpledialog.askinteger(title="Undo Limit", prompt="New Value (8 - 1024):", initialvalue=self.undoCacheLimit.get(), minvalue=8, maxvalue=1024)
+        if num:
+            self.undoCacheLimit.set(num)
+            
+            while num < len(self.undoCache):
+                del self.undoCache[0]
+                self.cacheIndex -= 1
 
     def open_file(self, dialog: bool) -> None:
         if '*' in root.title():
@@ -1034,11 +1043,16 @@ class Main:
         if frameCache['frame_' + self.currentFrame.get()][0] != frameCache['frame_' + self.currentFrame.get()][1]: # If the frame was changed
             self.cacheIndex += 1
 
-            if self.cacheIndex-1 < len(self.undoCache): # Reset later history if there is any
+            if self.cacheIndex-1 < len(self.undoCache): # Reset later history, if there is any
                 self.undoCache = self.undoCache[:self.cacheIndex]
                 self.undoCache[self.cacheIndex-1] = frameCache # Add the changes to the undo cache
             else:
-                self.undoCache.append(frameCache) # Add the changes to the undo cache
+                if self.cacheIndex > self.undoCacheLimit.get():
+                    self.cacheIndex -= 1
+                    self.undoCache.append(frameCache) # Add the changes to the undo cache
+                    del self.undoCache[0]
+                else:
+                     self.undoCache.append(frameCache) # Add the changes to the undo cache
         
         self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = colorFrameDict
         self.projectData['frames'] = self.jsonFrames
@@ -1938,6 +1952,9 @@ class Main:
         mixer.music.set_volume(self.volume.get() / 100)
 
     def play_space(self) -> None:
+        if self.frameCount == 1:
+            return
+
         if self.control:
             self.play_init(True)
         else:
@@ -1949,6 +1966,9 @@ class Main:
             self.play_init(True)
 
     def play_init(self, stopMode: bool) -> None:
+        if self.frameCount == 1:
+            return
+
         loop = False
         if stopMode and not self.isPlaying:
             pass
@@ -2000,7 +2020,7 @@ class Main:
 
             time.sleep(self.framerateDelay)
             
-            correction = self.scale(int(self.res.get())/self.framerate, (40/15, 52/15), ((0.000316287699999999 if sys.platform == 'win32' else 0.000000024499999999), (0.000657287699999999 if sys.platform == 'win32' else 0.000005224499999999)))
+            correction = self.scale(int(self.res.get())/self.framerate, (40/15, 52/15), ((0.000316287699999999 if sys.platform == 'win32' else 0.000000024499999999), (0.000672487899999999 if sys.platform == 'win32' else 0.000005224499999999)))
             
         while self.isPlaying:
             time1 = timeit.default_timer()
@@ -2020,7 +2040,7 @@ class Main:
         else:
             self.playButton.config(command=lambda: self.play_init(False))
             
-    def scale(self, val: float, src: tuple, dst: tuple) -> float: # Yoinked from Stack Overflow (thanks 2010 Glenn Maynard)
+    def scale(self, val: float, src: tuple, dst: tuple) -> float: # Yoinked strait from Stack Overflow (thanks 2010 Glenn Maynard)
         """
         Scale the given value from the scale of src to the scale of dst.
         """
