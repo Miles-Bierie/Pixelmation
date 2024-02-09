@@ -35,9 +35,11 @@
 | W         | Eraser Tool           |
 | E         | Remove tool           |
 | R         | Replace Tool          |
+| T         | Fill Tool             |
+| M         | Modifier UI (Complex) |
 | Spacebar  | Play/pause            |
-| Ctrl+Spacebar (while stopped) | Play through to current frame|
-| Ctrl+Spacebar (while playing) or Esc  | Return to initial frame      |
+| Ctrl+Spacebar (while stopped) | Play through to current frame  |
+| Ctrl+Spacebar (while playing) or Esc | Return to initial frame |
 
 <br>
 
