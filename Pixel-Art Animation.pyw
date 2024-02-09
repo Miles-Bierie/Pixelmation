@@ -300,7 +300,7 @@ class Main:
         self.currentFrame_mem = 1 # Remember the frame (for inserting a frame)
         self.framerateDelay = -1 # Default value (Unasigned)
         self.framerate = -1 # FPS
-        self.frameStorage = None # Stores a frame when copying and pasting
+        self.frameStorage = {} # Stores a frame when copying and pasting
         self.frameCount = 0 # How many frame are in the project
         self.cacheIndex = 0 # Where we are in the history
 
@@ -374,6 +374,9 @@ class Main:
         root.bind('<l>', lambda e: self.load_frame())
         root.bind('<*>', lambda e: self.root_nodrag())
         root.bind('<Shift-Leave>', lambda e: try_delete_guide())
+        
+        root.bind('<KeyPress-Up>', lambda e: self.volume.set(min(self.volume.get() + 5, 100)))
+        root.bind('<KeyPress-Down>', lambda e: self.volume.set(max(self.volume.get() - 5, 0)))
 
         self.load()
         
@@ -2207,6 +2210,7 @@ class Main:
                         entry.config(state=tk.DISABLED if var.get() == 'none' else tk.NORMAL)
                     else:
                         entry.config(state=tk.DISABLED if frame == args[1] else tk.NORMAL)
+                        
                 
     def add_modifier(self, modifier: int) -> None:
         match modifier:
