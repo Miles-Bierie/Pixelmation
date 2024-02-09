@@ -825,7 +825,7 @@ class Main:
                 self.simpleProjectFileSample['data']['gridcolor'] = self.gridColor
                 self.simpleProjectFileSample['data']['showgrid'] = int(self.showGridVar.get())
                 self.simpleProjectFileSample['data']['framerate'] = self.framerate
-                self.simpleProjectFileSample['data']['output'] = self.outputDirectory.get()
+                self.simpleProjectFileSample['data']['output'] = (self.outputDirectory.get() if self.outputDirectory.get() != 'None' else "")
 
                 self.jsonSampleDump = json.dumps((self.simpleProjectFileSample), indent=4, separators=(',', ':')) # Read the project data as json text
 
@@ -976,17 +976,18 @@ class Main:
         else:
             try:
                 self.fileMenu.entryconfig('Unload Audio', label='Load Audio')
-            except error:
+                self.audioFile = None
+            except TclError:
                 pass
             root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
-            self.audioFile = None
+            
 
     def save(self, all: bool) -> None:
         if not self.showAlphaVar.get(): # If show alpha is not toggled
             if '*' == root.title()[-1]:
                 with open(self.projectDir, 'r+') as self.fileOpen:
                     #self.projectData = json.load(self.fileOpen)
-                    self.projectData['data']['resolution'] = self.res.get()
+                    self.projectData['data']['resolution'] = int(self.res.get())
                     self.projectData['data']['gridcolor'] = self.gridColor
                     self.projectData['data']['showgrid'] = int(self.showGridVar.get())
                     self.projectData['data']['audio'] = self.audioFile
@@ -1992,8 +1993,8 @@ class Main:
 
             time.sleep(self.framerateDelay)
             
-            correction = (0.000014187699999999 if sys.platform == 'win32' else 0.000005014499999999)
-
+            correction = self.scale(int(self.res.get())/self.framerate, (40/15, 52/15), ((0.000316287699999999 if sys.platform == 'win32' else 0.000000024499999999), (0.000657287699999999 if sys.platform == 'win32' else 0.000005224499999999)))
+            
         while self.isPlaying:
             time1 = timeit.default_timer()
             self.increase_frame()
@@ -2002,7 +2003,7 @@ class Main:
                 if int(self.currentFrame.get()) == self.currentFrame_mem:
                     end()
                     return
-            time.sleep(max((self.framerateDelay - correction * int(self.res.get())) - (timeit.default_timer() - time1), 0))
+            time.sleep(max((self.framerateDelay - correction)  - (timeit.default_timer() - time1), 0))
         end()
 
     def play_button_mode(self, isControl: bool) -> None:
@@ -2011,6 +2012,12 @@ class Main:
             self.playButton.config(command=lambda: self.play_init(True))
         else:
             self.playButton.config(command=lambda: self.play_init(False))
+            
+    def scale(self, val: float, src: tuple, dst: tuple) -> float: # Yoinked from Stack Overflow (thanks 2010 Glenn Maynard)
+        """
+        Scale the given value from the scale of src to the scale of dst.
+        """
+        return ((val - src[0]) / (src[1]-src[0])) * (dst[1]-dst[0]) + dst[0]
 
     def delay(self, delay: int) -> None:
         self.framerate = delay
@@ -2210,8 +2217,7 @@ class Main:
                         entry.config(state=tk.DISABLED if var.get() == 'none' else tk.NORMAL)
                     else:
                         entry.config(state=tk.DISABLED if frame == args[1] else tk.NORMAL)
-                        
-                
+
     def add_modifier(self, modifier: int) -> None:
         match modifier:
             case 0:
