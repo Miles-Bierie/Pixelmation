@@ -1,4 +1,4 @@
-#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Friday, February 9, 2024  |=========---------  #
+#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Monday, February 12, 2024  |=========---------  #
 
 
 from tkinter import colorchooser as ch
@@ -274,11 +274,11 @@ class MonochromeOperator(Operator):
 
 class Main:
     def __init__(self) -> None:
-        def try_delete_guide():
+        def try_delete_guide(): # For deleting the line draw guide
             if not self.isPlaying:
                 try:
                     self.canvas.delete(self.canvas.find_withtag('guide'))
-                except AttributeError:
+                except AttributeError: # If it doesn't exist
                     pass
 
         self.projectDir = '' # The directory of the current project
@@ -308,6 +308,7 @@ class Main:
         self.clickCoords = {} # Where we clicked on the canvas
         self.shiftCoords = {} # Where we shifted on the canvas
         self.undoCache = [] # Stores the undo data in frame dictionaries
+        self.undoCacheInfo = []
 
         self.showAlphaVar = tk.BooleanVar()
         self.showGridVar = tk.BooleanVar(value=True)
@@ -427,6 +428,37 @@ class Main:
         
         self.cacheIndex += 1
         
+    def history_dialog(self):
+        try:
+            self.historyTL.destroy()
+        except:
+            pass
+            
+        self.historyTL = tk.Toplevel()
+        self.historyTL.title("Undo History")
+        self.historyTL.geometry('480x480')
+        self.historyTL.resizable(False, False)
+        self.historyTL.focus()
+        
+        
+        mainFrame = tk.Frame(self.historyTL, width=400, height=400)
+        mainFrame.pack(anchor=tk.CENTER)
+        mainFrame.pack_propagate(False)
+        
+        historyFrame = tk.Frame(mainFrame, width=400, height=400)
+        historyFrame.pack(anchor=tk.N)
+        
+        historyList = tk.Listbox(historyFrame, activestyle=tk.UNDERLINE, width=400, height=400, font=('Courier New', 16))
+        historyList.pack(anchor=tk.N)
+        
+        scrollbar = tk.Scrollbar(mainFrame, command=historyList.yview)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y, before=historyList)
+        
+        historyList.configure(yscrollcommand=scrollbar.set)
+        
+        for item in self.undoCacheInfo:
+            historyList.insert(tk.END, item)
+        
     def load(self) -> None:
         def openDir(): # Opens the project directory
             os.chdir(self.projectDir[:self.projectDir.rfind('/')])
@@ -468,6 +500,8 @@ class Main:
         self.editMenu.add_separator()
         self.editMenu.add_command(label="Set Framerate", command=self.set_framerate, state=tk.DISABLED)
         self.editMenu.add_command(label="Set Undo Limit", command=self.set_undo_limit)
+        self.editMenu.add_separator()
+        self.editMenu.add_command(label="History", command=self.history_dialog, state=tk.DISABLED)
         
         # Setup display cascasde
         self.displayMenu = tk.Menu(self.menubar, tearoff=0)
@@ -709,6 +743,7 @@ class Main:
         self.editMenu.entryconfig('Clear', state=tk.ACTIVE)
         self.editMenu.entryconfig('Fill', state=tk.ACTIVE)
         self.editMenu.entryconfig('Set Framerate', state=tk.ACTIVE)
+        self.editMenu.entryconfig('History', state=tk.ACTIVE)
        
         self.displayMenu.entryconfig('Show Grid', state=tk.ACTIVE)
         self.displayMenu.entryconfig('Grid Color', state=tk.ACTIVE)
@@ -1007,6 +1042,7 @@ class Main:
                         self.save_frame()
                         self.cacheIndex = 0
                         self.undoCache.clear()
+                        self.undoCacheInfo.clear()
                         self.frameMiddle.config(highlightthickness=3, highlightbackground="darkblue")
                    
                     self.jsonSampleDump = json.dumps(self.projectData, indent=4, separators=(',', ':')) # Read the project data as json text
@@ -1053,6 +1089,8 @@ class Main:
                     del self.undoCache[0]
                 else:
                      self.undoCache.append(frameCache) # Add the changes to the undo cache
+                     
+                self.undoCacheInfo.append("Pen Stroke")
         
         self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = colorFrameDict
         self.projectData['frames'] = self.jsonFrames
@@ -1346,6 +1384,7 @@ class Main:
                 if mb.askyesno(title='Undo Cache', message="Action will reset the undo cache! Do you wish to precede?"):
                     self.cacheIndex = 0
                     self.undoCache.clear()
+                    self.undoCacheInfo.clear()
                     self.frameMiddle.config(highlightthickness=3, highlightbackground="darkblue")
                 else:
                     return
