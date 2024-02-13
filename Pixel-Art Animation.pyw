@@ -1,4 +1,4 @@
-#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Monday, February 12, 2024  |=========---------  #
+#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Tuesday, February 13, 2024  |=========---------  #
 
 
 from tkinter import colorchooser as ch
@@ -377,10 +377,14 @@ class Main:
         root.bind('<*>', lambda e: self.root_nodrag())
         root.bind('<Shift-Leave>', lambda e: try_delete_guide())
         
-        root.bind('<KeyPress-Up>', lambda e: self.volume.set(min(self.volume.get() + 5, 100)))
-        root.bind('<KeyPress-Down>', lambda e: self.volume.set(max(self.volume.get() - 5, 0)))
+        root.bind('<KeyPress-Up>', lambda e: self.set_volume_by_key(min(self.volume.get() + 5, 100)))
+        root.bind('<KeyPress-Down>', lambda e: self.set_volume_by_key(max(self.volume.get() - 5, 0)))
 
         self.load()
+        
+    def set_volume_by_key(self, new):
+        self.volumeSlider.set(new)
+        mixer.music.set_volume(new)
         
     def root_drag(self) -> None:
         if mixer.music.get_busy:
@@ -408,6 +412,8 @@ class Main:
         self.jsonFrames[0][frameIndex] = frame[0]
             
         self.projectData['frames'] = self.jsonFrames
+        
+        self.showAlphaVar.set(False)
         self.load_frame()
         
     def redo(self) -> None:
@@ -424,6 +430,7 @@ class Main:
         self.jsonFrames[0][frameIndex] = frame[1]
 
         self.projectData['frames'] = self.jsonFrames
+        self.showAlphaVar.set(False)
         self.load_frame()
         
         self.cacheIndex += 1
@@ -439,6 +446,7 @@ class Main:
         self.historyTL.geometry('480x480')
         self.historyTL.resizable(False, False)
         self.historyTL.focus()
+        
         
         mainFrame = tk.Frame(self.historyTL, width=400, height=400)
         mainFrame.pack(anchor=tk.CENTER)
@@ -699,8 +707,11 @@ class Main:
 
         if self.showGridVar.get() or not menu:
             for pixel in self.pixels:
+                try:
                     self.canvas.itemconfig(str(pixel), outline=self.gridColor)
-
+                except:
+                    self.canvas.itemconfig(str(pixel), outline='#000000')
+                    self.gridColor = '#000000'
     def new_project_name_filter(self, res: tk.StringVar) -> None:
         try:
             res.set(''.join([i for i in res.get() if i.isdigit()]))
@@ -823,6 +834,7 @@ class Main:
             return
 
         self.res.set(res.get()) # Set project resolution to the new resolution
+        self.delay(int(framerate.get()))
         self.newFileTL.attributes("-topmost", False)
         self.newDir = fd.asksaveasfilename(
             title="Choose Directory",
@@ -840,7 +852,7 @@ class Main:
                 if mixer.music.get_busy():
                     mixer.music.stop()
                     
-            self.delay(int(framerate.get()))
+            self.delay(framerate.get())
 
             # Create the data files for the project
             if self.isComplexProject.get():
@@ -856,7 +868,7 @@ class Main:
                 self.simpleProjectFileSample['data']['resolution'] = self.res.get() # Write the file resolution
                 self.simpleProjectFileSample['data']['gridcolor'] = self.gridColor
                 self.simpleProjectFileSample['data']['showgrid'] = int(self.showGridVar.get())
-                self.simpleProjectFileSample['data']['framerate'] = int(self.framerate)
+                self.simpleProjectFileSample['data']['framerate'] = self.framerate
                 self.simpleProjectFileSample['data']['output'] = (self.outputDirectory.get() if self.outputDirectory.get() != 'None' else "")
 
                 self.jsonSampleDump = json.dumps((self.simpleProjectFileSample), indent=4, separators=(',', ':')) # Read the project data as json text
@@ -868,6 +880,8 @@ class Main:
             
             self.projectData = self.complexProjectFileSample
             self.jsonFrames = self.projectData['frames']
+            
+            self.framerateDelay = .04
             
             try:
                 self.newFileTL.destroy()
@@ -1184,7 +1198,7 @@ class Main:
                 
         pixelate = (self.canvas.winfo_width()-5)/int(self.res.get())
 
-        for pix in range(int(self.res.get())**2):                                                                                                       # Save coords for use with the fill tool
+        for i in range(int(self.res.get())**2):                                                                                                       # Save coords for use with the fill tool
             pixel = self.canvas.create_rectangle(self.posX, self.posY, self.posX + pixelate, self.posY + pixelate, fill='white', tags=f'^"x_0":{self.posX},"y_0":{self.posY},"x_1":{self.posX + pixelate},"y_1":{self.posY + pixelate}&'.replace('^', '{').replace('&', '}'))
 
             self.canvas.tag_bind(pixel, "<ButtonPress-1>", lambda e: self.on_press(e))
@@ -1202,6 +1216,11 @@ class Main:
 
                 except KeyError: # If the pixel is not present within the json file
                     self.canvas.itemconfig(pixel, fill='white') # Fill pixels with white (0 alpha)
+                except TclError:
+                    loading.destroy()
+                    mb.showerror("File Corrupted :/")
+                    os.execl(sys.executable, sys.executable, *sys.argv) # Restart program
+                    
 
             self.posX += pixelate
             self.toY -= 1
@@ -2054,8 +2073,13 @@ class Main:
             play_audio()
 
             time.sleep(self.framerateDelay)
+
+            # 15 fps
+            correction_15 = self.scale(int(self.res.get()), (40, 52), ((0.000316287699999999 if sys.platform == 'win32' else 0.0000204824499999999), (0.000672487899999999 if sys.platform == 'win32' else 0.000046648499999999)))
+            # 30 fps
+            correction_30 = self.scale(int(self.res.get()), (32, 52), ((0.000318287699999999 if sys.platform == 'win32' else 0.0000204824499999999), (0.000672487899999999 if sys.platform == 'win32' else 0.000046648499999999)))
             
-            correction = self.scale(int(self.res.get())/self.framerate, (40/15, 52/15), ((0.000316287699999999 if sys.platform == 'win32' else 0.000000024499999999), (0.000672487899999999 if sys.platform == 'win32' else 0.000005224499999999)))
+            correction = self.scale(self.framerate, (15, 30), (correction_15, correction_30))
             
         while self.isPlaying:
             time1 = timeit.default_timer()
@@ -2117,6 +2141,7 @@ class Main:
         if self.modifierUIOpened:
             self.modifierTL.deiconify()
             draw_frame()
+            draw_grid(self.modifierGridVar.get())
         else:
             # Toplevel setup
             self.modifierTL = tk.Toplevel(root, width=880, height=940)
@@ -2130,8 +2155,8 @@ class Main:
             
             self.modifierTL.bind('<g>', lambda e: get())
             
-            previewVar = tk.BooleanVar(master=self.modifierTL, value=True)
-            gridVar = tk.BooleanVar(master=self.modifierTL, value=False)
+            self.previewVar = tk.BooleanVar(master=self.modifierTL, value=True)
+            self.modifierGridVar = tk.BooleanVar(master=self.modifierTL, value=False)
             
             root.update()
             
@@ -2173,8 +2198,8 @@ class Main:
             # Add pixels to preview canvas
             if not self.modifierUIOpened:
                 menu = tk.Menu(self.modifierTL, tearoff=False)
-                menu.add_checkbutton(label="Preview", variable=previewVar)
-                menu.add_checkbutton(label="Grid", variable=gridVar, command=lambda: draw_grid(gridVar.get()))
+                menu.add_checkbutton(label="Preview", variable=self.previewVar)
+                menu.add_checkbutton(label="Grid", variable=self.modifierGridVar, command=lambda: draw_grid(self.modifierGridVar.get()))
                 
                 toY = int(self.res.get())
                 posX = 2
@@ -2186,7 +2211,7 @@ class Main:
 
                 for i in range(int(self.res.get())**2):
                     pixelate = (self.previewCanvas.winfo_width()-5)/int(self.res.get())
-                    self.previewCanvas.create_rectangle(posX, posY, posX + pixelate, posY + pixelate, fill='white')
+                    self.previewCanvas.create_rectangle(posX, posY, posX + pixelate, posY + pixelate, fill='white', outline="")
                     self.previewCanvas.tag_bind(str(i + 1), '<Button-3>', lambda e: menu.tk_popup(e.x_root, e.y_root))
 
                     posX += pixelate
