@@ -440,7 +440,6 @@ class Main:
         self.historyTL.resizable(False, False)
         self.historyTL.focus()
         
-        
         mainFrame = tk.Frame(self.historyTL, width=400, height=400)
         mainFrame.pack(anchor=tk.CENTER)
         mainFrame.pack_propagate(False)
@@ -824,7 +823,6 @@ class Main:
             return
 
         self.res.set(res.get()) # Set project resolution to the new resolution
-        self.delay(int(framerate.get()))
         self.newFileTL.attributes("-topmost", False)
         self.newDir = fd.asksaveasfilename(
             title="Choose Directory",
@@ -842,7 +840,7 @@ class Main:
                 if mixer.music.get_busy():
                     mixer.music.stop()
                     
-            self.delay(framerate.get())
+            self.delay(int(framerate.get()))
 
             # Create the data files for the project
             if self.isComplexProject.get():
@@ -858,7 +856,7 @@ class Main:
                 self.simpleProjectFileSample['data']['resolution'] = self.res.get() # Write the file resolution
                 self.simpleProjectFileSample['data']['gridcolor'] = self.gridColor
                 self.simpleProjectFileSample['data']['showgrid'] = int(self.showGridVar.get())
-                self.simpleProjectFileSample['data']['framerate'] = self.framerate
+                self.simpleProjectFileSample['data']['framerate'] = int(self.framerate)
                 self.simpleProjectFileSample['data']['output'] = (self.outputDirectory.get() if self.outputDirectory.get() != 'None' else "")
 
                 self.jsonSampleDump = json.dumps((self.simpleProjectFileSample), indent=4, separators=(',', ':')) # Read the project data as json text
@@ -870,8 +868,6 @@ class Main:
             
             self.projectData = self.complexProjectFileSample
             self.jsonFrames = self.projectData['frames']
-            
-            self.framerateDelay = .04
             
             try:
                 self.newFileTL.destroy()
