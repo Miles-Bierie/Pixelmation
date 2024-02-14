@@ -22,6 +22,11 @@ import time
 import sys
 import os
 
+class Linker(tk.Frame):
+    def __init__(self, parent):
+        super().__init__(master=parent)
+        
+        self.config(width=240, height=140, bg='green', highlightbackground='black', highlightthickness=2)
 
 class Operator(tk.Frame):
     copied = None
@@ -145,15 +150,15 @@ class Operator(tk.Frame):
         self.renaming = False
 
 
-class TintOperator(Operator):
-    def __init__(self, parent, name="TintOperator", _uuid=None): 
+class TintModifier(Operator):
+    def __init__(self, parent, name="TintModifier", _uuid=None): 
         super().__init__(parent=parent, name=name, _uuid=_uuid)
         
         self.parent = parent
         self.name = name
         
         # What is this?
-        self.type = 'TintOperator'
+        self.type = 'TintModifier'
         self.tintColor = '#ffffff'
         
         self.redVar = tk.StringVar(master=self, value='255')
@@ -224,14 +229,14 @@ class TintOperator(Operator):
             self.blueVar.set(rgb[2])
 
 
-class MonochromeOperator(Operator):
-    def __init__(self, parent, name='MonochromeOperator', _uuid=None):
+class MonochromeModifier(Operator):
+    def __init__(self, parent, name='MonochromeModifier', _uuid=None):
         super().__init__(parent=parent, name=name, _uuid=_uuid)
         
         self.parent = parent
         self.name = name
         
-        self.type = 'MonochromeOperator'
+        self.type = 'MonochromeModifier'
         
         self.redVar = tk.BooleanVar(value=True)
         self.greenVar = tk.BooleanVar(value=True)
@@ -2230,19 +2235,32 @@ class Main:
             addButton = tk.Menubutton(self.operatorFrame, text='➕', font=('Calibri', 16), highlightbackground='black', highlightthickness=1)
             addButton.pack(side=tk.TOP, anchor=tk.NW, pady=(0, 1), padx=1)
 
+            # Modifer option
             addButton.menu = tk.Menu(addButton, tearoff=False)
             addButton['menu'] = addButton.menu
-            addButton.menu.add_command(label='Tint Operator', command=lambda: self.add_modifier(0))
-            addButton.menu.add_command(label='Monochrome Operator', command=lambda: self.add_modifier(1))
+            addButton.menu.add_command(label='Tint Modifier', command=lambda: self.add_modifier(0))
+            addButton.menu.add_command(label='Monochrome Modifier', command=lambda: self.add_modifier(1))
 
-            tk.Frame(self.operatorFrame, width=Operator.WIDTH+PADDING, height=2, highlightbackground='darkblue', highlightthickness=2).pack(side=tk.TOP)
+            tk.Frame(self.operatorFrame, width=Operator.WIDTH+PADDING + 100, height=2, highlightbackground='darkblue', highlightthickness=2).pack(side=tk.TOP)
             
             # Variable frame setup:
-            variableLinkFrame = tk.Frame(self.variableFrame, width=self.variableFrame.winfo_width()*(1/3)-3, height=self.variableFrame.winfo_height())
-            variableLinkFrame.pack(side=tk.LEFT, anchor=tk.W)
-            variableLinkFrame.pack_propagate(False)
+            variableLinkContainer = tk.Frame(self.variableFrame, width=self.variableFrame.winfo_width()*(1/2)-3, height=self.variableFrame.winfo_height())
+            variableLinkContainer.pack(side=tk.LEFT, anchor=tk.W)
+            variableLinkContainer.pack_propagate(False)
+
+            variableLinkCanvas = tk.Canvas(variableLinkContainer, width=self.variableFrame.winfo_width()*(1/2)-10, height=self.variableFrame.winfo_height())
+            variableLinkCanvas.pack(side=tk.LEFT)
             
-            variableListFrame = tk.Frame(self.variableFrame, width=self.variableFrame.winfo_width()*(2/3)-3, height=self.variableFrame.winfo_height())
+            scrollbar = tk.Scrollbar(variableLinkContainer, command=variableLinkCanvas.yview)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y, pady=(60, 10), padx=(0, 2), before=variableLinkCanvas)
+            
+            variableLinkFrame = tk.Frame(variableLinkCanvas, width=self.variableFrame.winfo_width()*(1/2)-13, height=self.variableFrame.winfo_height())
+            variableLinkFrame.bind('<Configure>', lambda e: variableLinkCanvas.configure(scrollregion=variableLinkCanvas.bbox('all')))
+            
+            variableLinkCanvas.create_window((0, 0), window=variableLinkFrame, anchor=tk.NW)
+            variableLinkCanvas.configure(yscrollcommand=scrollbar.set)
+            
+            variableListFrame = tk.Frame(self.variableFrame, width=self.variableFrame.winfo_width()*(1/2)-3, height=self.variableFrame.winfo_height())
             variableListFrame.pack(side=tk.RIGHT, anchor=tk.E)
             
             root.update()
@@ -2250,8 +2268,8 @@ class Main:
             variableListWindow = tk.PanedWindow(variableListFrame, width=variableListFrame.winfo_width(), height=variableListFrame.winfo_height())
             variableListWindow.pack()
             
-            variableTypeFrame = tk.Frame(variableListWindow, width=variableListFrame.winfo_width()/4, height=variableListFrame.winfo_height())
-            variableNameFrame = tk.Frame(variableListWindow, width=variableListFrame.winfo_width()/2, height=variableListFrame.winfo_height())
+            variableTypeFrame = tk.Frame(variableListWindow, width=variableListFrame.winfo_width()/4 + 10, height=variableListFrame.winfo_height())
+            variableNameFrame = tk.Frame(variableListWindow, width=variableListFrame.winfo_width()/2 - 20, height=variableListFrame.winfo_height())
             variableValueFrame = tk.Frame(variableListWindow, width=variableListFrame.winfo_width()/4, height=variableListFrame.winfo_height())
             variableTypeFrame.propagate(False)
             variableNameFrame.propagate(False)
@@ -2271,7 +2289,7 @@ class Main:
             tk.Label(variableNameFrame, width=variableNameFrame.winfo_width(), text="Name:", font=('Calibri', 17), underline=True).pack(side=tk.TOP)
             tk.Label(variableValueFrame, width=variableValueFrame.winfo_width(), text="Value:", font=('Calibri', 17), underline=True).pack(side=tk.TOP)
             
-            tk.Label(variableLinkFrame, width=variableLinkFrame.winfo_width(), text="Linker:", font=('Calibri', 17), underline=True).pack(side=tk.TOP)
+            tk.Label(variableLinkContainer, width=variableLinkCanvas.winfo_width(), text="Linker:", font=('Calibri', 17), underline=True).pack(side=tk.TOP, before=variableLinkCanvas)
             
             # Add var type menus
             for i in range(12):
@@ -2293,6 +2311,16 @@ class Main:
                 cf:tk.Frame = vars()[frame]
                 for i in range(12):
                     tk.Entry(cf, width=cf.winfo_width(), font=('Calibri', 13), name=str(iterate) + '_' + str(i), state=tk.DISABLED).pack(side=tk.TOP)
+                    
+                    
+            Linker(variableLinkFrame).pack(pady=2)
+            Linker(variableLinkFrame).pack(pady=2)
+            Linker(variableLinkFrame).pack(pady=2)
+            Linker(variableLinkFrame).pack(pady=2)
+            Linker(variableLinkFrame).pack(pady=2)
+            Linker(variableLinkFrame).pack(pady=2)
+            Linker(variableLinkFrame).pack(pady=2)
+            Linker(variableLinkFrame).pack(pady=2)
             
             self.modifierUIOpened = True
             
@@ -2308,15 +2336,15 @@ class Main:
     def add_modifier(self, modifier: int) -> None:
         match modifier:
             case 0:
-                TintOperator(self.operatorFrame).pack(anchor=tk.NW)
+                TintModifier(self.operatorFrame).pack(anchor=tk.NW)
             case 1:
-                MonochromeOperator(self.operatorFrame).pack(anchor=tk.NW)
+                MonochromeModifier(self.operatorFrame).pack(anchor=tk.NW)
             case 2:
-                ... # TODO: ReplaceOperator(self.operatorFrame).pack(anchor=tk.NW)
+                ... # TODO: ReplaceModifier(self.operatorFrame).pack(anchor=tk.NW)
             case 3:
-                ... # TODO: FillOperator(self.operatorFrame).pack(anchor=tk.NW)
+                ... # TODO: FillModifier(self.operatorFrame).pack(anchor=tk.NW)
             case 4:
-                ... # TODO: NoiseOperator(self.operatorFrame).pack(anchor=tk.NW)
+                ... # TODO: NoiseModifier(self.operatorFrame).pack(anchor=tk.NW)
 
 
 
