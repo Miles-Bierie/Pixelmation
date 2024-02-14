@@ -389,7 +389,8 @@ class Main:
         
     def set_volume_by_key(self, new):
         self.volumeSlider.set(new)
-        mixer.music.set_volume(new)
+        self.volume.set(new)
+        self.change_volume()
         
     def root_drag(self) -> None:
         if mixer.music.get_busy:
@@ -452,7 +453,6 @@ class Main:
         self.historyTL.resizable(False, False)
         self.historyTL.focus()
         
-        
         mainFrame = tk.Frame(self.historyTL, width=400, height=400)
         mainFrame.pack(anchor=tk.CENTER)
         mainFrame.pack_propagate(False)
@@ -512,16 +512,16 @@ class Main:
         self.editMenu.add_separator()
         self.editMenu.add_command(label="Set Framerate", command=self.set_framerate, state=tk.DISABLED)
         self.editMenu.add_command(label="Set Undo Limit", command=self.set_undo_limit)
-        #self.editMenu.add_separator()
-        #self.editMenu.add_command(label="History", command=self.history_dialog, state=tk.DISABLED)
+        self.editMenu.add_separator()
+        self.editMenu.add_command(label="History", command=self.history_dialog, state=tk.DISABLED)
         
         # Setup display cascasde
         self.displayMenu = tk.Menu(self.menubar, tearoff=0)
         self.displayMenu.add_checkbutton(label="Show Grid", variable=self.showGridVar, command=lambda: self.update_grid(True), state=tk.DISABLED)
         self.displayMenu.add_command(label="Grid Color", command=lambda: self.set_grid_color(True), state=tk.DISABLED)
         self.displayMenu.add_checkbutton(label="Show Alpha", variable=self.showAlphaVar, command=lambda: self.display_alpha(True), state=tk.DISABLED)
-        #self.displayMenu.add_separator()
-        #self.displayMenu.add_command(label="Modifier UI", command=self.modifier_ui, state=tk.DISABLED)
+        self.displayMenu.add_separator()
+        self.displayMenu.add_command(label="Modifier UI", command=self.modifier_ui, state=tk.DISABLED)
 
         # Add the file cascades
         self.menubar.add_cascade(label="File", menu=self.fileMenu)
@@ -758,12 +758,12 @@ class Main:
         self.editMenu.entryconfig('Clear', state=tk.ACTIVE)
         self.editMenu.entryconfig('Fill', state=tk.ACTIVE)
         self.editMenu.entryconfig('Set Framerate', state=tk.ACTIVE)
-        #self.editMenu.entryconfig('History', state=tk.ACTIVE)
+        self.editMenu.entryconfig('History', state=tk.ACTIVE)
        
         self.displayMenu.entryconfig('Show Grid', state=tk.ACTIVE)
         self.displayMenu.entryconfig('Grid Color', state=tk.ACTIVE)
         self.displayMenu.entryconfig('Show Alpha', state=tk.ACTIVE)
-        # self.displayMenu.entryconfig('Modifier UI', state=(tk.ACTIVE if self.isComplexProject.get() else tk.DISABLED))
+        self.displayMenu.entryconfig('Modifier UI', state=(tk.ACTIVE if self.isComplexProject.get() else tk.DISABLED))
 
         self.increaseFrameButton['state'] = "normal"
         self.frameDisplayButton['state'] = "normal"
@@ -1310,13 +1310,14 @@ class Main:
         if self.canvas.find_withtag('guide') != ():
             self.canvas.delete(self.canvas.find_withtag('guide')[0])
 
-        line = self.canvas.create_line(self.shiftCoords['x'], self.shiftCoords['y'], event.x, event.y, tags='guide', width=8, activefill=self.colorPickerData[1], capstyle=tk.ROUND)
+        line = self.canvas.create_line(self.shiftCoords['x'], self.shiftCoords['y'], event.x, event.y, tags='guide', width=4, activefill=self.colorPickerData[1], capstyle=tk.ROUND)
         self.canvas.tag_bind(line, '<Leave>', lambda e: self.canvas.delete(line))
         self.canvas.tag_bind(line, '<Shift-Leave>', lambda e: self.canvas.delete(line))
         self.canvas.tag_bind(line, '<Button-1>', lambda e: self.draw_line(line))
             
     def draw_line(self, line: int) -> None:
         root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
+        self.frameMiddle.config(highlightbackground='red')
         for pixel in self.pixels:
             coords = self.canvas.coords(str(pixel))
             overlap = self.canvas.find_overlapping(coords[0], coords[1], coords[2], coords[3])
@@ -2315,21 +2316,31 @@ class Main:
             self.modifierUIOpened = True
             
     def set_row(self, var: tk.StringVar, _id: str, *args: tk.Frame) -> None: # Figure out what entries in that row should be enabled or disabled
-        for frame in (args[0], args[1]):
-            for entry in frame.winfo_children():
+        found = False
+        for linker in (args[0], args[1]):
+            for entry in linker.winfo_children():
                 if entry.winfo_name()[entry.winfo_name().find('_') + 1:] == str(_id):
+                    found = True
                     if var.get() != 'internal':
                         entry.config(state=tk.DISABLED if var.get() == 'none' else tk.NORMAL)
                     else:
-                        entry.config(state=tk.DISABLED if frame == args[1] else tk.NORMAL)
+                        entry.config(state=tk.DISABLED if linker == args[1] else tk.NORMAL)
+                    break
+                
+        if not found:
+            return
 
         hasLink = False
-        for frame in self.variableLinkFrame.winfo_children():
-            if frame.winfo_name() == _id:
-                hasLink = True
-                return
+        for linker in self.variableLinkFrame.winfo_children():
+            if linker.winfo_name() == _id:
+                if var.get() != 'none':
+                    hasLink = True
+                else:
+                    linker.destroy()
+                    return
+                break
         
-        if not hasLink:
+        if not hasLink and var.get() != 'none':
             Linker(self.variableLinkFrame, name=_id).pack()
 
     def add_modifier(self, modifier: int) -> None:
