@@ -26,7 +26,7 @@ class Linker(tk.Frame):
     def __init__(self, parent):
         super().__init__(master=parent)
         
-        self.config(width=240, height=140, bg='green', highlightbackground='black', highlightthickness=2)
+        self.config(width=260, height=180, bg='green', highlightbackground='black', highlightthickness=2)
 
 class Operator(tk.Frame):
     copied = None
@@ -763,7 +763,7 @@ class Main:
         self.displayMenu.entryconfig('Show Grid', state=tk.ACTIVE)
         self.displayMenu.entryconfig('Grid Color', state=tk.ACTIVE)
         self.displayMenu.entryconfig('Show Alpha', state=tk.ACTIVE)
-        self.displayMenu.entryconfig('Modifier UI', state=(tk.ACTIVE if self.isComplexProject.get() else tk.DISABLED))
+        # self.displayMenu.entryconfig('Modifier UI', state=(tk.ACTIVE if self.isComplexProject.get() else tk.DISABLED))
 
         self.increaseFrameButton['state'] = "normal"
         self.frameDisplayButton['state'] = "normal"
