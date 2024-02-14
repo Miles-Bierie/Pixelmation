@@ -23,10 +23,10 @@ import sys
 import os
 
 class Linker(tk.Frame):
-    def __init__(self, parent):
-        super().__init__(master=parent)
+    def __init__(self, parent, name):
+        super().__init__(master=parent, name=name)
         
-        self.config(width=240, height=140, bg='green', highlightbackground='black', highlightthickness=2)
+        self.config(width=260, height=180, bg='green', highlightbackground='black', highlightthickness=2)
 
 class Operator(tk.Frame):
     copied = None
@@ -512,16 +512,16 @@ class Main:
         self.editMenu.add_separator()
         self.editMenu.add_command(label="Set Framerate", command=self.set_framerate, state=tk.DISABLED)
         self.editMenu.add_command(label="Set Undo Limit", command=self.set_undo_limit)
-        self.editMenu.add_separator()
-        self.editMenu.add_command(label="History", command=self.history_dialog, state=tk.DISABLED)
+        #self.editMenu.add_separator()
+        #self.editMenu.add_command(label="History", command=self.history_dialog, state=tk.DISABLED)
         
         # Setup display cascasde
         self.displayMenu = tk.Menu(self.menubar, tearoff=0)
         self.displayMenu.add_checkbutton(label="Show Grid", variable=self.showGridVar, command=lambda: self.update_grid(True), state=tk.DISABLED)
         self.displayMenu.add_command(label="Grid Color", command=lambda: self.set_grid_color(True), state=tk.DISABLED)
         self.displayMenu.add_checkbutton(label="Show Alpha", variable=self.showAlphaVar, command=lambda: self.display_alpha(True), state=tk.DISABLED)
-        self.displayMenu.add_separator()
-        self.displayMenu.add_command(label="Modifier UI", command=self.modifier_ui, state=tk.DISABLED)
+        #self.displayMenu.add_separator()
+        #self.displayMenu.add_command(label="Modifier UI", command=self.modifier_ui, state=tk.DISABLED)
 
         # Add the file cascades
         self.menubar.add_cascade(label="File", menu=self.fileMenu)
@@ -758,7 +758,7 @@ class Main:
         self.editMenu.entryconfig('Clear', state=tk.ACTIVE)
         self.editMenu.entryconfig('Fill', state=tk.ACTIVE)
         self.editMenu.entryconfig('Set Framerate', state=tk.ACTIVE)
-        self.editMenu.entryconfig('History', state=tk.ACTIVE)
+        #self.editMenu.entryconfig('History', state=tk.ACTIVE)
        
         self.displayMenu.entryconfig('Show Grid', state=tk.ACTIVE)
         self.displayMenu.entryconfig('Grid Color', state=tk.ACTIVE)
@@ -2254,10 +2254,10 @@ class Main:
             scrollbar = tk.Scrollbar(variableLinkContainer, command=variableLinkCanvas.yview)
             scrollbar.pack(side=tk.RIGHT, fill=tk.Y, pady=(60, 10), padx=(0, 2), before=variableLinkCanvas)
             
-            variableLinkFrame = tk.Frame(variableLinkCanvas, width=self.variableFrame.winfo_width()*(1/2)-13, height=self.variableFrame.winfo_height())
-            variableLinkFrame.bind('<Configure>', lambda e: variableLinkCanvas.configure(scrollregion=variableLinkCanvas.bbox('all')))
+            self.variableLinkFrame = tk.Frame(variableLinkCanvas, width=self.variableFrame.winfo_width()*(1/2)-13, height=self.variableFrame.winfo_height())
+            self.variableLinkFrame.bind('<Configure>', lambda e: variableLinkCanvas.configure(scrollregion=variableLinkCanvas.bbox('all')))
             
-            variableLinkCanvas.create_window((0, 0), window=variableLinkFrame, anchor=tk.NW)
+            variableLinkCanvas.create_window((0, 0), window=self.variableLinkFrame, anchor=tk.NW)
             variableLinkCanvas.configure(yscrollcommand=scrollbar.set)
             
             variableListFrame = tk.Frame(self.variableFrame, width=self.variableFrame.winfo_width()*(1/2)-3, height=self.variableFrame.winfo_height())
@@ -2268,8 +2268,8 @@ class Main:
             variableListWindow = tk.PanedWindow(variableListFrame, width=variableListFrame.winfo_width(), height=variableListFrame.winfo_height())
             variableListWindow.pack()
             
-            variableTypeFrame = tk.Frame(variableListWindow, width=variableListFrame.winfo_width()/4 + 10, height=variableListFrame.winfo_height())
-            variableNameFrame = tk.Frame(variableListWindow, width=variableListFrame.winfo_width()/2 - 20, height=variableListFrame.winfo_height())
+            variableTypeFrame = tk.Frame(variableListWindow, width=variableListFrame.winfo_width()/4 + 20, height=variableListFrame.winfo_height())
+            variableNameFrame = tk.Frame(variableListWindow, width=variableListFrame.winfo_width()/2 - 40, height=variableListFrame.winfo_height())
             variableValueFrame = tk.Frame(variableListWindow, width=variableListFrame.winfo_width()/4, height=variableListFrame.winfo_height())
             variableTypeFrame.propagate(False)
             variableNameFrame.propagate(False)
@@ -2311,16 +2311,6 @@ class Main:
                 cf:tk.Frame = vars()[frame]
                 for i in range(12):
                     tk.Entry(cf, width=cf.winfo_width(), font=('Calibri', 13), name=str(iterate) + '_' + str(i), state=tk.DISABLED).pack(side=tk.TOP)
-                    
-                    
-            Linker(variableLinkFrame).pack(pady=2)
-            Linker(variableLinkFrame).pack(pady=2)
-            Linker(variableLinkFrame).pack(pady=2)
-            Linker(variableLinkFrame).pack(pady=2)
-            Linker(variableLinkFrame).pack(pady=2)
-            Linker(variableLinkFrame).pack(pady=2)
-            Linker(variableLinkFrame).pack(pady=2)
-            Linker(variableLinkFrame).pack(pady=2)
             
             self.modifierUIOpened = True
             
@@ -2332,6 +2322,15 @@ class Main:
                         entry.config(state=tk.DISABLED if var.get() == 'none' else tk.NORMAL)
                     else:
                         entry.config(state=tk.DISABLED if frame == args[1] else tk.NORMAL)
+
+        hasLink = False
+        for frame in self.variableLinkFrame.winfo_children():
+            if frame.winfo_name() == _id:
+                hasLink = True
+                return
+        
+        if not hasLink:
+            Linker(self.variableLinkFrame, name=_id).pack()
 
     def add_modifier(self, modifier: int) -> None:
         match modifier:

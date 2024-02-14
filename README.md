@@ -27,8 +27,8 @@
 | Ctrl+O    | Open Project          |
 | Ctrl+E    | Export                |
 | Ctrl+S    | Save                  |
-| Ctrl+Z    | Undo stroke *\*wip\** |
-| Ctrl+Y    | Redo stroke *\*wip\** |
+| Ctrl+Z    | Undo stroke           |
+| Ctrl+Y    | Redo stroke           |
 | Button 3  | Pick color            |
 | P         | Play/stop audio       |
 | Q         | Pen tool              |
