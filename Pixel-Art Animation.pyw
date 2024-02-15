@@ -1,4 +1,4 @@
-#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Tuesday, February 13, 2024  |=========---------  #
+#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Wednesday, February 14, 2024  |=========---------  #
 
 
 from tkinter import colorchooser as ch
@@ -314,6 +314,7 @@ class Main:
         self.shiftCoords = {} # Where we shifted on the canvas
         self.undoCache = [] # Stores the undo data in frame dictionaries
         self.undoCacheInfo = []
+        self.undoCacheInfoArgs = []
 
         self.showAlphaVar = tk.BooleanVar()
         self.showGridVar = tk.BooleanVar(value=True)
@@ -449,18 +450,18 @@ class Main:
             
         self.historyTL = tk.Toplevel()
         self.historyTL.title("Undo History")
-        self.historyTL.geometry('480x480')
+        self.historyTL.geometry('740x480')
         self.historyTL.resizable(False, False)
         self.historyTL.focus()
         
-        mainFrame = tk.Frame(self.historyTL, width=400, height=400)
+        mainFrame = tk.Frame(self.historyTL, width=720, height=400)
         mainFrame.pack(anchor=tk.CENTER)
         mainFrame.pack_propagate(False)
         
-        historyFrame = tk.Frame(mainFrame, width=400, height=400)
+        historyFrame = tk.Frame(mainFrame, width=700, height=400)
         historyFrame.pack(anchor=tk.N)
         
-        historyList = tk.Listbox(historyFrame, activestyle=tk.UNDERLINE, width=400, height=400, font=('Courier New', 16))
+        historyList = tk.Listbox(historyFrame, activestyle=tk.UNDERLINE, width=700, height=400, font=('Courier New', 15))
         historyList.pack(anchor=tk.N)
         
         scrollbar = tk.Scrollbar(mainFrame, command=historyList.yview)
@@ -521,7 +522,7 @@ class Main:
         self.displayMenu.add_command(label="Grid Color", command=lambda: self.set_grid_color(True), state=tk.DISABLED)
         self.displayMenu.add_checkbutton(label="Show Alpha", variable=self.showAlphaVar, command=lambda: self.display_alpha(True), state=tk.DISABLED)
         self.displayMenu.add_separator()
-        self.displayMenu.add_command(label="Modifier UI", command=self.modifier_ui, state=tk.DISABLED)
+        #self.displayMenu.add_command(label="Modifier UI", command=self.modifier_ui, state=tk.DISABLED)
 
         # Add the file cascades
         self.menubar.add_cascade(label="File", menu=self.fileMenu)
@@ -763,7 +764,7 @@ class Main:
         self.displayMenu.entryconfig('Show Grid', state=tk.ACTIVE)
         self.displayMenu.entryconfig('Grid Color', state=tk.ACTIVE)
         self.displayMenu.entryconfig('Show Alpha', state=tk.ACTIVE)
-        self.displayMenu.entryconfig('Modifier UI', state=(tk.ACTIVE if self.isComplexProject.get() else tk.DISABLED))
+        #self.displayMenu.entryconfig('Modifier UI', state=(tk.ACTIVE if self.isComplexProject.get() else tk.DISABLED))
 
         self.increaseFrameButton['state'] = "normal"
         self.frameDisplayButton['state'] = "normal"
@@ -1039,7 +1040,6 @@ class Main:
             except TclError:
                 pass
             root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
-            
 
     def save(self, all: bool) -> None:
         if not self.showAlphaVar.get(): # If show alpha is not toggled
@@ -1096,6 +1096,7 @@ class Main:
 
             if self.cacheIndex-1 < len(self.undoCache): # Reset later history, if there is any
                 self.undoCache = self.undoCache[:self.cacheIndex]
+                self.undoCacheInfo = self.undoCacheInfo[:self.cacheIndex-1] # Reset for the history viewer
                 self.undoCache[self.cacheIndex-1] = frameCache # Add the changes to the undo cache
             else:
                 if self.cacheIndex > self.undoCacheLimit.get():
@@ -1103,12 +1104,34 @@ class Main:
                     self.undoCache.append(frameCache) # Add the changes to the undo cache
                     del self.undoCache[0]
                 else:
-                     self.undoCache.append(frameCache) # Add the changes to the undo cache
-                     
-                self.undoCacheInfo.append("Pen Stroke")
+                     self.undoCache.append(frameCache) # Add the changes to the undo cache                   
         
         self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = colorFrameDict
         self.projectData['frames'] = self.jsonFrames
+
+    def write_history(self):
+        if len(self.undoCacheInfoArgs) == 0:
+            return
+            
+        if self.penFrame.cget('highlightbackground') == 'red' and len(self.undoCacheInfoArgs) == 1:
+            self.undoCacheInfo.append("Pen Stroke <{}> (Frame {})".format(self.undoCacheInfoArgs[0], self.currentFrame.get()))
+        elif self.eraserFrame.cget('highlightbackground') == 'red':
+            self.undoCacheInfo.append("Stroke Erased (Frame {})".format(self.currentFrame.get()))
+        elif self.replaceFrame.cget('highlightbackground') == 'red':
+            self.undoCacheInfo.append("Changed <{}> to <{}> (Frame {})".format(self.undoCacheInfoArgs[0], self.undoCacheInfoArgs[1], self.currentFrame.get()))
+        elif self.removeFrame.cget('highlightbackground') == 'red':
+            self.undoCacheInfo.append("Color <{}> Removed (Frame {})".format(self.undoCacheInfoArgs[0], self.currentFrame.get()))
+        elif self.fillFrame.cget('highlightbackground') == 'red':
+            self.undoCacheInfo.append("Area filled with <{}> (Frame {})".format(self.undoCacheInfoArgs[0], self.currentFrame.get()))
+        elif len(self.undoCacheInfoArgs) == 5: # Line draw
+            self.undoCacheInfo.append("Drew <{}> line from <{}:{}> to <{}:{}> (Frame {})".format(self.undoCacheInfoArgs[0], self.undoCacheInfoArgs[1], self.undoCacheInfoArgs[2], self.undoCacheInfoArgs[3], self.undoCacheInfoArgs[4], self.currentFrame.get()))
+        else: # Just write out the contents + frame
+            outStr = ""
+            for i in self.undoCacheInfoArgs:
+                outStr += i
+            self.undoCacheInfo.append(outStr)
+            
+        self.undoCacheInfoArgs.clear()
 
     def save_as(self) -> None:
         self.newDir = fd.asksaveasfilename(
@@ -1184,7 +1207,6 @@ class Main:
         self.canvas.pack()
         self.canvas.bind('<Shift-Motion>', self.draw_line_guide)
         
-
         # Create pixels
         self.toY = int(self.res.get())
         self.posX = 2
@@ -1197,6 +1219,9 @@ class Main:
         self.fileOpen = open(self.projectDir, 'r')
         if readPixels:
             self.projectData = json.load(self.fileOpen)
+            self.undoCache.clear()
+            self.undoCacheInfo.clear()
+            self.cacheIndex = 0
             
         if self.showAlphaVar.get(): # If show alpha is selected, disable it before drawing to the canvas
             self.display_alpha(False)
@@ -1225,7 +1250,6 @@ class Main:
                     loading.destroy()
                     mb.showerror("File Corrupted :/")
                     os.execl(sys.executable, sys.executable, *sys.argv) # Restart program
-                    
 
             self.posX += pixelate
             self.toY -= 1
@@ -1269,9 +1293,11 @@ class Main:
             if self.penFrame['highlightbackground'] == 'red': # If pen mode is selected...
                 if not self.canvas.itemcget(self.selectedPixel, option='fill') == self.colorPickerData[1]: # If the pixel color is already the pen color
                     self.canvas.itemconfig(self.selectedPixel, fill=self.colorPickerData[1])
+                    self.undoCacheInfoArgs = [self.colorPickerData[1]]
 
             elif self.eraserFrame['highlightbackground'] == 'red': # If the eraser mode is selected...
                 self.canvas.itemconfig(self.selectedPixel, fill='white')
+                self.undoCacheInfoArgs = []
 
             elif self.removeFrame['highlightbackground'] == 'red': # If the remove mode is selected...
                 self.canvas_remove_color()
@@ -1291,7 +1317,9 @@ class Main:
                     pos_x = tags['x_0'] + ((tags['x_1'] - tags['x_0']) / 2)
                     pos_y = tags['y_0'] + ((tags['y_1'] - tags['y_0']) / 2)
 
-                    self.canvas_fill_recursive((pos_x, pos_y), offset, selectedColor)
+                    found = self.canvas_fill_recursive((pos_x, pos_y), offset, selectedColor)
+                    if found:
+                        self.undoCacheInfoArgs = [self.colorPickerData[1]]
         except:
             pass # I don't want it to yell at me
         
@@ -1313,9 +1341,9 @@ class Main:
         line = self.canvas.create_line(self.shiftCoords['x'], self.shiftCoords['y'], event.x, event.y, tags='guide', width=4, activefill=self.colorPickerData[1], capstyle=tk.ROUND)
         self.canvas.tag_bind(line, '<Leave>', lambda e: self.canvas.delete(line))
         self.canvas.tag_bind(line, '<Shift-Leave>', lambda e: self.canvas.delete(line))
-        self.canvas.tag_bind(line, '<Button-1>', lambda e: self.draw_line(line))
+        self.canvas.tag_bind(line, '<Button-1>', lambda click: self.draw_line(click, line))
             
-    def draw_line(self, line: int) -> None:
+    def draw_line(self, click: dict, line: int) -> None:
         root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
         self.frameMiddle.config(highlightbackground='red')
         for pixel in self.pixels:
@@ -1325,6 +1353,9 @@ class Main:
                 if self.canvas.itemcget(str(selected), 'tags')[0] == 'g': # 'g' is in 'guide'
                     self.canvas.itemconfig(str(pixel), fill=self.colorPickerData[1])
                     break
+                
+        self.undoCacheInfoArgs = [self.colorPickerData[1], self.shiftCoords['x'], self.shiftCoords['y'], round(click.x), round(click.y)]
+        self.write_history()
         
         self.canvas.delete(line)
         self.save_frame()
@@ -1337,6 +1368,7 @@ class Main:
             return
         
         self.save_frame()
+        self.write_history()
 
     def canvas_clear(self) -> None:
         for pixel in self.pixels:
@@ -1345,6 +1377,9 @@ class Main:
         root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
         self.frameMiddle.config(highlightthickness=3, highlightbackground="red")
         self.save_frame()
+        
+        self.undoCacheInfoArgs = ['Canvas cleared', ' (Frame {})'.format(self.currentFrame.get())]
+        self.write_history()
 
     def canvas_fill(self) -> None:
         fillColor = ch.askcolor()
@@ -1355,20 +1390,32 @@ class Main:
             root.title("Pixel-Art Animator-" + self.projectDir + '*')
             self.frameMiddle.config(highlightbackground="red")
             self.save_frame()
+            
+            self.undoCacheInfoArgs = ['Canvas filled with <{}>'.format(fillColor[1]), ' (Frame {})'.format(self.currentFrame.get())]
+            self.write_history()
 
     def canvas_remove_color(self) -> None:
         selectedPixel = self.canvas.find_closest(self.clickCoords.x, self.clickCoords.y)
         selectedColor = self.canvas.itemcget(selectedPixel, option='fill')
+        change = False
         for pixel in self.pixels:
             if self.canvas.itemcget(pixel, option='fill') == selectedColor:
+                change = True
                 self.canvas.itemconfig(pixel, fill='white')
+                
+        if change:
+            self.undoCacheInfoArgs = [selectedColor]
                 
     def canvas_replace_color(self) -> None:
         selectedPixel = self.canvas.find_closest(self.clickCoords.x, self.clickCoords.y)
         selectedColor = self.canvas.itemcget(selectedPixel, option='fill')
+        change = False
         for pixel in self.pixels:
             if self.canvas.itemcget(pixel, option='fill') == selectedColor:
+                change = True
                 self.canvas.itemconfig(pixel, fill=self.colorPickerData[1])
+        if change:
+            self.undoCacheInfoArgs = [selectedColor, self.colorPickerData[1]]
         
     def canvas_fill_recursive(self, pos: tuple | list, offset: float, color: str) -> None:
         selectedPixel = self.canvas.find_closest(pos[0], pos[1])
@@ -1380,6 +1427,7 @@ class Main:
             self.canvas_fill_recursive((pos[0] - offset, pos[1]), offset, color)
             self.canvas_fill_recursive((pos[0], pos[1] + offset), offset, color)
             self.canvas_fill_recursive((pos[0], pos[1] - offset), offset, color)
+            return True
 
     def insert_frame(self) -> None: # Inserts a frame after the current frame
         self.currentFrame_mem = int(self.currentFrame.get())
@@ -1449,7 +1497,7 @@ class Main:
             self.currentFrame.set(1)
             if self.audioFile != None:
                 if mixer.music.get_busy():
-                    mixer.music.set_pos(0.001)
+                    mixer.music.set_pos(0.0001)
                 else:
                     if self.isPlaying:
                         mixer.music.play()
@@ -1460,10 +1508,11 @@ class Main:
         if self.frameCount == 1:
             return
             
-        self.currentFrame.set(str(int(self.currentFrame.get()) - 1))
+        if int(self.currentFrame.get()) != 1:
+            self.currentFrame.set(str(int(self.currentFrame.get()) - 1))
 
-        if int(self.currentFrame.get()) < 1:
-            self.currentFrame.set(int(len(self.jsonFrames[0])))
+        else:
+            self.currentFrame.set(self.frameCount)
 
         if self.audioFile != None:
             self.get_playback_pos()
@@ -2081,9 +2130,9 @@ class Main:
             time.sleep(self.framerateDelay)
 
             # 15 fps
-            correction_15 = self.scale(int(self.res.get()), (40, 52), ((0.000316287699999999 if sys.platform == 'win32' else 0.0000204824499999999), (0.000672487899999999 if sys.platform == 'win32' else 0.000046648499999999)))
+            correction_15 = self.scale(int(self.res.get()), (40, 52), ((0.000316287699999999 if sys.platform == 'win32' else 0.0000204824499999999), (0.000578487899999999 if sys.platform == 'win32' else 0.000046648499999999)))
             # 30 fps
-            correction_30 = self.scale(int(self.res.get()), (32, 52), ((0.000318287699999999 if sys.platform == 'win32' else 0.0000204824499999999), (0.000672487899999999 if sys.platform == 'win32' else 0.000046648499999999)))
+            correction_30 = self.scale(int(self.res.get()), (32, 52), ((0.000318287699999999 if sys.platform == 'win32' else 0.0000204824499999999), (0.000972487899999999 if sys.platform == 'win32' else 0.000046648499999999)))
             
             correction = self.scale(self.framerate, (15, 30), (correction_15, correction_30))
             
