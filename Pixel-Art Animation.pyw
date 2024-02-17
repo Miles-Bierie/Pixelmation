@@ -313,8 +313,8 @@ class Main:
         self.clickCoords = {} # Where we clicked on the canvas
         self.shiftCoords = {} # Where we shifted on the canvas
         self.undoCache = [] # Stores the undo data in frame dictionaries
-        self.undoCacheInfo = []
-        self.undoCacheInfoArgs = []
+        self.undoCacheInfo = [] # Stores the list for the history listbox to display
+        self.undoCacheInfoArgs = [] # Stores the arguments used to save to the undoCacheInfo array
 
         self.showAlphaVar = tk.BooleanVar()
         self.showGridVar = tk.BooleanVar(value=True)
@@ -463,6 +463,7 @@ class Main:
         
         historyList = tk.Listbox(historyFrame, activestyle=tk.UNDERLINE, width=700, height=400, font=('Courier New', 15))
         historyList.pack(anchor=tk.N)
+        historyList.bind('<Double-Button-1>', lambda e: self.history_select(historyList.index(tk.ACTIVE)))
         
         scrollbar = tk.Scrollbar(mainFrame, command=historyList.yview)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y, before=historyList)
@@ -471,6 +472,9 @@ class Main:
         
         for item in self.undoCacheInfo:
             historyList.insert(tk.END, item)
+            
+    def history_select(self, item):
+        print("Selected item: " + item)
         
     def load(self) -> None:
         def openDir(): # Opens the project directory
@@ -522,7 +526,7 @@ class Main:
         self.displayMenu.add_command(label="Grid Color", command=lambda: self.set_grid_color(True), state=tk.DISABLED)
         self.displayMenu.add_checkbutton(label="Show Alpha", variable=self.showAlphaVar, command=lambda: self.display_alpha(True), state=tk.DISABLED)
         self.displayMenu.add_separator()
-        #self.displayMenu.add_command(label="Modifier UI", command=self.modifier_ui, state=tk.DISABLED)
+        self.displayMenu.add_command(label="Modifier UI", command=self.modifier_ui, state=tk.DISABLED)
 
         # Add the file cascades
         self.menubar.add_cascade(label="File", menu=self.fileMenu)
@@ -764,7 +768,7 @@ class Main:
         self.displayMenu.entryconfig('Show Grid', state=tk.ACTIVE)
         self.displayMenu.entryconfig('Grid Color', state=tk.ACTIVE)
         self.displayMenu.entryconfig('Show Alpha', state=tk.ACTIVE)
-        #self.displayMenu.entryconfig('Modifier UI', state=(tk.ACTIVE if self.isComplexProject.get() else tk.DISABLED))
+        self.displayMenu.entryconfig('Modifier UI', state=(tk.ACTIVE if self.isComplexProject.get() else tk.DISABLED))
 
         self.increaseFrameButton['state'] = "normal"
         self.frameDisplayButton['state'] = "normal"
@@ -990,7 +994,7 @@ class Main:
 
                 self.delay(self.framerate) # Set the framerate to the saved framerate
 
-            except IndentationError:
+            except:
                 mb.showerror(title="Project", message=f"Failed to load {self.fileOpen}; Unknown Error!")
                 return
             
