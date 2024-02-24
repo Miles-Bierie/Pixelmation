@@ -1,4 +1,4 @@
-#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Wednesday, February 14, 2024  |=========---------  #
+#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Friday, February 23, 2024  |=========---------  #
 
 
 from tkinter import colorchooser as ch
@@ -25,73 +25,73 @@ import os
 class Linker(tk.Frame):
     def __init__(self, parent, name):
         super().__init__(master=parent, name=name)
-        
+       
         self.config(width=260, height=180, bg='green', highlightbackground='black', highlightthickness=2)
 
 class Operator(tk.Frame):
     copied = None
     modifier_count = 0
-    
+   
     WIDTH = 250
     HEIGHT = 297
-        
+       
     def __init__(self, parent, name, _uuid):
         Operator.modifier_count += 1
          
         # Are we renaming the modifier?
         self.renaming = False
-        
+       
         # The name/title of the widget
         self.name = name
         self.nameVar = tk.StringVar(value=self.name)
-        
+       
         # ID specific to this modifier
         self.UUID = (uuid.uuid1() if _uuid == None else _uuid)
-        
+       
         super().__init__(master=parent)
-        
+       
         # Basic properties
         self.config(width=self.WIDTH, height=self.HEIGHT, highlightbackground='black', highlightthickness=1)
         self.pack_propagate(False)
-        
+       
         # Is this modifier active?
         self.enabled = tk.BooleanVar(value=True)
-        
+       
         self.titleFrame = tk.Frame(self, bg='lightblue', width=self.WIDTH, height=24, highlightbackground='black', highlightthickness=1)
         self.titleFrame.pack(side=tk.TOP)
         self.titleFrame.pack_propagate(False)
         self.titleFrame.bind('<Button-1>', lambda e: self.__rename__(True))
-        
+       
         self.nameLabel = tk.Label(self.titleFrame, text=self.name, bg='lightblue', font=('Consolas', 9))
         self.nameLabel.pack(anchor=tk.W, side=tk.LEFT)
         # To stop us from focusing on two instances of the operator class at the same time
         self.nameLabel.bind('<Double-Button-1>', lambda e: self.__rename_dialog__())
-        
+       
         # Only visible when renaming
         self.nameEntry = tk.Entry(self.titleFrame, textvariable=self.nameVar, width=30, font=('Consolas', 9))
         self.nameEntry.bind('<Return>', lambda e: self.__rename__(True))
         self.nameEntry.bind('<FocusOut>', lambda e: self.__rename__(True))
         self.nameEntry.bind('<Escape>', lambda e: self.__rename__(False))
-        
+       
         self.enableCheck = tk.Checkbutton(self.titleFrame, variable=self.enabled, command=self.__toggle_enable__, bg='lightblue')
         self.enableCheck.pack(anchor=tk.E, side=tk.RIGHT)
-        
+       
         self.mainFrame = tk.Frame(self, width=self.WIDTH, height=self.HEIGHT-24, highlightbackground='black', highlightthickness=1)
         self.mainFrame.pack(side=tk.BOTTOM, anchor=tk.S)
         self.mainFrame.pack_propagate(False)
         self.mainFrame.bind('<Button-1>', lambda e: self.__rename__(True))
-        
+       
         for widget in self.winfo_children():
             widget.bind('<Button-3>', lambda e: self.__option_dialog__())
-        
+       
     # Shows the rename entry
     def __rename_dialog__(self):
         self.renaming = True
         self.nameLabel.pack_forget()
-        
+       
         self.nameEntry.pack(anchor=tk.W, side=tk.LEFT)
         self.nameEntry.focus()
-        
+       
     def __option_dialog__(self):
         menu = tk.Menu(tearoff=False)
         menu.add_command(label='Copy Modifier', command=lambda: self.__copy__())
@@ -101,37 +101,37 @@ class Operator(tk.Frame):
         menu.add_separator()
         menu.add_command(label='Print UUID', command=lambda m = self: print(self.UUID))
         menu.tk_popup(self.winfo_pointerx(), self.winfo_pointery())
-        
+       
     def __toggle_enable__(self):
         # Command gets run before the value gets updated, so we negate the check
         if not self.enabled.get():
             self.titleFrame.config(bg='gray')
             self.nameLabel.config(bg='gray')
             self.enableCheck.config(bg='gray')
-            
+           
             self.mainFrame.pack_forget()
             self.config(height=24)
         else:
             self.titleFrame.config(bg='lightblue')
             self.nameLabel.config(bg='lightblue')
             self.enableCheck.config(bg='lightblue')
-            
+           
             self.mainFrame.pack(side=tk.BOTTOM, anchor=tk.S)
             self.config(height=self.HEIGHT)
  
     def __copy__(self):
         Operator.copied = self.UUID
-        
+       
     def __rename__(self, rename):
         MAX_LENGTH = 30
         self.focus() # And, therefore, remove focus from the entry, incase you clicked on another Operator instance
-        
+       
         if not self.renaming:
             return
 
         if self.nameVar.get() == '' or not rename:
             self.nameVar.set(self.name)
-        
+       
         nameStr = self.nameVar.get().strip()
 
         if len(nameStr) > MAX_LENGTH:
@@ -140,58 +140,58 @@ class Operator(tk.Frame):
             self.nameLabel.config(text=abbr)
         else:
             self.nameLabel.config(text=nameStr)
-        
+       
         self.nameVar.set(nameStr)
         self.name = nameStr
-        
+       
         self.nameEntry.pack_forget()
         self.nameLabel.pack(anchor=tk.W, side=tk.LEFT)
-        
+       
         self.renaming = False
 
 
 class TintModifier(Operator):
-    def __init__(self, parent, name="TintModifier", _uuid=None): 
+    def __init__(self, parent, name="TintModifier", _uuid=None):
         super().__init__(parent=parent, name=name, _uuid=_uuid)
-        
+       
         self.parent = parent
         self.name = name
-        
+       
         # What is this?
         self.type = 'TintModifier'
         self.tintColor = '#ffffff'
-        
+       
         self.redVar = tk.StringVar(master=self, value='255')
         self.greenVar = tk.StringVar(master=self, value='255')
         self.blueVar = tk.StringVar(master=self, value='255')
-        
+       
         # Color-picker button
         self.buttonFrame = tk.Frame(self.mainFrame, highlightbackground='white', highlightthickness=2)
         self.buttonFrame.pack(side=tk.TOP, pady=10)
         self.colorButton = tk.Button(self.buttonFrame, text='Tint', command=self.pick_color, width=26)
         self.colorButton.pack()
-        
+       
         rgbFrame = tk.Frame(self.mainFrame, highlightbackground='black', highlightthickness=2)
         rgbFrame.pack(pady=(10, 0))
-        
+       
         tk.Label(rgbFrame, text='Red:').pack(side=tk.LEFT, padx=(0, 5))
         self.redEntry = tk.Entry(rgbFrame, width=3, textvariable=self.redVar, name='red')
         self.redEntry.pack(side=tk.LEFT, padx=(0, 8))
-        
+       
         tk.Label(rgbFrame, text='Green:').pack(side=tk.LEFT, padx=(0, 5))
         self.greenEntry = tk.Entry(rgbFrame, width=3, textvariable=self.greenVar, name='green')
         self.greenEntry.pack(side=tk.LEFT, padx=(0, 8))
-        
+       
         tk.Label(rgbFrame, text='Blue:').pack(side=tk.LEFT, padx=(0, 5))
         self.blueEntry = tk.Entry(rgbFrame, width=3, textvariable=self.blueVar, name='blue')
         self.blueEntry.pack(side=tk.LEFT, padx=(0, 8))
-        
+       
         for widget in rgbFrame.winfo_children():
             if widget.winfo_class() == 'Entry':
                 self.redVar.trace_add('write', lambda e1, e2, e3: self.manual_color())
                 self.greenVar.trace_add('write', lambda e1, e2, e3: self.manual_color())
                 self.blueVar.trace_add('write', lambda e1, e2, e3: self.manual_color())
-        
+       
     def pick_color(self):
         newColor = ch.askcolor(parent=self.parent, initialcolor=self.tintColor)
         if newColor != (None, None):
@@ -200,28 +200,28 @@ class TintModifier(Operator):
             self.tintColor = newColor[1]
             self.buttonFrame.config(highlightbackground=self.tintColor)
             self.update_entries(newColor[0])
-            
+           
     def manual_color(self):  
         try:
             var = self.focus_get().winfo_name()
-            
+           
             if var in ('red', 'green', 'blue'):
 
             # Make sure we are only typing numbers
                 eval(f'self.{var}Var.set("".join(i for i in self.{var}Var.get() if i.isdigit()))')
-                
+               
                 color = (int(self.redVar.get()), int(self.greenVar.get()), int(self.blueVar.get()))
                 self.tintColor = f'#{color[0]:02x}{color[1]:02x}{color[2]:02x}'
                 self.buttonFrame.config(highlightbackground=self.tintColor)
-            
+           
         # The entry is empty, or we used the color chooser
         except (ValueError, AttributeError):
             pass
-        
+       
         # The value is not a valid color value
         except TclError:
             eval(f'self.{var}Var.set(255)')
-            
+           
     def update_entries(self, rgb):
         if rgb:
             self.redVar.set(rgb[0])
@@ -232,41 +232,41 @@ class TintModifier(Operator):
 class MonochromeModifier(Operator):
     def __init__(self, parent, name='MonochromeModifier', _uuid=None):
         super().__init__(parent=parent, name=name, _uuid=_uuid)
-        
+       
         self.parent = parent
         self.name = name
-        
+       
         self.type = 'MonochromeModifier'
-        
+       
         self.redVar = tk.BooleanVar(value=True)
         self.greenVar = tk.BooleanVar(value=True)
         self.blueVar = tk.BooleanVar(value=True)
-        
+       
         self.color_1 = '#ffffff'
         self.color_2 = '#000000'
-        
+       
         checkFrame = tk.Frame(self.mainFrame, height=76, width=self.WIDTH, highlightbackground='black', highlightthickness=1)
         checkFrame.pack(side=tk.TOP, pady=(10, 0))
         checkFrame.pack_propagate(False)
-        
+       
         tk.Checkbutton(checkFrame, variable=self.redVar, text="Use Red Channel").pack(anchor=tk.W)
         tk.Checkbutton(checkFrame, variable=self.greenVar, text="Use Green Channel").pack(anchor=tk.W)
         tk.Checkbutton(checkFrame, variable=self.blueVar, text="Use Blue Channel").pack(anchor=tk.W)
-        
+       
         colorFrame = tk.Frame(self.mainFrame, height=76, width=self.WIDTH, highlightbackground='black', highlightthickness=1)
         colorFrame.pack(pady=32)
         colorFrame.pack_propagate(False)
-        
+       
         self.buttonFrame_1 = tk.Frame(colorFrame, highlightbackground='white', highlightthickness=2, name='c1')
         self.buttonFrame_1.pack(side=tk.TOP, pady=(5, 2))
         self.colorButton_1 = tk.Button(self.buttonFrame_1, text='Color 1', command=lambda: self.pick_color(self.buttonFrame_1), width=26)
         self.colorButton_1.pack()
-        
+       
         self.buttonFrame_2 = tk.Frame(colorFrame, highlightbackground='black', highlightthickness=2, name='c2')
         self.buttonFrame_2.pack(side=tk.TOP, pady=2)
         self.colorButton_2 = tk.Button(self.buttonFrame_2, text='Color 2', command=lambda: self.pick_color(self.buttonFrame_2), width=26)
         self.colorButton_2.pack()
-        
+       
     def pick_color(self, frame):
         color = ch.askcolor(initialcolor=frame['highlightbackground'], parent=self.parent)
         if color != (None, None):
@@ -349,7 +349,7 @@ class Main:
                     {}
                 ]
             }
-        
+       
         self.simpleProjectFileSample = {
             "data": {
                 "resolution": 16,
@@ -368,36 +368,36 @@ class Main:
 
         root.bind_all('<Control-s>', lambda e: self.save(True))
         root.bind_all('<Command-s>', lambda e: self.save(True))
-        
+       
         root.bind_all('<KeyRelease-Shift_L>', lambda e: self.set_isShifting_false())
         root.bind_all('<KeyRelease-Shift_R>', lambda e: self.set_isShifting_false())
-        
+       
         root.bind('<Control-z>', lambda e: self.undo())
         root.bind('<Command-z>', lambda e: self.undo())
         root.bind('<Control-y>', lambda e: self.redo())
         root.bind('<Command-y>', lambda e: self.redo())
         root.bind('<Control-Shift-Z>', lambda e: self.redo()) # 'Z' is capital because you are holding down shift
         root.bind('<Command-Shift-Z>', lambda e: self.redo())
-        
+       
         root.bind('<l>', lambda e: self.load_frame())
         root.bind('<*>', lambda e: self.root_nodrag())
         root.bind('<Shift-Leave>', lambda e: try_delete_guide())
-        
+       
         root.bind('<KeyPress-Up>', lambda e: self.set_volume_by_key(min(self.volume.get() + 5, 100)))
         root.bind('<KeyPress-Down>', lambda e: self.set_volume_by_key(max(self.volume.get() - 5, 0)))
 
         self.load()
-        
+       
     def set_volume_by_key(self, new):
         self.volumeSlider.set(new)
         self.volume.set(new)
         self.change_volume()
-        
+       
     def root_drag(self) -> None:
         if mixer.music.get_busy:
             root.bind('<Motion>', lambda e: self.root_nodrag())
             mixer.music.set_pos(self.playback)
-        
+       
     def root_nodrag(self) -> None:
         if mixer.music.get_busy:
             if self.audioFile != None:
@@ -417,79 +417,79 @@ class Main:
             self.currentFrame.set(str(goto))
 
         self.jsonFrames[0][frameIndex] = frame[0]
-            
+           
         self.projectData['frames'] = self.jsonFrames
-        
+       
         self.showAlphaVar.set(False)
         self.load_frame()
-        
+       
     def redo(self) -> None:
         if self.cacheIndex == len(self.undoCache):
             return
 
         cache: dict = self.undoCache[self.cacheIndex]
         frame: list = cache[frameIndex := str(list(cache.keys())[0])]
-        
+       
         if (goto := (frameIndex[frameIndex.find('_') + 1:])) != self.currentFrame.get():
             self.currentFrame.set(str(goto))
             self.load_frame()
-            
+           
         self.jsonFrames[0][frameIndex] = frame[1]
 
         self.projectData['frames'] = self.jsonFrames
         self.showAlphaVar.set(False)
         self.load_frame()
-        
+       
         self.cacheIndex += 1
-        
+       
     def history_dialog(self):
         try:
             self.historyTL.destroy()
         except:
             pass
-            
+           
         self.historyTL = tk.Toplevel()
         self.historyTL.title("Undo History")
         self.historyTL.geometry('740x480')
         self.historyTL.resizable(False, False)
         self.historyTL.focus()
-        
+       
         mainFrame = tk.Frame(self.historyTL, width=720, height=400)
         mainFrame.pack(anchor=tk.CENTER)
         mainFrame.pack_propagate(False)
-        
+       
         historyFrame = tk.Frame(mainFrame, width=700, height=400)
         historyFrame.pack(anchor=tk.N)
-        
+       
         historyList = tk.Listbox(historyFrame, activestyle=tk.UNDERLINE, width=700, height=400, font=('Courier New', 15))
         historyList.pack(anchor=tk.N)
         historyList.bind('<Double-Button-1>', lambda e: self.history_select(historyList.index(tk.ACTIVE)))
-        
+       
         scrollbar = tk.Scrollbar(mainFrame, command=historyList.yview)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y, before=historyList)
-        
+       
         historyList.configure(yscrollcommand=scrollbar.set)
-        
+       
         for item in self.undoCacheInfo:
             historyList.insert(tk.END, item)
-            
+           
     def history_select(self, item):
         print("Selected item: " + item)
-        
+       
     def load(self) -> None:
         def openDir(): # Opens the project directory
             os.chdir(self.projectDir[:self.projectDir.rfind('/')])
-            
+           
             if sys.platform == 'win32':
                 os.system(f'Explorer .')
             else:
                 os.system('open .')
-        
+       
         # Start the pygame mixer for audio playback
         mixer.pre_init(buffer=4096, channels=1, frequency=48000)
         mixer.init()
         self.change_volume()
-        
+       
         # Add the menubar:
         self.menubar = tk.Menu(root) # Main menubar
         root.config(menu=self.menubar)
@@ -519,7 +519,7 @@ class Main:
         self.editMenu.add_command(label="Set Undo Limit", command=self.set_undo_limit)
         self.editMenu.add_separator()
         self.editMenu.add_command(label="History", command=self.history_dialog, state=tk.DISABLED)
-        
+       
         # Setup display cascasde
         self.displayMenu = tk.Menu(self.menubar, tearoff=0)
         self.displayMenu.add_checkbutton(label="Show Grid", variable=self.showGridVar, command=lambda: self.update_grid(True), state=tk.DISABLED)
@@ -540,7 +540,7 @@ class Main:
         # Add top frame
         self.frameTop = tk.Frame(root, width=1080, height=10)
         self.frameTop.pack(anchor=tk.N, padx=8)
-        
+       
         # Make the column sizes the same
         for i in range(3):
             self.frameTop.grid_columnconfigure(i, weight=1, uniform='topFrame')
@@ -574,7 +574,7 @@ class Main:
 
         root.bind('<Return>', lambda e: root.focus())
         root.bind('<Escape>', lambda e: self.esc())
-        
+       
         root.bind('<p>', lambda e: (mixer.music.stop() if mixer.music.get_busy() else mixer.music.play()))
         root.bind('<Control-n>', lambda e: self.new_file_dialog())
         root.bind('<Control-o>', lambda e: self.open_file(True))
@@ -610,7 +610,7 @@ class Main:
         self.replaceFrame.pack(side=tk.LEFT, padx=4)
        
         tk.Button(self.replaceFrame, text="Replace", relief=tk.RAISED, height=2, width=WIDTH, command=lambda: self.tool_select(4)).pack()
-        
+       
         # Fill tool
         self.fillFrame = tk.Frame(self.toolsFrame, height=2, width=WIDTH, highlightthickness=2, highlightbackground='white')
         self.fillFrame.pack(side=tk.LEFT, padx=4)
@@ -637,7 +637,7 @@ class Main:
         # Add play button
         self.playButton = tk.Button(self.frameBottom, text="<No Project>", state='disabled', height=2, width=32, command=lambda: self.play_init(False))
         self.playButton.place(relx=.5, rely=.5, anchor='center')
-        
+       
         root.bind('<KeyPress-Control_L>', lambda e: self.play_button_mode(True))
         root.bind('<KeyRelease-Control_L>', lambda e: self.play_button_mode(False))
 
@@ -709,11 +709,9 @@ class Main:
     def set_grid_color(self, menu: bool) -> None:
         if menu:
             color = ch.askcolor()[1]
-            if color == (None, None):
-                return
-            
-            self.gridColor = color
-            root.title("Pixel-Art Animator-" + self.projectDir + '*')
+            if color:
+                self.gridColor = color
+                root.title("Pixel-Art Animator-" + self.projectDir + '*')
 
         if self.showGridVar.get() or not menu:
             for pixel in self.pixels:
@@ -731,7 +729,7 @@ class Main:
                 res.set(64)
         except:
             pass
-        
+       
     def new_project_framerate_filter(self, framerate: tk.StringVar) -> None:
         try:
             framerate.set(''.join([i for i in self.newFramerateEntry.get() if i.isdigit()]))
@@ -775,7 +773,7 @@ class Main:
         self.decreaseFrameButton['state'] = 'normal'
 
         self.playButton.config(state='normal', text="Play")
-        
+       
         root.bind('<Control-e>', lambda e: self.export_display())
 
         root.bind('<KeyPress-Shift_L>', lambda e: self.frame_skip(True))
@@ -783,15 +781,17 @@ class Main:
         root.bind('<KeyRelease-Shift_L>', lambda e: self.frame_skip(False))
         root.bind('<KeyRelease-Shift_R>', lambda e: self.frame_skip(False))
 
+        root.bind('<Control-a>', lambda e: self.insert_frame())
+
         root.bind('<Right>', lambda e: self.increase_frame())
         root.bind('<space>', lambda e: self.play_space())
         root.bind('<Left>', lambda e: self.decrease_frame())
-        
+       
         if self.isComplexProject.get():
             root.bind('<m>', lambda e: self.modifier_ui())
         else:
             root.unbind('<m>')
-        
+       
         # For goto
         for i in range(1, 10):
             root.bind(f'<KeyPress-{i}>', lambda e, num = i: self.goto(str(num)))
@@ -804,11 +804,11 @@ class Main:
             self.newFileTL.destroy()
 
         newRes = tk.StringVar(value=self.res.get())
-        newFramerate = tk.StringVar(value='10')         
+        newFramerate = tk.StringVar(value='10')        
         complexValue = self.isComplexProject.get()
         # We store this so that if the value is changed but a new file is not created,
         # the "isComplexProject" variable will be set back to the correct value.
-        
+       
         #Add the toplevel window
         self.newFileTL = tk.Toplevel(width=128, height=320)
         self.newFileTL.attributes("-topmost", True)
@@ -823,7 +823,7 @@ class Main:
         newFileFrame = tk.Frame(self.newFileTL, height=156, width=256)
         newFileFrame.pack()
         newFileFrame.pack_propagate(False)
-        
+       
         newFramerateEntry = tk.Entry(newFileFrame, textvariable=newFramerate, width=3, font=('Courier New', 15))
         newFramerateEntry.pack(side=tk.BOTTOM)
         tk.Label(newFileFrame, text="Framerate:", font=('Courier New', 12)).pack(side=tk.BOTTOM)
@@ -832,7 +832,7 @@ class Main:
         newFileSetResolutionEntry = tk.Entry(newFileFrame, textvariable=newRes, width=3, font=('Courier New', 15))
         newFileSetResolutionEntry.pack(side=tk.BOTTOM)
         tk.Label(newFileFrame, text="Project Resolution:", font=('Courier New', 12)).pack(side=tk.BOTTOM, pady=(0, 8))
-        
+       
         tk.Checkbutton(self.newFileTL, text='Complex Project', variable=self.isComplexProject, font=('Courier New', 12)).pack(side=tk.BOTTOM, pady=8)
 
         newRes.trace_add('write', lambda e1, event2, event3: self.new_project_name_filter(newRes))
@@ -861,7 +861,7 @@ class Main:
                 self.isPlaying= False
                 if mixer.music.get_busy():
                     mixer.music.stop()
-                    
+                   
             self.delay(framerate.get())
 
             # Create the data files for the project
@@ -873,7 +873,7 @@ class Main:
                 self.complexProjectFileSample['data']['output'] = self.outputDirectory.get()
 
                 self.jsonSampleDump = json.dumps((self.complexProjectFileSample), indent=4, separators=(',', ':')) # Read the project data as json text
-                
+               
             else:
                 self.simpleProjectFileSample['data']['resolution'] = self.res.get() # Write the file resolution
                 self.simpleProjectFileSample['data']['gridcolor'] = self.gridColor
@@ -887,12 +887,12 @@ class Main:
             self.settingsFile = open(self.projectDir, 'w')
             self.settingsFile.write(self.jsonSampleDump)
             self.settingsFile.close()
-            
+           
             self.projectData = self.complexProjectFileSample
             self.jsonFrames = self.projectData['frames']
-            
+           
             self.framerateDelay = .04
-            
+           
             try:
                 self.newFileTL.destroy()
             except:
@@ -905,19 +905,19 @@ class Main:
                 self.newFileTL.attributes("-topmost", True)
             except AttributeError: # If this function was called using Save As
                 pass
-            
+           
     def set_framerate(self) -> None:
         framerate = simpledialog.askinteger(title="Set Framerate", prompt="Set framerate (1 - 60):", minvalue=1, maxvalue=60)
         if framerate != None:
             self.delay(framerate)
             root.title("Pixel-Art Animator-" + self.projectDir + "*")
-            
+           
     def set_undo_limit(self) -> None:
         mem = self.undoCacheLimit.get()
         num = simpledialog.askinteger(title="Undo Limit", prompt="New Value (8 - 1024):", initialvalue=self.undoCacheLimit.get(), minvalue=8, maxvalue=1024)
         if num:
             self.undoCacheLimit.set(num)
-            
+           
             while num < len(self.undoCache):
                 del self.undoCache[0]
                 self.cacheIndex -= 1
@@ -936,7 +936,7 @@ class Main:
                 filetypes=(("pixel project", f'*.{self.extension}'),("pixel project", f'*.{self.extension}')))
         else:
             self.fileOpen = self.projectDir
-            
+           
         if not self.isPlaying:
             self.play_button_mode(False)
 
@@ -944,27 +944,27 @@ class Main:
             try:
                 with open(f'{self.fileOpen}', 'r') as file:
                     self.projectData = json.load(file)
-                
+               
                 for i in ('resolution', 'showgrid', 'gridcolor', 'audio', 'framerate', 'output'):
                     if i not in self.projectData['data']:
                         mb.showerror(title="Project", message=f"Failed to load {self.fileOpen};\n missing {i} section!")
-                    
+                   
                     if i == 'audio':
                         if (fileCheck := self.projectData['data']['audio']) != None:
                             if not os.path.isfile(fileCheck):
                                 mb.showerror(title="Project", message=f"Failed to load audio; Please check that the file exists!")
                                 self.audioFile = None
-                                
+                               
                             else:
                                 self.audioFile = self.projectData['data']['audio'] # Load audio
-                                
+                               
                                 mixer.music.queue(self.audioFile)
                                 mixer.music.load(self.audioFile)
-                                
+                               
                                 audio = mutagen.File(self.audioFile)
                                 self.audioLength = audio.info.length
                                 self.audioLength = int((self.audioLength % 60) * 1000)
-                                
+                               
                                 try:
                                     self.fileMenu.entryconfig("Load Audio", label="Unload Audio")
                                 except TclError:
@@ -974,9 +974,9 @@ class Main:
                                 self.fileMenu.entryconfig("Unload Audio", label="Load Audio")
                             except TclError:
                                 pass
-                    
+                   
                 self.projectDir = self.fileOpen
-                
+               
                 self.currentFrame.set(1) # Reset the current frame
                 self.playback = 0
                 self.isPlaying = False
@@ -986,7 +986,7 @@ class Main:
                 self.gridColor = self.projectData['data']['gridcolor'] # Load grid color
                 self.framerate = self.projectData['data']['framerate'] # Load framerate
                 self.outputDirectory.set(self.projectData['data']['output'])
-                
+               
                 if 'modifiers' in self.projectData.keys():
                     self.isComplexProject.set(True)
                 else:
@@ -997,16 +997,16 @@ class Main:
             except:
                 mb.showerror(title="Project", message=f"Failed to load {self.fileOpen}; Unknown Error!")
                 return
-            
+           
             self.add_canvas(True)
             self.modifierUIOpened = False
-            
+           
             if self.showAlphaVar.get():
                 self.load_frame()
-            
+           
             self.exportOpen = False
             root.focus_force()
-            
+           
     def load_audio(self) -> None:
         if self.audioFile == None: # So unload audio button doesn't open the file dialog
             audioPath = fd.askopenfilename(
@@ -1036,7 +1036,7 @@ class Main:
 
                 self.audioFile = None
                 mixer.music.unload()
-                
+               
         else:
             try:
                 self.fileMenu.entryconfig('Unload Audio', label='Load Audio')
@@ -1068,14 +1068,14 @@ class Main:
                     self.fileOpen.seek(0)
                     self.fileOpen.truncate(0)
                     self.fileOpen.write(self.jsonSampleDump)
-                    
+                   
                     if all:
                         # Load new file data
                         self.projectData = json.loads(self.jsonSampleDump)
                         self.jsonFrames = self.projectData['frames']
-                        
+                       
                     root.title(root.title()[0:-1]) # Remove the star in the project title
-                    
+                   
     def save_frame(self) -> None:
         colorFrameDict = {}
         frameCache = {'frame_' + self.currentFrame.get(): ['', '']} # Store the data before and after saving
@@ -1108,15 +1108,15 @@ class Main:
                     self.undoCache.append(frameCache) # Add the changes to the undo cache
                     del self.undoCache[0]
                 else:
-                     self.undoCache.append(frameCache) # Add the changes to the undo cache                   
-        
+                     self.undoCache.append(frameCache) # Add the changes to the undo cache                  
+       
         self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = colorFrameDict
         self.projectData['frames'] = self.jsonFrames
 
     def write_history(self):
         if len(self.undoCacheInfoArgs) == 0:
             return
-            
+           
         if self.penFrame.cget('highlightbackground') == 'red' and len(self.undoCacheInfoArgs) == 1:
             self.undoCacheInfo.append("Pen Stroke <{}> (Frame {})".format(self.undoCacheInfoArgs[0], self.currentFrame.get()))
         elif self.eraserFrame.cget('highlightbackground') == 'red':
@@ -1134,7 +1134,7 @@ class Main:
             for i in self.undoCacheInfoArgs:
                 outStr += i
             self.undoCacheInfo.append(outStr)
-            
+           
         self.undoCacheInfoArgs.clear()
 
     def save_as(self) -> None:
@@ -1153,7 +1153,7 @@ class Main:
 
             self.projectDir = self.newDir
             self.open_file(False)
-            
+           
     def copy_paste(self, mode:str) -> None:
         if mode == 'copy':
             self.frameStorage = f'frame_{self.currentFrame.get()}'
@@ -1171,7 +1171,7 @@ class Main:
         renameTL.resizable(False, False)
         renameTL.title("Rename Project")
         renameTL.attributes('-topmost', True)
-        
+       
         renameTL.bind('<Return>', lambda e: self.rename(renameTL))
         renameTL.bind('<Escape>', lambda e: renameTL.destroy())
 
@@ -1179,7 +1179,7 @@ class Main:
         rename = tk.Entry(renameTL, width=26, textvariable=self.renameVar, font=('Courier New', 14))
         rename.pack(padx=4)
         rename.focus()
-        
+       
         tk.Button(renameTL, width=24, height=2, text="Rename", command=lambda: self.rename(renameTL)).pack()
 
     def rename(self, renameTL: tk.Toplevel) -> None:
@@ -1210,7 +1210,7 @@ class Main:
         self.canvas = tk.Canvas(self.frameMiddle, height=866, width=866)
         self.canvas.pack()
         self.canvas.bind('<Shift-Motion>', self.draw_line_guide)
-        
+       
         # Create pixels
         self.toY = int(self.res.get())
         self.posX = 2
@@ -1226,10 +1226,10 @@ class Main:
             self.undoCache.clear()
             self.undoCacheInfo.clear()
             self.cacheIndex = 0
-            
+           
         if self.showAlphaVar.get(): # If show alpha is selected, disable it before drawing to the canvas
             self.display_alpha(False)
-                
+               
         pixelate = (self.canvas.winfo_width()-5)/int(self.res.get())
 
         for i in range(int(self.res.get())**2):                                                                                                       # Save coords for use with the fill tool
@@ -1315,7 +1315,7 @@ class Main:
                     selectedPixel = self.canvas.find_closest(self.clickCoords.x, self.clickCoords.y)
                     selectedColor = self.canvas.itemcget(selectedPixel, option='fill')
                     offset = self.canvas.winfo_width() / int(self.res.get())
-                    
+                   
                     # Calculate the coords of the center of the pixel (gets rid of chance that not all tiles will be filled)
                     tags = json.loads(self.canvas.itemcget(selectedPixel, 'tags')[:-8])
                     pos_x = tags['x_0'] + ((tags['x_1'] - tags['x_0']) / 2)
@@ -1326,11 +1326,11 @@ class Main:
                         self.undoCacheInfoArgs = [self.colorPickerData[1]]
         except:
             pass # I don't want it to yell at me
-        
+       
     def set_shift_coords(self, event: tk.Event) -> None:
         self.shiftCoords['x'] = event.x
         self.shiftCoords['y'] = event.y
-        
+       
     def draw_line_guide(self, event: tk.Event) -> None: # Guess
         if not self.penFrame.cget('highlightbackground') == 'red' or self.isPlaying:
             return
@@ -1346,7 +1346,7 @@ class Main:
         self.canvas.tag_bind(line, '<Leave>', lambda e: self.canvas.delete(line))
         self.canvas.tag_bind(line, '<Shift-Leave>', lambda e: self.canvas.delete(line))
         self.canvas.tag_bind(line, '<Button-1>', lambda click: self.draw_line(click, line))
-            
+           
     def draw_line(self, click: dict, line: int) -> None:
         root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
         self.frameMiddle.config(highlightbackground='red')
@@ -1357,31 +1357,31 @@ class Main:
                 if self.canvas.itemcget(str(selected), 'tags')[0] == 'g': # 'g' is in 'guide'
                     self.canvas.itemconfig(str(pixel), fill=self.colorPickerData[1])
                     break
-                
+               
         self.undoCacheInfoArgs = [self.colorPickerData[1], self.shiftCoords['x'], self.shiftCoords['y'], round(click.x), round(click.y)]
         self.write_history()
-        
+       
         self.canvas.delete(line)
         self.save_frame()
-        
+       
     def set_isShifting_false(self) -> None:
         self.isShifting = False
-        
+       
     def on_release(self) -> None:
         if self.isPlaying or self.showAlphaVar.get():
             return
-        
+       
         self.save_frame()
         self.write_history()
 
     def canvas_clear(self) -> None:
         for pixel in self.pixels:
             self.canvas.itemconfig(pixel, fill='white')
-        
+       
         root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
         self.frameMiddle.config(highlightthickness=3, highlightbackground="red")
         self.save_frame()
-        
+       
         self.undoCacheInfoArgs = ['Canvas cleared', ' (Frame {})'.format(self.currentFrame.get())]
         self.write_history()
 
@@ -1394,7 +1394,7 @@ class Main:
             root.title("Pixel-Art Animator-" + self.projectDir + '*')
             self.frameMiddle.config(highlightbackground="red")
             self.save_frame()
-            
+           
             self.undoCacheInfoArgs = ['Canvas filled with <{}>'.format(fillColor[1]), ' (Frame {})'.format(self.currentFrame.get())]
             self.write_history()
 
@@ -1406,10 +1406,10 @@ class Main:
             if self.canvas.itemcget(pixel, option='fill') == selectedColor:
                 change = True
                 self.canvas.itemconfig(pixel, fill='white')
-                
+               
         if change:
             self.undoCacheInfoArgs = [selectedColor]
-                
+               
     def canvas_replace_color(self) -> None:
         selectedPixel = self.canvas.find_closest(self.clickCoords.x, self.clickCoords.y)
         selectedColor = self.canvas.itemcget(selectedPixel, option='fill')
@@ -1420,7 +1420,7 @@ class Main:
                 self.canvas.itemconfig(pixel, fill=self.colorPickerData[1])
         if change:
             self.undoCacheInfoArgs = [selectedColor, self.colorPickerData[1]]
-        
+       
     def canvas_fill_recursive(self, pos: tuple | list, offset: float, color: str) -> None:
         selectedPixel = self.canvas.find_closest(pos[0], pos[1])
 
@@ -1462,15 +1462,15 @@ class Main:
                 else:
                     return
                 break
-        
+       
         root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
         newData = copy.deepcopy(self.jsonFrames) # Create a copy of the frame list (as to not change the original durring iteration)
-        
+       
         if self.frameCount != 1:
             self.frameCount -= 1
-            
+           
         frameIterate = int(self.currentFrame.get())
-        
+       
         for frame in range(int(self.currentFrame.get()), len(self.jsonFrames[0]) + 1):
             if frameIterate != len(self.jsonFrames[0]): # If the frame is not the last frame, copy the data from the next frame
                 newData[0][f'frame_{frameIterate}'] = self.jsonFrames[0][f'frame_{frameIterate + 1}']
@@ -1493,7 +1493,7 @@ class Main:
     def increase_frame(self) -> None:
         if self.frameCount == 1:
             return
-            
+           
         if int(self.currentFrame.get()) != len(self.jsonFrames[0]):
             self.currentFrame.set(int(self.currentFrame.get()) + 1)
 
@@ -1505,13 +1505,13 @@ class Main:
                 else:
                     if self.isPlaying:
                         mixer.music.play()
-            
+           
         self.load_frame()
        
     def decrease_frame(self) -> None:
         if self.frameCount == 1:
             return
-            
+           
         if int(self.currentFrame.get()) != 1:
             self.currentFrame.set(str(int(self.currentFrame.get()) - 1))
 
@@ -1607,7 +1607,7 @@ class Main:
 
     def goto(self, start: str) -> None:
         text = tk.StringVar(value=start)
-        
+       
         def remove(goto):
             gotoTL.destroy()
             self.gotoOpen = False
@@ -1638,16 +1638,16 @@ class Main:
         gotoTL.geometry('240x64')
         gotoTL.resizable(False, False)
         gotoTL.focus()
-        
+       
         tk.Label(gotoTL, width=1000, height=10, textvariable=text, font=('Calibri', 16), justify=tk.LEFT).pack()
-        
+       
         gotoTL.bind('<FocusOut>', lambda e: remove(False))
         gotoTL.bind('<Escape>', lambda e: remove(False))
         gotoTL.bind('<Return>', lambda e: remove(True))
-        
+       
         for i in range(10):
             gotoTL.bind(f'<KeyPress-{i}>', lambda e, num = i: display(num))
-            
+           
         gotoTL.bind('<BackSpace>', lambda e: display(None))
 
     def quit(self) -> None:
@@ -1662,20 +1662,20 @@ class Main:
                 root.destroy()
         else:
             root.destroy()
-            
+           
     def var_filter(self, var: tk.StringVar, min: int, max: int) -> None:
         try:
             var.set("".join(i for i in var.get() if i.isdigit()))
             if min != None:
                 if int(var.get()) < min:
                     var.set(min)
-                    
+                   
             if max != None:
                 if int(var.get()) > max:
                     var.set(max)
         except ValueError:
             pass
-        
+       
     def trash(self, directory: str) -> None:
         os.chdir(directory)
         sucess = True
@@ -1687,9 +1687,9 @@ class Main:
                 sucess = False
         else:
             sucess = None
-        
+       
         self.trashResponce(sucess)
-    
+   
     def trashResponce(self, sucess: bool) -> None:
         if sucess == None:
             mb.showinfo(title="Trash", message="No files found!")
@@ -1697,7 +1697,7 @@ class Main:
             mb.showinfo(title="Trash", message="Files deleted successfully!")
         else:
             mb.showerror(title="Trash", message="Failed to delete one or more files!")
-            
+           
         self.clearFolderButton.config(state='normal', text="Clear Folder")
         self.exportTL.focus()
 
@@ -1707,39 +1707,39 @@ class Main:
             os.chdir(self.outputDirectory.get())
             os.system("Explorer .")
             os.chdir(cdr)
-            
+           
         def get_resolutions(value):
             resolutions = []
             res = value
             while res <= 4096: # Generate resolutions up to 4k
                 resolutions.append(res)
                 res*= 2
-                
+               
             if 4096 not in resolutions:
                 resolutions.append(4096)
-                
+               
             return resolutions
-        
+       
         def l_g_res(value):
                 if value:
                     self.resolutions = get_resolutions(int(self.res.get()))
                 else:
                     self.resolutions = get_resolutions(32)
-                    
+                   
                 self.resolutionBox.pack_forget()
                 self.resolutionBox = tk.Spinbox(self.exportFrameMiddleBottom, width=4, textvariable=self.resVar, values=self.resolutions, state='readonly')
                 self.resolutionBox.pack(side=tk.LEFT, padx=(6, 0))
-                
+               
                 self.checkbutton.pack_forget()
                 self.checkbutton = tk.Checkbutton(self.exportFrameMiddleBottom, text="Local", variable=localResVar, command=lambda: l_g_res(localResVar.get()))
                 self.checkbutton.pack(side=tk.LEFT, padx=(10, 0))
-                
+               
         def alphaAvailable(type):
             if type in (".jpeg"):                
                 self.alphaCheck.config(state='disabled')
             else:
                 self.alphaCheck.config(state='normal')
-                
+               
         def askTrash(directory):
             self.clearFolderButton.config(state='disabled', text="Clearing...")
             ans = mb.askyesno(title="Trash", message="Are you sure you want to clear all items from this folder?")
@@ -1748,19 +1748,19 @@ class Main:
             else:
                 self.clearFolderButton.config(state='normal', text="Clear Folder")
                 self.exportTL.focus()
-        
+       
         if self.exportOpen:
             self.exportTL.deiconify()
             self.exportTL.focus()
             return
 
         self.exportOpen = True
-        
+       
         # Resolution values
         self.resolutions = get_resolutions(32) # Base resolution
-            
+           
         localResVar = tk.BooleanVar()
-        
+       
         # Add the toplevel
         self.exportTL = tk.Toplevel(width=640, height=500)
         self.exportTL.resizable(True, False)
@@ -1768,100 +1768,100 @@ class Main:
         self.exportTL.protocol("WM_DELETE_WINDOW", self.exportTL.withdraw)
         self.exportTL.focus()
         self.exportTL.withdraw()
-        
+       
         self.exportTL.bind('<Escape>', lambda e: self.exportTL.withdraw())
 
         # Create the frames
         frameWidth = (420 if sys.platform == 'win32' else 548)
-        
+       
         self.sequenceFrame = tk.Frame(self.exportTL, width=frameWidth, height=300)
         self.sequenceFrame.pack()
 
         self.exportFrameTop = tk.Frame(self.sequenceFrame, width=frameWidth, height=100, highlightbackground='black', highlightthickness=2)
         self.exportFrameTop.pack(side=tk.TOP)
         self.exportFrameTop.pack_propagate(False)
-        
+       
         self.exportFrameMiddleTop = tk.Frame(self.sequenceFrame, width=frameWidth, height=50, highlightbackground='black', highlightthickness=2)
         self.exportFrameMiddleTop.pack(pady=(20, 0))
         self.exportFrameMiddleTop.pack_propagate(False)
-        
+       
         self.exportFrameMiddleBottom = tk.Frame(self.sequenceFrame, width=frameWidth, height=50, highlightbackground='black', highlightthickness=2)
         self.exportFrameMiddleBottom.pack(pady=20)
         self.exportFrameMiddleBottom.pack_propagate(False)
-        
+       
         self.exportFrameBottom1 = tk.Frame(self.sequenceFrame, width=frameWidth, height=500)
         self.exportFrameBottom1.pack(side=tk.BOTTOM)
-        
+       
         self.exportFrameBottom2 = tk.Frame(self.sequenceFrame, width=frameWidth)
         self.exportFrameBottom2.pack(side=tk.BOTTOM)
 
         # Create the menus:
-        
+       
         # Directory panel
         exportTypeStr = tk.StringVar(value='.png') # Set the default output extenion
         exportFileNameStr = tk.StringVar(value=os.path.splitext(os.path.split(self.projectDir)[1])[0])
 
         outputDirectoryEntry = tk.Entry(self.exportFrameTop, textvariable=self.outputDirectory, width=36, font=('Calibri', 14))
         outputDirectoryEntry.grid(row=1, column=0, columnspan=3)
-        
+       
         root.update()
-        
+       
         self.outputDirectory.trace_add('write', lambda e1, e2, e3: root.title("Pixel-Art Animator-" + self.projectDir + '*'))
-        
+       
         tk.Label(self.exportFrameTop, text="Output Directory:", font=('Calibri', 14)).grid(row=0, column=0)
         tk.Button(self.exportFrameTop, text="open", font=('Calibri', 10), command=self.open_output_dir).grid(row=1, column=3, sticky=tk.W)
         tk.Button(self.exportFrameTop, text="Open Directory", font=('Calibri', 10), command=lambda: (open_dir()) if sys.platform == 'win32' else (os.system(f"open {self.outputDirectory.get()}"))).grid(row=2, column=0, sticky=tk.W, padx=(112, 0))
         self.clearFolderButton = tk.Button(self.exportFrameTop, text="Clear Folder", font=('Calibri', 10), command=lambda: askTrash(self.outputDirectory.get()))
         self.clearFolderButton.grid(row=2, column=2, sticky=tk.E, columnspan=2, padx=(0, 112))
-        
+       
         # Render panel:
         tk.Label(self.exportFrameMiddleTop, text="File Name: ").pack(side=tk.TOP, anchor=tk.NW)
         tk.Entry(self.exportFrameMiddleTop, textvariable=exportFileNameStr, width=30).pack(side=tk.LEFT)
         tk.OptionMenu(self.exportFrameMiddleTop, exportTypeStr, ".png", ".jpeg", ".tga", ".tiff", command=lambda ext: alphaAvailable(ext)).pack(side=tk.LEFT, anchor=tk.NW)
-        
+       
         # Alpha checkbox
         useAlphaVar = tk.BooleanVar()
         self.alphaCheck = tk.Checkbutton(self.exportFrameMiddleTop, variable=useAlphaVar, text="Use Alpha", font=("Calibri", 11), justify=tk.CENTER)
         self.alphaCheck.pack()
-        
+       
         # Duration panel:
         self.fromVar = tk.StringVar(value='1')
         self.toVar = tk.StringVar(value=self.frameCount)
         self.stepVar = tk.IntVar()
         self.resVar = tk.IntVar()
-        
+       
         self.fromVar.trace_add('write', lambda e1, e2, e3: self.var_filter(self.fromVar, 1, self.frameCount - 1))
         self.toVar.trace_add('write', lambda e1, e2, e3: self.var_filter(self.toVar, 1, self.frameCount))
-        
+       
         tk.Label(self.exportFrameMiddleBottom, text="Render Settings:").pack(side=tk.TOP, anchor=tk.NW)
 
         tk.Label(self.exportFrameMiddleBottom, text="From:").pack(side=tk.LEFT)
         tk.Entry(self.exportFrameMiddleBottom, width=4, textvariable=self.fromVar).pack(side=tk.LEFT, padx=4)
-        
+       
         tk.Label(self.exportFrameMiddleBottom, text="To:").pack(side=tk.LEFT, padx=(6, 0))
         tk.Entry(self.exportFrameMiddleBottom, width=4, textvariable=self.toVar).pack(side=tk.LEFT, padx=4)
-        
+       
         tk.Label(self.exportFrameMiddleBottom, text="Step:").pack(side=tk.LEFT, padx=(6, 0))
         tk.Spinbox(self.exportFrameMiddleBottom, width=4, textvariable=self.stepVar, from_=1.0, to=10.0, state='readonly').pack(side=tk.LEFT, padx=4)
-        
+       
         tk.Label(self.exportFrameMiddleBottom, text="Resolution:").pack(side=tk.LEFT, padx=(6, 0))
         self.resolutionBox = tk.Spinbox(self.exportFrameMiddleBottom, width=4, textvariable=self.resVar, values=self.resolutions, state='readonly')
         self.resolutionBox.pack(side=tk.LEFT, padx=(6, 0))
-        
+       
         self.checkbutton = tk.Checkbutton(self.exportFrameMiddleBottom, text="Local", variable=localResVar, command=lambda: l_g_res(localResVar.get()))
         self.checkbutton.pack(side=tk.LEFT, padx=(10, 0))
-        
+       
         # Create the export buttons
         ttk.Button(self.exportFrameBottom2, text="Render Sequence", width=16, command=lambda: self.export(exportFileNameStr.get(), exportTypeStr.get(), useAlphaVar.get(), True, int(self.fromVar.get()), int(self.toVar.get()), self.stepVar.get(), resolution=self.resVar.get(), usingAlpha=(True if self.alphaCheck['state'] == 'normal' else False))).pack(side=tk.LEFT, anchor=tk.W)
         ttk.Button(self.exportFrameBottom2, text="Render Image", width=16, command=lambda: self.export(exportFileNameStr.get(), exportTypeStr.get(), useAlphaVar.get(), False, resolution=self.resVar.get(), usingAlpha=(True if self.alphaCheck['state'] == 'normal' else False))).pack(side=tk.RIGHT, anchor=tk.E)
-        
+       
         self.exportTL.update_idletasks() # So we can get the resolution that one time
-        
+       
         ttk.Separator(self.exportFrameBottom1, orient='horizontal').pack(ipadx=320, pady=(8, 0)) # Seperator
         tk.Label(self.exportFrameBottom1, width=40, text=f"Total frame count: {self.frameCount}").pack(side=tk.BOTTOM) # Display the total frame count
-        
+       
         self.exportTL.after(10, lambda: self.exportTL.deiconify())
-        
+       
     def export(self, fileName: str, extension: str, alpha: bool, isSequance: bool, *args, **kwargs) -> None:
         try:
             os.stat(self.outputDirectory.get())
@@ -1869,42 +1869,42 @@ class Main:
             mb.showerror(title="Path Error", message="Output directory does not exist")
             self.exportTL.focus()
             return
-        
+       
         self.rendering = True
         resolution = kwargs['resolution']
         usingAlpha = kwargs['usingAlpha']
-        
+       
         def beep(): # Don't beep if user clickes off the application
             root.update()
-            
+           
             if renderTL.focus_get() != None:
                 root.bell()
-                
+               
         def cancelDialog(button = None):
             if button != None:
                 button.config(state=tk.DISABLED)
             self.rendering = not mb.askyesno(title="Cancel Render", message="Are you sure you want to cancel the current render?")
             if (self.rendering or self.rendering == None) and button != None:
                 button.config(state=tk.NORMAL)
-                
+               
         fileName = f"{self.outputDirectory.get()}/{fileName}"
-                
+               
         if isSequance:
             if (frameCount := args[1] - args[0]) <= 0: # Makes sure we have a valid frame range
                 mb.showerror(title="Frame Error", message='"From" value must be less than "to" value!')
                 self.exportTL.focus()
                 return
-            
+           
             if (args[0]) <= 0: # Makes sure we have a valid frame range
                 mb.showerror(title="Frame Error", message='"From" value must be 1 or greater!')
                 self.exportTL.focus()
                 return
-            
+           
             if (args[1]) > self.frameCount: # Makes sure we have a valid frame range
                 mb.showerror(title="Frame Error", message='"To" value must be less than or equal to the frame count!')
                 self.exportTL.focus()
                 return
-            
+           
             # Create UI
             renderTL = tk.Toplevel()
             renderTL.title("Rendering...")
@@ -1912,47 +1912,47 @@ class Main:
             renderTL.resizable(False, False)
             renderTL.grab_set() # Keep the render window in focus
             renderTL.focus()
-            
+           
             renderTL.protocol('WM_DELETE_WINDOW', cancelDialog)
-            
+           
             # Progress bar styles
             progressBarStyle = ttk.Style()
             progressBarStyle.configure("red.Horizontal.TProgressbar", foreground='red', background='red')
             progressBarStyle.configure("green.Horizontal.TProgressbar", foreground='green', background='green')
             progressBarStyle.configure("blue.Horizontal.TProgressbar", foreground='blue', background='blue')
-            
+           
             if sys.platform == 'win32':
                 renderTL.bind('<FocusOut>', lambda e: beep()) # Beep if we try to click off
-            
+           
             renderFrameBottom = tk.Frame(renderTL, width=40, height=100)
             renderFrameBottom.pack(side=tk.BOTTOM, pady=(0, 4))
-            
+           
             ttk.Separator(renderTL, orient='horizontal').pack(side=tk.BOTTOM, ipadx=1000, pady=(0, 4))
-            
+           
             renderFrameMiddle = tk.Frame(renderTL, width=64, height=128)
             renderFrameMiddle.pack(side=tk.BOTTOM, pady=(4, 0))
-            
+           
             renderFrameTop = tk.Frame(renderTL, width=280, height=280, highlightbackground='black', highlightthickness=1)
             renderFrameTop.pack(side=tk.TOP)
             renderFrameTop.pack_propagate(False)
-            
+           
             # Main GUI:
             imageDisplay = tk.Canvas(renderFrameTop, bg='lightblue')
             imageDisplay.pack(expand=True)
             imageDisplay.create_text(20, 20, text="")
-            
+           
             infoLabel = tk.Label(renderFrameMiddle, text=f"Rendering frame 1 of {floor(frameCount / args[2] + 1)}")
             infoLabel.pack(anchor=tk.W)
-            
+           
             progressBar = ttk.Progressbar(renderFrameMiddle, length=420, maximum=frameCount, style="blue.Horizontal.TProgressbar")
             progressBar.pack(pady=(4, 6))
-            
+           
             cancelButton = ttk.Button(renderFrameBottom, text="Cancel", width=64)
             cancelButton.config(command=lambda b = cancelButton: cancelDialog(b))
             cancelButton.pack()
 
             renderTL.update()
-            
+           
             frame = 0 # The frame we are rendering
             position = 0
 
@@ -1963,7 +1963,7 @@ class Main:
 
                     subStr = subStr[: (len(str(args[1])) - len(str(args[0]))) - (len(str(i))-len(str(args[0])))]
                     subStr += str(i)
-                    
+                   
                     if position % args[2] == 0:
                         img = Image.new(size=(int(self.res.get()), int(self.res.get())), mode=('RGBA' if alpha and usingAlpha else 'RGB'))
                         pixels = self.jsonFrames[0][f"frame_{i}"]
@@ -1983,22 +1983,22 @@ class Main:
                                         img.putpixel((x, y), (0) * 4)
                                     else:
                                         img.putpixel((x, y), (255, 255, 255, 255))
-                                            
+                                           
                         img = img.resize(size=(int(self.res.get()) * ceil(resolution / int(self.res.get())), int(self.res.get()) * ceil(resolution / int(self.res.get()))), resample=4).resize(size=(resolution, resolution))
                         img.save(fileName + "_" + subStr + extension, extension[1:])
                         img.close()
-                        
+                       
                         imageDisplay.delete('1')
                         renderedImage = ImageTk.PhotoImage(image=(Image.open(fileName + "_" + subStr + extension).resize((imageDisplay.winfo_width(), imageDisplay.winfo_height()), resample=0)))
                         imageDisplay.create_image(1, 1, anchor=tk.NW, image=renderedImage)
-                        
+                       
                         infoLabel.config(text=f"Rendering frame {min(frame + 1, floor(frameCount / args[2] + 1))} of {floor(frameCount / args[2] + 1)}")
-                        
+                       
                         progressBar.config(value=position)
                         renderTL.update()
                 else: # If we cancel the render
                     break
-                
+               
             renderTL.attributes('-topmost', True)
             renderTL.protocol('WM_DELETE_WINDOW', lambda e = 1: e) # Do nothing
             cancelButton['command'] = ""
@@ -2007,15 +2007,15 @@ class Main:
                 progressBar.config(style='green.Horizontal.TProgressbar')
                 infoLabel.config(text="Finished Rendering!")
                 renderTL.grab_release()
-                
+               
                 mb.showinfo(title="Render", message="Render complete!")
                 renderTL.destroy()
-                
+               
                 self.exportTL.focus()
             else:
                 progressBar.config(style='red.Horizontal.TProgressbar', value=frameCount)
                 renderTL.grab_release()
-                
+               
                 mb.showinfo(title="Render", message="Render halted!")
                 renderTL.destroy()
 
@@ -2023,7 +2023,7 @@ class Main:
         else:
             img = Image.new(size=(int(self.res.get()), int(self.res.get())), mode=('RGBA' if alpha and usingAlpha else 'RGB'))
             px = 0 # The current pixel being referanced
-            
+           
             for y in range(0,img.size[1]):
                 for x in range(0,img.size[0]):
                     px += 1
@@ -2037,11 +2037,11 @@ class Main:
                             img.putpixel((x, y), (0) * 4)
                         else:
                             img.putpixel((x, y), (255, 255, 255, 255))
-                
+               
             img = img.resize(size=(int(self.res.get()) * ceil(resolution / int(self.res.get())), int(self.res.get()) * ceil(resolution / int(self.res.get()))), resample=0).resize(size=(resolution, resolution))
             img.save(fileName + extension, extension[1:])
             img.close()
-        
+       
     def hex_to_rgb(self, color: str) -> list:
         color = color[1:]
         return list(int(color[i:i+2], 16) for i in (0, 2, 4))
@@ -2060,7 +2060,7 @@ class Main:
                 mixer.music.play()
                 mixer.music.set_pos(self.playback)
                 mixer.music.pause()
-    
+   
     def change_volume(self) -> None:
         mixer.music.set_volume(self.volume.get() / 100)
 
@@ -2137,9 +2137,9 @@ class Main:
             correction_15 = self.scale(int(self.res.get()), (40, 52), ((0.000316287699999999 if sys.platform == 'win32' else 0.0000204824499999999), (0.000578487899999999 if sys.platform == 'win32' else 0.000046648499999999)))
             # 30 fps
             correction_30 = self.scale(int(self.res.get()), (32, 52), ((0.000318287699999999 if sys.platform == 'win32' else 0.0000204824499999999), (0.000972487899999999 if sys.platform == 'win32' else 0.000046648499999999)))
-            
+           
             correction = self.scale(self.framerate, (15, 30), (correction_15, correction_30))
-            
+           
         while self.isPlaying:
             time1 = timeit.default_timer()
             self.increase_frame()
@@ -2157,7 +2157,7 @@ class Main:
             self.playButton.config(command=lambda: self.play_init(True))
         else:
             self.playButton.config(command=lambda: self.play_init(False))
-            
+           
     def scale(self, val: float, src: tuple, dst: tuple) -> float: # Yoinked strait from Stack Overflow (thanks 2010 Glenn Maynard)
         """
         Scale the given value from the scale of src to the scale of dst.
@@ -2168,7 +2168,7 @@ class Main:
         self.framerate = delay
         self.framerateDelay = max(0.00001, 1 / float(delay))
         root.title("Pixel-Art Animator-" + self.projectDir + '*')
-        
+       
     def modifier_ui(self) -> None:
         def draw_frame():
             # Draw the current frame to the preview canvas
@@ -2182,21 +2182,21 @@ class Main:
                 else:
                     self.savedPixelColors = 'white'
                     self.previewCanvas.itemconfig(self.pixels[pixel], fill='white')
-                    
+                   
         def draw_grid(showGrid):
             for i in range(int(self.res.get())**2):
                 if showGrid:
                     self.previewCanvas.itemconfig(str(i+1), outline=self.gridColor)
                 else:
                     self.previewCanvas.itemconfig(str(i+1), outline='')
-                    
+                   
         # TEMP FUNCTION
         def get():
             for oper in self.operatorFrame.winfo_children():
                 if hasattr(oper, 'UUID'):
                     print(oper.name + ' :: ' + str(oper.UUID))
         # TEMP FUNCTION
-        
+       
         if self.modifierUIOpened:
             self.modifierTL.deiconify()
             draw_frame()
@@ -2209,57 +2209,57 @@ class Main:
             self.modifierTL.propagate(False)
             self.modifierTL.resizable(False, False)
             self.modifierTL.focus()
-            
+           
             PADDING = 23
-            
+           
             self.modifierTL.bind('<g>', lambda e: get())
-            
+           
             self.previewVar = tk.BooleanVar(master=self.modifierTL, value=True)
             self.modifierGridVar = tk.BooleanVar(master=self.modifierTL, value=False)
-            
+           
             root.update()
-            
+           
             # Main frames:
-            
+           
             # Holds the canvas that holds the frame that holds the operators
             operatorContainer = tk.Frame(self.modifierTL, width=Operator.WIDTH+PADDING, height=940, highlightbackground='darkblue', highlightthickness=2)
             operatorContainer.pack(side=tk.RIGHT, anchor=tk.NE)
             operatorContainer.pack_propagate(False)
-            
+           
             operatorCanvas = tk.Canvas(operatorContainer, width=Operator.WIDTH+PADDING, height=940)
             operatorCanvas.pack(side=tk.LEFT)
-            
+           
             scrollbar = tk.Scrollbar(operatorContainer, command=operatorCanvas.yview)
             scrollbar.pack(side=tk.RIGHT, fill=tk.Y, pady=(60, 10), padx=(0, 2), before=operatorCanvas)
-            
+           
             self.operatorFrame = tk.Frame(operatorCanvas, width=Operator.WIDTH+PADDING, height=940)
             self.operatorFrame.bind('<Configure>', lambda e: operatorCanvas.configure(scrollregion=operatorCanvas.bbox('all')))
-            
+           
             operatorCanvas.create_window((0, 0), window=self.operatorFrame, anchor=tk.NW)
             operatorCanvas.configure(yscrollcommand=scrollbar.set)
             operatorCanvas.bind('<Button-1>', lambda e: self.modifierTL.focus())
-            
+           
             self.previewFrame = tk.Frame(self.modifierTL, width=560, height=560, highlightbackground='green', highlightthickness=2)
             self.previewFrame.pack(side=tk.TOP, anchor=tk.NW)
-            
+           
             self.variableFrame = tk.Frame(self.modifierTL, width=568, height=340, bg='black', highlightbackground='darkblue', highlightthickness=2)
             self.variableFrame.pack(side=tk.BOTTOM, anchor=tk.SW)
             self.variableFrame.pack_propagate(False)
             self.variableFrame.bind('<Button-1>', lambda e: self.modifierTL.focus())
-            
+           
             self.previewCanvas = tk.Canvas(self.previewFrame, width=560, height=560, bg='lightblue')
             self.previewCanvas.pack()
             self.previewCanvas.pack_propagate(False)
             self.previewCanvas.bind('<Button-1>', lambda e: self.modifierTL.focus())
-            
+           
             root.update()
-            
+           
             # Add pixels to preview canvas
             if not self.modifierUIOpened:
                 menu = tk.Menu(self.modifierTL, tearoff=False)
                 menu.add_checkbutton(label="Preview", variable=self.previewVar)
                 menu.add_checkbutton(label="Grid", variable=self.modifierGridVar, command=lambda: draw_grid(self.modifierGridVar.get()))
-                
+               
                 toY = int(self.res.get())
                 posX = 2
                 posY = 2
@@ -2282,9 +2282,9 @@ class Main:
                         posX = 2
 
                 loading.destroy()
-                
+               
             draw_frame()
-                
+               
             # Modifier frame setup
             addButton = tk.Menubutton(self.operatorFrame, text='➕', font=('Calibri', 16), highlightbackground='black', highlightthickness=1)
             addButton.pack(side=tk.TOP, anchor=tk.NW, pady=(0, 1), padx=1)
@@ -2296,7 +2296,7 @@ class Main:
             addButton.menu.add_command(label='Monochrome Modifier', command=lambda: self.add_modifier(1))
 
             tk.Frame(self.operatorFrame, width=Operator.WIDTH+PADDING + 100, height=2, highlightbackground='darkblue', highlightthickness=2).pack(side=tk.TOP)
-            
+           
             # Variable frame setup:
             variableLinkContainer = tk.Frame(self.variableFrame, width=self.variableFrame.winfo_width()*(1/2)-3, height=self.variableFrame.winfo_height())
             variableLinkContainer.pack(side=tk.LEFT, anchor=tk.W)
@@ -2304,47 +2304,47 @@ class Main:
 
             variableLinkCanvas = tk.Canvas(variableLinkContainer, width=self.variableFrame.winfo_width()*(1/2)-10, height=self.variableFrame.winfo_height())
             variableLinkCanvas.pack(side=tk.LEFT)
-            
+           
             scrollbar = tk.Scrollbar(variableLinkContainer, command=variableLinkCanvas.yview)
             scrollbar.pack(side=tk.RIGHT, fill=tk.Y, pady=(60, 10), padx=(0, 2), before=variableLinkCanvas)
-            
+           
             self.variableLinkFrame = tk.Frame(variableLinkCanvas, width=self.variableFrame.winfo_width()*(1/2)-13, height=self.variableFrame.winfo_height())
             self.variableLinkFrame.bind('<Configure>', lambda e: variableLinkCanvas.configure(scrollregion=variableLinkCanvas.bbox('all')))
-            
+           
             variableLinkCanvas.create_window((0, 0), window=self.variableLinkFrame, anchor=tk.NW)
             variableLinkCanvas.configure(yscrollcommand=scrollbar.set)
-            
+           
             variableListFrame = tk.Frame(self.variableFrame, width=self.variableFrame.winfo_width()*(1/2)-3, height=self.variableFrame.winfo_height())
             variableListFrame.pack(side=tk.RIGHT, anchor=tk.E)
-            
+           
             root.update()
-            
+           
             variableListWindow = tk.PanedWindow(variableListFrame, width=variableListFrame.winfo_width(), height=variableListFrame.winfo_height())
             variableListWindow.pack()
-            
+           
             variableTypeFrame = tk.Frame(variableListWindow, width=variableListFrame.winfo_width()/4 + 20, height=variableListFrame.winfo_height())
             variableNameFrame = tk.Frame(variableListWindow, width=variableListFrame.winfo_width()/2 - 40, height=variableListFrame.winfo_height())
             variableValueFrame = tk.Frame(variableListWindow, width=variableListFrame.winfo_width()/4, height=variableListFrame.winfo_height())
             variableTypeFrame.propagate(False)
             variableNameFrame.propagate(False)
             variableTypeFrame.propagate(False)
-            
+           
             variableListWindow.add(variableTypeFrame)
             variableListWindow.add(variableNameFrame)
             variableListWindow.add(variableValueFrame)
-            
+           
             root.update()
-            
+           
             variableListWindow.paneconfig(variableTypeFrame, minsize=10)
             variableListWindow.paneconfig(variableNameFrame, minsize=10)
             variableListWindow.paneconfig(variableValueFrame, minsize=10)
-            
+           
             tk.Label(variableTypeFrame, width=variableTypeFrame.winfo_width(), text="Type:", font=('Calibri', 17), underline=True).pack(side=tk.TOP)
             tk.Label(variableNameFrame, width=variableNameFrame.winfo_width(), text="Name:", font=('Calibri', 17), underline=True).pack(side=tk.TOP)
             tk.Label(variableValueFrame, width=variableValueFrame.winfo_width(), text="Value:", font=('Calibri', 17), underline=True).pack(side=tk.TOP)
-            
+           
             tk.Label(variableLinkContainer, width=variableLinkCanvas.winfo_width(), text="Linker:", font=('Calibri', 17), underline=True).pack(side=tk.TOP, before=variableLinkCanvas)
-            
+           
             # Add var type menus
             for i in range(12):
                 button = ttk.Menubutton(variableTypeFrame, width=variableTypeFrame.winfo_width(), name=str(i))
@@ -2353,7 +2353,7 @@ class Main:
                 button.variable = tk.StringVar(value='none')
                 button['menu'] = button.menu
                 button.config(textvariable=button.variable)
-                
+               
                 button.menu.add_radiobutton(label='none', variable=button.variable, command=lambda _id=button.winfo_name(), var=button.variable: self.set_row(var, _id, variableNameFrame, variableValueFrame))
                 button.menu.add_radiobutton(label='int', variable=button.variable, command=lambda  _id=button.winfo_name(), var=button.variable: self.set_row(var, _id, variableNameFrame, variableValueFrame))
                 button.menu.add_radiobutton(label='float', variable=button.variable, command=lambda  _id=button.winfo_name(), var=button.variable: self.set_row(var, _id, variableNameFrame, variableValueFrame))
@@ -2365,9 +2365,9 @@ class Main:
                 cf:tk.Frame = vars()[frame]
                 for i in range(12):
                     tk.Entry(cf, width=cf.winfo_width(), font=('Calibri', 13), name=str(iterate) + '_' + str(i), state=tk.DISABLED).pack(side=tk.TOP)
-            
+           
             self.modifierUIOpened = True
-            
+           
     def set_row(self, var: tk.StringVar, _id: str, *args: tk.Frame) -> None: # Figure out what entries in that row should be enabled or disabled
         found = False
         for linker in (args[0], args[1]):
@@ -2379,7 +2379,7 @@ class Main:
                     else:
                         entry.config(state=tk.DISABLED if linker == args[1] else tk.NORMAL)
                     break
-                
+               
         if not found:
             return
 
@@ -2392,7 +2392,7 @@ class Main:
                     linker.destroy()
                     return
                 break
-        
+       
         if not hasLink and var.get() != 'none':
             Linker(self.variableLinkFrame, name=_id).pack()
 
