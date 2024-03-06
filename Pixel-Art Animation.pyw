@@ -1589,7 +1589,7 @@ class Main:
                 self.canvas.itemconfig(self.pixels[pixel], fill=self.savedPixelColors[str(self.pixels[pixel])][1 if self.isComplexProject.get() else 0:])
             except:
                 self.canvas.itemconfig(self.pixels[pixel], fill='white')
-
+                
         self.save_frame(True)
 
     def display_alpha(self, triggered: bool) -> None:
@@ -2132,7 +2132,8 @@ class Main:
             play_audio()
 
             time.sleep(self.framerateDelay)
-
+            
+            # NOTE: This will change eventually, don't worry
             # 15 fps
             correction_15 = self.scale(int(self.res.get()), (40, 52), ((0.000316287699999999 if sys.platform == 'win32' else 0.0000204824499999999), (0.000578487899999999 if sys.platform == 'win32' else 0.000046648499999999)))
             # 30 fps

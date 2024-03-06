@@ -184,6 +184,6 @@ Resolution:
 + Development:
     + This program was developed almost entirely on a Windows computer. Therefore, some features might not work on other platforms. I will try to make this program as cross-compatible as I can, but no promises.
 
-    + I am currently making a modifier system that will allow you to do color correction and stuff. This feature will take a long time to implament, and probably won't be very useful, but... I want to, so yeah.
+    + I am currently making a modifier system that will allow you to do color correction and stuff. This feature will take a long time to implement, and probably won't be very useful, but... I want to, so yeah.
         - This can be accessed by creating a file and checking the 'Complex Project' checkbox, then going to Display -> Modifier UI (Not in main release!)
         - Currently doesn't do anything
