@@ -869,7 +869,7 @@ class Main:
                 self.complexProjectFileSample['data']['resolution'] = self.res.get() # Write the file resolution
                 self.complexProjectFileSample['data']['gridcolor'] = self.gridColor
                 self.complexProjectFileSample['data']['showgrid'] = int(self.showGridVar.get())
-                self.complexProjectFileSample['data']['framerate'] = self.framerate
+                self.complexProjectFileSample['data']['framerate'] = int(self.framerate)
                 self.complexProjectFileSample['data']['output'] = self.outputDirectory.get()
 
                 self.jsonSampleDump = json.dumps((self.complexProjectFileSample), indent=4, separators=(',', ':')) # Read the project data as json text
@@ -878,7 +878,7 @@ class Main:
                 self.simpleProjectFileSample['data']['resolution'] = self.res.get() # Write the file resolution
                 self.simpleProjectFileSample['data']['gridcolor'] = self.gridColor
                 self.simpleProjectFileSample['data']['showgrid'] = int(self.showGridVar.get())
-                self.simpleProjectFileSample['data']['framerate'] = self.framerate
+                self.simpleProjectFileSample['data']['framerate'] = int(self.framerate)
                 self.simpleProjectFileSample['data']['output'] = (self.outputDirectory.get() if self.outputDirectory.get() != 'None' else "")
 
                 self.jsonSampleDump = json.dumps((self.simpleProjectFileSample), indent=4, separators=(',', ':')) # Read the project data as json text
@@ -2166,7 +2166,7 @@ class Main:
         return ((val - src[0]) / (src[1]-src[0])) * (dst[1]-dst[0]) + dst[0]
 
     def delay(self, delay: int) -> None:
-        self.framerate = delay
+        self.framerate = int(delay)
         self.framerateDelay = max(0.00001, 1 / float(delay))
         root.title("Pixel-Art Animator-" + self.projectDir + '*')
        
