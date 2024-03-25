@@ -514,6 +514,7 @@ class Main:
         self.editMenu = tk.Menu(self.menubar, tearoff=0)
         self.editMenu.add_command(label="Clear", command=self.canvas_clear, state=tk.DISABLED)
         self.editMenu.add_command(label="Fill", command=self.canvas_fill, state=tk.DISABLED)
+        self.editMenu.add_command(label="Load Image", command=self.load_image, state=tk.DISABLED)
         self.editMenu.add_separator()
         self.editMenu.add_command(label="Set Framerate", command=self.set_framerate, state=tk.DISABLED)
         self.editMenu.add_command(label="Set Undo Limit", command=self.set_undo_limit)
@@ -760,6 +761,7 @@ class Main:
 
         self.editMenu.entryconfig('Clear', state=tk.ACTIVE)
         self.editMenu.entryconfig('Fill', state=tk.ACTIVE)
+        self.editMenu.entryconfig('Load Image', state=tk.ACTIVE)
         self.editMenu.entryconfig('Set Framerate', state=tk.ACTIVE)
         self.editMenu.entryconfig('History', state=tk.ACTIVE)
        
@@ -1397,6 +1399,24 @@ class Main:
            
             self.undoCacheInfoArgs = ['Canvas filled with <{}>'.format(fillColor[1]), ' (Frame {})'.format(self.currentFrame.get())]
             self.write_history()
+            
+    def load_image(self):
+        file = fd.askopenfilename(defaultextension='png', title="Open Image")
+        print(file)
+        
+        image = Image.open(file)
+        image = image.resize((int(self.res.get()), int(self.res.get())), Image.BILINEAR)
+        pixel = 0
+        
+        for y in range(image.height):
+            for x in range(image.width):
+                color = image.getpixel(xy=(x, y))
+                print(color)
+                
+                self.canvas.itemconfig(self.pixels[pixel], fill=('#%02x%02x%02x' % (color[0], color[1], color[2])) if color[3] > 1 else 'white')
+                pixel += 1
+                
+        self.save(False)
 
     def canvas_remove_color(self) -> None:
         selectedPixel = self.canvas.find_closest(self.clickCoords.x, self.clickCoords.y)
