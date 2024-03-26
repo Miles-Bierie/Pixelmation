@@ -890,7 +890,7 @@ class Main:
             self.settingsFile.write(self.jsonSampleDump)
             self.settingsFile.close()
            
-            self.projectData = self.complexProjectFileSample
+            self.projectData = self.complexProjectFileSample if self.isComplexProject.get() else self.simpleProjectFileSample
             self.jsonFrames = self.projectData['frames']
            
             self.framerateDelay = .04
@@ -1405,18 +1405,25 @@ class Main:
         print(file)
         
         image = Image.open(file)
-        image = image.resize((int(self.res.get()), int(self.res.get())), Image.BILINEAR)
+        image = image.resize((int(self.res.get()), int(self.res.get())), Image.BOX)
         pixel = 0
         
         for y in range(image.height):
             for x in range(image.width):
                 color = image.getpixel(xy=(x, y))
-                print(color)
                 
-                self.canvas.itemconfig(self.pixels[pixel], fill=('#%02x%02x%02x' % (color[0], color[1], color[2])) if color[3] > 1 else 'white')
+                try:
+                    self.canvas.itemconfig(self.pixels[pixel], fill=('#%02x%02x%02x' % (color[0], color[1], color[2])) if color[3] > 1 else 'white')
+                except:
+                    self.canvas.itemconfig(self.pixels[pixel], fill=('#%02x%02x%02x' % (color[0], color[1], color[2])))
                 pixel += 1
                 
-        self.save(False)
+        image.close()
+
+        root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
+        self.frameMiddle.config(highlightbackground='red')
+
+        self.save_frame()
 
     def canvas_remove_color(self) -> None:
         selectedPixel = self.canvas.find_closest(self.clickCoords.x, self.clickCoords.y)
