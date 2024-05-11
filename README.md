@@ -16,7 +16,7 @@
 + Cool text that says "Loading..." when it is loading a file
 
 ### Please Note:
-#### This project is <u>*still in development*</u>, and will be updated regularly probably I think with new features.
+#### This project is <u>*still in development*</u>, and will be updated regularly probably absolutely not I think with new features.
 
 <br>
 
@@ -64,7 +64,7 @@ You may unload audio by pressing the button again.
 If you want to rename a project from within the animation program, go to File -> Rename, type in a new name, and press "Rename" or enter to rename. You can still rename the file manually if you wish to do so.
 
 ## Adding / Removing / Loading Frames
-The display for the current frame is also a button that lets you do a few different frame-related things, such as adding and and removing frames, as well as copying other frames to the current frame. When you add a frame, it will be a copy of the previous frame. When you delete a frame, all other frames will automatically be shifted down to account for the missing frame. When creating, pasting, or loading a frame from the previous or next frame, that frame will be saved automatically.
+The display for the current frame is also a button that lets you do a few different frame-related things, such as adding and and removing frames, as well as copying other frames to the current frame. When you add a frame, it will be a copy of the previous frame. When you delete a frame, all other frames will automatically be shifted down to account for the missing frame.
 
 ## Alpha channel
 The button to enable/disable the alpha channel can be found under the edit menu. When alpha is displayed, the frame will be saved automatically. The alpha channel supports either fully opaque or fully transparent, so external processing will be needed for a partial value. When displaying the alpha values, white is opaque and black is transparent. While display alpha is enabled, you will not be able to edit the current frame.
@@ -75,7 +75,7 @@ The button to enable/disable the alpha channel can be found under the edit menu.
 + **Eraser:** &nbsp; Also does what you would expect; Erases the pixel. Erased pixels have an alpha of 0
 + **Remove:** &nbsp; Erases all pixels that have the selected pixels color
 + **Replace:** &nbsp; Replaces all pixels that have the selected pixels color with the current pen color
-+ **Fill:** &nbsp; Same as replace, except it will treat any color other then the selected tiles' color as a barrier
++ **Fill:** &nbsp; Same as replace, except it will treat any color other then the selected pixel's color as a barrier
 
 When you edit the frame, the canvas's border will turn red, indicating that there are unsaved changes. When you save, the border will revert back to dark blue.
 
@@ -90,7 +90,7 @@ When you edit the frame, the canvas's border will turn red, indicating that ther
 -<u>Control-clicking</u> the button or using <u>control-spacebar</u> while the animation is *not* playing will play the animation through one, stopping on the frame you started on. For example, if you do this on frame 16, it will play to the end, go to the beginning, and play until stopping on frame 16.
 
 ## Frame Navigation  
--You can use the + and - buttons surrounding the frame display button to go to the next or previous frame. You can also use the forward and back arrows to do this.  
+-You can use the '+' and '-' buttons surrounding the frame display button to go to the next or previous frame. You can also use the forward and back arrows to do this.  
 -Holding shift while doing this will allow you to jump to the first or last frame.  
 -In order to go to a specific frame, you can start typing the frame number you want on your number row, and press enter when you finish to jump to that frame, or escape to cancel. <u>This does not currently work with the numpad.</u>
 
@@ -106,7 +106,7 @@ The "Clear Folder" button sends all contents of the output directory to the tras
 &nbsp;&nbsp;&nbsp; Selecting the "Use Alpha" checkbox will render the image with an alpha channel (duh). When not rendering with transparency, 0 alpha will be rendered out as white. Note that jpeg images <u>do not</u> support an alpha channel.
 
 **Frame Settings:**  
-From/To: *(you will probably never need these)*  
+From/To:
 &nbsp;&nbsp;&nbsp; If you want to render out a specific section of your animation, change these values to specify the range of frames to render.
 
 Step: *(you will probably never need this)*  
@@ -138,8 +138,8 @@ Resolution:
         "frames": [
             {
                 "frame_1": {
-                    1: "#ffffff",
-                    2: "#ffffff",
+                    "1": "#ffffff",
+                    "2": "#ffffff",
                     <ect...>
                 }
                 "frame_2": {...}
@@ -160,8 +160,8 @@ Resolution:
         "frames": [
             {
                 "frame_1": {
-                    1: ["#ffffff", #ffffff],
-                    2: ["#ffffff", #ffffff],
+                    "1": ["#ffffff", #ffffff],
+                    "2": ["#ffffff", #ffffff],
                     <ect...>
                 }
                 "frame_2": {...}

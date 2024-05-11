@@ -1617,7 +1617,7 @@ class Main:
             except:
                 self.canvas.itemconfig(self.pixels[pixel], fill='white')
                 
-        self.save_frame(True)
+        self.save_frame()
 
     def display_alpha(self, triggered: bool) -> None:
         if triggered and self.showAlphaVar.get(): #If this was triggered by pressing the show alpha button
