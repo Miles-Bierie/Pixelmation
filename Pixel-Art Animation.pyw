@@ -661,10 +661,6 @@ class Main:
         self.frameDisplayButton.menu.add_separator()
         self.frameDisplayButton.menu.add_command(label="Copy Frame", command=lambda: self.copy_paste('copy'))
         self.frameDisplayButton.menu.add_command(label="Paste Frame", command=lambda: self.copy_paste('paste'))
-        
-    def toggle_alpha(self) -> None: # Alt-a keybind
-        self.showAlphaVar.set(not self.showAlphaVar.get())
-        self.display_alpha(True)
 
     def get_click_coords(self, event: tk.Event) -> None:
         self.clickCoords = event
