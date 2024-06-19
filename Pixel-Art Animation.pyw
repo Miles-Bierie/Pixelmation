@@ -580,6 +580,12 @@ class Main:
         root.bind('<Control-n>', lambda e: self.new_file_dialog())
         root.bind('<Control-o>', lambda e: self.open_file(True))
         root.bind('<Control-q>', lambda e: self.quit())
+        
+        root.bind('<Control-c>', lambda e: self.copy_paste('copy'))
+        root.bind('<Control-v>', lambda e: self.copy_paste('paste'))
+        
+        root.bind('<Alt-a>', lambda e: self.toggle_alpha())
+        
 
         WIDTH = (6 if sys.platform == 'win32' else 2)
 
@@ -655,6 +661,10 @@ class Main:
         self.frameDisplayButton.menu.add_separator()
         self.frameDisplayButton.menu.add_command(label="Copy Frame", command=lambda: self.copy_paste('copy'))
         self.frameDisplayButton.menu.add_command(label="Paste Frame", command=lambda: self.copy_paste('paste'))
+        
+    def toggle_alpha(self) -> None:
+        self.showAlphaVar.set(not self.showAlphaVar.get())
+        self.display_alpha(True)
 
     def get_click_coords(self, event: tk.Event) -> None:
         self.clickCoords = event
@@ -943,6 +953,9 @@ class Main:
             self.play_button_mode(False)
 
         if len(self.fileOpen) > 0 or not dialog:
+            self.audioFile = None
+            mixer.music.unload()
+            
             try:
                 with open(f'{self.fileOpen}', 'r') as file:
                     self.projectData = json.load(file)
@@ -1161,6 +1174,10 @@ class Main:
             self.frameStorage = f'frame_{self.currentFrame.get()}'
         elif mode == 'paste':
             self.jsonFrames[0][f'frame_{self.currentFrame.get()}'] = self.jsonFrames[0][self.frameStorage]
+            
+            self.frameMiddle.config(highlightbackground='red')
+            root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
+            
             self.load_frame()
             self.save_frame()
 
@@ -1417,7 +1434,7 @@ class Main:
                 except:
                     self.canvas.itemconfig(self.pixels[pixel], fill=('#%02x%02x%02x' % (color[0], color[1], color[2])))
                 pixel += 1
-                
+
         image.close()
 
         root.title("Pixel-Art Animator-" + self.projectDir + "*") # Add a star at the end of the title
