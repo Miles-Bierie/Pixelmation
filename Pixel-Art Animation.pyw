@@ -792,6 +792,11 @@ class Main:
         root.bind('<Right>', lambda e: self.increase_frame())
         root.bind('<space>', lambda e: self.play_space())
         root.bind('<Left>', lambda e: self.decrease_frame())
+        
+        root.bind('<Control-c>', lambda e: self.copy_paste('copy'))
+        root.bind('<Control-v>', lambda e: self.copy_paste('paste'))
+        root.bind('<Alt-a>', lambda e: self.toggle_alpha())
+        
        
         if self.isComplexProject.get():
             root.bind('<m>', lambda e: self.modifier_ui())
