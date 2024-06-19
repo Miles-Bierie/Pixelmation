@@ -580,12 +580,6 @@ class Main:
         root.bind('<Control-n>', lambda e: self.new_file_dialog())
         root.bind('<Control-o>', lambda e: self.open_file(True))
         root.bind('<Control-q>', lambda e: self.quit())
-        
-        root.bind('<Control-c>', lambda e: self.copy_paste('copy'))
-        root.bind('<Control-v>', lambda e: self.copy_paste('paste'))
-        
-        root.bind('<Alt-a>', lambda e: self.toggle_alpha())
-        
 
         WIDTH = (6 if sys.platform == 'win32' else 2)
 
@@ -667,6 +661,10 @@ class Main:
 
     def return_data_set_true(self) -> None:
         self.returnData = True
+        
+    def toggle_alpha(self):
+        self.showAlphaVar.set(not self.showAlphaVar.get())
+        self.display_alpha(True)
 
     def ask_color(self) -> None:
         color = ch.askcolor(initialcolor=self.colorPickerData[1])
