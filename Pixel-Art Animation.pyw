@@ -665,6 +665,10 @@ class Main:
     def toggle_alpha(self):
         self.showAlphaVar.set(not self.showAlphaVar.get())
         self.display_alpha(True)
+        
+    def toggle_grid(self):
+        self.showGridVar.set(not self.showGridVar.get())
+        self.update_grid(True)
 
     def ask_color(self) -> None:
         color = ch.askcolor(initialcolor=self.colorPickerData[1])
@@ -796,6 +800,7 @@ class Main:
         root.bind('<Control-c>', lambda e: self.copy_paste('copy'))
         root.bind('<Control-v>', lambda e: self.copy_paste('paste'))
         root.bind('<Alt-a>', lambda e: self.toggle_alpha())
+        root.bind('<Alt-g>', lambda e: self.toggle_grid())
         
        
         if self.isComplexProject.get():

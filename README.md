@@ -32,6 +32,7 @@
 | Ctrl+Z    | Undo stroke           |
 | Ctrl+Y    | Redo stroke           |
 | Alt+a     | Toggle Alpha View     |
+| Alt+g     | Toggle Grid View      |
 | Button 3  | Pick color            |
 | P         | Play/stop audio       |
 | Q         | Pen tool              |
