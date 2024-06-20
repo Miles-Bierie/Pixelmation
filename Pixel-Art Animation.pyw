@@ -840,8 +840,8 @@ class Main:
         newFileFrame.pack()
         newFileFrame.pack_propagate(False)
        
-        newFramerateEntry = tk.Entry(newFileFrame, textvariable=newFramerate, width=3, font=('Courier New', 15))
-        newFramerateEntry.pack(side=tk.BOTTOM)
+        self.newFramerateEntry = tk.Entry(newFileFrame, textvariable=newFramerate, width=3, font=('Courier New', 15))
+        self.newFramerateEntry.pack(side=tk.BOTTOM)
         tk.Label(newFileFrame, text="Framerate:", font=('Courier New', 12)).pack(side=tk.BOTTOM)
 
         tk.Button(newFileFrame, text="Create Project", command=lambda: self.create_new_file(newRes, newFramerate), font=('Calibri', 12)).pack(side=tk.TOP)
@@ -858,9 +858,8 @@ class Main:
         if res.get() == '' or framerate.get() == '':
             mb.showerror(title="Invalid Data", message="Please fill out all forms!")
             return
-
+        
         self.res.set(res.get()) # Set project resolution to the new resolution
-        self.delay(int(framerate.get()))
         self.newFileTL.attributes("-topmost", False)
         self.newDir = fd.asksaveasfilename(
             title="Choose Directory",
@@ -906,8 +905,6 @@ class Main:
            
             self.projectData = self.complexProjectFileSample if self.isComplexProject.get() else self.simpleProjectFileSample
             self.jsonFrames = self.projectData['frames']
-           
-            self.framerateDelay = .04
            
             try:
                 self.newFileTL.destroy()
