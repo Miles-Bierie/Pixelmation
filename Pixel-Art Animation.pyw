@@ -1,13 +1,13 @@
 #  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Friday, February 23, 2024  |=========---------  #
 
 
+from tkinter import simpledialog, TclError
 from tkinter import colorchooser as ch
 from tkinter import filedialog as fd
 from tkinter import messagebox as mb
-from tkinter import simpledialog
 from PIL import Image, ImageTk
 from math import ceil, floor
-from tkinter import TclError
+from threading import Timer
 from pygame import mixer
 from pygame import error
 from tkinter import ttk
@@ -21,6 +21,34 @@ import copy
 import time
 import sys
 import os
+
+class RepeatedTimer(object):
+    def __init__(self, interval, function, *args, **kwargs):
+        self._timer     = None
+        self.interval   = interval
+        self.function   = function
+        self.args       = args
+        self.kwargs     = kwargs
+        self.is_running = False
+        self.start()
+    
+    def _run(self):
+        self.is_running = False
+        self.start()
+        self.function(*self.args, **self.kwargs)
+    
+    def start(self):
+        if not self.is_running:
+            self._timer = Timer(self.interval, self._run)
+            try:
+                self._timer.start()
+            except RuntimeError:
+                pass
+            self.is_running = True
+    
+    def stop(self):
+        self._timer.cancel()
+        self.is_running = False
 
 class Linker(tk.Frame):
     def __init__(self, parent, name):
