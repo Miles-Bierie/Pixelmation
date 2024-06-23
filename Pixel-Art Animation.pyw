@@ -2205,15 +2205,7 @@ class Main:
             play_audio()
 
             time.sleep(self.framerateDelay)
-            
-            # NOTE: This will change eventually, don't worry
-            # 15 fps
-            correction_15 = self.scale(int(self.res.get()), (40, 52), ((0.000316287699999999 if sys.platform == 'win32' else 0.0000204824499999999), (0.000578487899999999 if sys.platform == 'win32' else 0.000046648499999999)))
-            # 30 fps
-            correction_30 = self.scale(int(self.res.get()), (32, 52), ((0.000318287699999999 if sys.platform == 'win32' else 0.0000204824499999999), (0.000972487899999999 if sys.platform == 'win32' else 0.000046648499999999)))
-           
-            correction = self.scale(self.framerate, (15, 30), (correction_15, correction_30))
-           
+
         while self.isPlaying:
             time1 = timeit.default_timer()
             self.increase_frame()
@@ -2222,7 +2214,7 @@ class Main:
                 if int(self.currentFrame.get()) == self.currentFrame_mem:
                     end()
                     return
-            time.sleep(max((self.framerateDelay - correction)  - (timeit.default_timer() - time1), 0))
+            time.sleep(max(self.framerateDelay - (timeit.default_timer() - time1), 0))
         end()
 
     def play_button_mode(self, isControl: bool) -> None:
@@ -2232,11 +2224,11 @@ class Main:
         else:
             self.playButton.config(command=lambda: self.play_init(False))
            
-    def scale(self, val: float, src: tuple, dst: tuple) -> float: # Yoinked strait from Stack Overflow (thanks 2010 Glenn Maynard)
-        """
-        Scale the given value from the scale of src to the scale of dst.
-        """
-        return ((val - src[0]) / (src[1]-src[0])) * (dst[1]-dst[0]) + dst[0]
+    # def scale(self, val: float, src: tuple, dst: tuple) -> float: # Yoinked strait from Stack Overflow (thanks 2010 Glenn Maynard)
+    #     """
+    #     Scale the given value from the scale of src to the scale of dst.
+    #     """
+    #     return ((val - src[0]) / (src[1]-src[0])) * (dst[1]-dst[0]) + dst[0]
 
     def delay(self, delay: int) -> None:
         self.framerate = int(delay)
