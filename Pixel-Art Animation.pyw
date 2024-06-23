@@ -15,6 +15,7 @@ import tkinter as tk
 import threading
 import mutagen
 import timeit
+import pause
 import uuid
 import json
 import copy
@@ -2208,14 +2209,18 @@ class Main:
 
         while self.isPlaying:
             time1 = timeit.default_timer()
+            
             self.increase_frame()
             root.update()
+            
             if not isLoop:
                 if int(self.currentFrame.get()) == self.currentFrame_mem:
                     end()
                     return
-            time.sleep(max(self.framerateDelay - (timeit.default_timer() - time1), 0))
-        end()
+                
+            pause.milliseconds(max((self.framerateDelay) - (timeit.default_timer() - time1), 0) * 999) # 999 instead of 1000, just cause.
+            
+        end() # Runs as soon as we exit the loop (cause, you know, it ended.)
 
     def play_button_mode(self, isControl: bool) -> None:
         self.control = isControl
@@ -2224,11 +2229,11 @@ class Main:
         else:
             self.playButton.config(command=lambda: self.play_init(False))
            
-    # def scale(self, val: float, src: tuple, dst: tuple) -> float: # Yoinked strait from Stack Overflow (thanks 2010 Glenn Maynard)
-    #     """
-    #     Scale the given value from the scale of src to the scale of dst.
-    #     """
-    #     return ((val - src[0]) / (src[1]-src[0])) * (dst[1]-dst[0]) + dst[0]
+    def scale(self, val: float, src: tuple, dst: tuple) -> float: # Yoinked strait from Stack Overflow (thanks 2010 Glenn Maynard)
+        """
+        Scale the given value from the scale of src to the scale of dst.
+        """
+        return ((val - src[0]) / (src[1]-src[0])) * (dst[1]-dst[0]) + dst[0]
 
     def delay(self, delay: int) -> None:
         self.framerate = int(delay)
