@@ -1,4 +1,4 @@
-#  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Sunday, June 23, 2024  |=========---------  #
+#  ---------=========|  Credits: Miles Bierie  |  Developed: Sunday, October 13, 2023 -- Sunday, June 23, 2024  |=========---------  #
 
 # Modify to adjust the delay between frames
 DELAY_ADJUST = 18
@@ -803,6 +803,7 @@ class Main:
         
         root.bind('<Control-c>', lambda e: self.copy_paste('copy'))
         root.bind('<Control-v>', lambda e: self.copy_paste('paste'))
+        root.bind('<Control-l>', lambda e: self.load_audio())
         root.bind('<Alt-a>', lambda e: self.toggle_alpha())
         root.bind('<Alt-g>', lambda e: self.toggle_grid())
         

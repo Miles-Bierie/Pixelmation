@@ -31,8 +31,9 @@
 | Ctrl+S    | Save                  |
 | Ctrl+Z    | Undo stroke           |
 | Ctrl+Y    | Redo stroke           |
-| Alt+a     | Toggle Alpha View     |
-| Alt+g     | Toggle Grid View      |
+| Alt+A     | Toggle Alpha View     |
+| Alt+G     | Toggle Grid View      |
+| Ctrl+L    | Load/Unload Audio     |
 | Button 3  | Pick color            |
 | P         | Play/stop audio       |
 | Q         | Pen tool              |
