@@ -1,5 +1,7 @@
 #  ---------=========|  Credits: Miles Bierie  |  Developed: Monday, April 3, 2023 -- Sunday, June 23, 2024  |=========---------  #
 
+# Modify to adjust the delay between frames
+DELAY_ADJUST = 18
 
 from tkinter import simpledialog, TclError
 from tkinter import colorchooser as ch
@@ -22,34 +24,6 @@ import copy
 import time
 import sys
 import os
-
-class RepeatedTimer(object):
-    def __init__(self, interval, function, *args, **kwargs):
-        self._timer     = None
-        self.interval   = interval
-        self.function   = function
-        self.args       = args
-        self.kwargs     = kwargs
-        self.is_running = False
-        self.start()
-    
-    def _run(self):
-        self.is_running = False
-        self.start()
-        self.function(*self.args, **self.kwargs)
-    
-    def start(self):
-        if not self.is_running:
-            self._timer = Timer(self.interval, self._run)
-            try:
-                self._timer.start()
-            except RuntimeError:
-                pass
-            self.is_running = True
-    
-    def stop(self):
-        self._timer.cancel()
-        self.is_running = False
 
 class Linker(tk.Frame):
     def __init__(self, parent, name):
@@ -75,7 +49,7 @@ class Operator(tk.Frame):
         self.nameVar = tk.StringVar(value=self.name)
        
         # ID specific to this modifier
-        self.UUID = (uuid.uuid1() if _uuid == None else _uuid)
+        self.UUID = (uuid.uuid1() if _uuid is None else _uuid)
        
         super().__init__(master=parent)
        
@@ -426,10 +400,11 @@ class Main:
         if mixer.music.get_busy:
             root.bind('<Motion>', lambda e: self.root_nodrag())
             mixer.music.set_pos(self.playback)
+            print(self.playback)
        
     def root_nodrag(self) -> None:
         if mixer.music.get_busy:
-            if self.audioFile != None:
+            if self.audioFile is not None:
                 mixer.music.set_pos(self.playback)
             self.currentFrame.set(max(int(self.currentFrame.get()) - 2, 1))
             root.unbind("<Motion>")
@@ -654,7 +629,7 @@ class Main:
         self.decreaseFrameButton.pack(side=tk.LEFT, padx=((200 if sys.platform == 'win32' else 100), 0), pady=(10, 0))
         self.frameDisplayButton = tk.Menubutton(frameDisplayFrame, textvariable=self.currentFrame, width=6, disabledforeground='black', relief=tk.RIDGE)
         self.frameDisplayButton.pack(pady=(10, 0), side=tk.LEFT)
-        self.increaseFrameButton = tk.Button(frameDisplayFrame, text="+", command=self.increase_frame, font=('Courier New', 9), state='disabled')
+        self.increaseFrameButton = tk.Button(frameDisplayFrame, text="+", command=lambda: self.increase_frame(len(self.jsonFrames[0])), font=('Courier New', 9), state='disabled')
         self.increaseFrameButton.pack(side=tk.LEFT, pady=(10, 0))
 
         # Volume
@@ -822,7 +797,7 @@ class Main:
 
         root.bind('<Control-a>', lambda e: self.insert_frame())
 
-        root.bind('<Right>', lambda e: self.increase_frame())
+        root.bind('<Right>', lambda e: self.increase_frame(len(self.jsonFrames[0])))
         root.bind('<space>', lambda e: self.play_space())
         root.bind('<Left>', lambda e: self.decrease_frame())
         
@@ -950,7 +925,7 @@ class Main:
            
     def set_framerate(self) -> None:
         framerate = simpledialog.askinteger(title="Set Framerate", prompt="Set framerate (1 - 60):", minvalue=1, maxvalue=60)
-        if framerate != None:
+        if framerate is not None:
             self.delay(framerate)
             root.title("Pixel-Art Animator-" + self.projectDir + "*")
            
@@ -969,7 +944,7 @@ class Main:
             saveMode = mb.askyesnocancel(title="Unsaved Changes", message="Would you like to save the current project?")
             if saveMode:
                 self.save(True)
-            elif saveMode == None:
+            elif saveMode is None:
                 return
 
         if dialog:
@@ -995,7 +970,7 @@ class Main:
                         mb.showerror(title="Project", message=f"Failed to load {self.fileOpen};\n missing {i} section!")
                    
                     if i == 'audio':
-                        if (fileCheck := self.projectData['data']['audio']) != None:
+                        if (fileCheck := self.projectData['data']['audio']) is not None:
                             if not os.path.isfile(fileCheck):
                                 mb.showerror(title="Project", message=f"Failed to load audio; Please check that the file exists!")
                                 self.audioFile = None
@@ -1053,7 +1028,7 @@ class Main:
             root.focus_force()
            
     def load_audio(self) -> None:
-        if self.audioFile == None: # So unload audio button doesn't open the file dialog
+        if self.audioFile is None: # So unload audio button doesn't open the file dialog
             audioPath = fd.askopenfilename(
                 title="Open audio file",
                 filetypes=(("mp3", '*.mp3'),("wav", '*.wav'))
@@ -1564,16 +1539,16 @@ class Main:
             self.canvas_clear()
         self.save_frame()
 
-    def increase_frame(self) -> None:
+    def increase_frame(self, frameCount) -> None:
         if self.frameCount == 1:
             return
            
-        if int(self.currentFrame.get()) != len(self.jsonFrames[0]):
+        if int(self.currentFrame.get()) != frameCount:
             self.currentFrame.set(int(self.currentFrame.get()) + 1)
 
         else: # Go to beginning
             self.currentFrame.set(1)
-            if self.audioFile != None:
+            if self.audioFile is not None:
                 if mixer.music.get_busy():
                     mixer.music.set_pos(0.0001)
                 else:
@@ -1592,7 +1567,7 @@ class Main:
         else:
             self.currentFrame.set(self.frameCount)
 
-        if self.audioFile != None:
+        if self.audioFile is not None:
             self.get_playback_pos()
 
         self.load_frame()
@@ -1605,11 +1580,11 @@ class Main:
             root.bind('<Right>', lambda e: self.to_last())
             root.bind('<Left>', lambda e: self.to_first())
         else:
-            self.increaseFrameButton.config(text="+", command=self.increase_frame)
-            self.decreaseFrameButton.config(text="-", command=self.decrease_frame)
+            self.increaseFrameButton.config(text="+", command=lambda: self.increase_frame(len(self.jsonFrames[0])))
+            self.decreaseFrameButton.config(text="-", command=lambda: self.decrease_frame(len(self.jsonFrames[0])))
 
-            root.bind('<Right>', lambda e: self.increase_frame())
-            root.bind('<Left>', lambda e: self.decrease_frame())
+            root.bind('<Right>', lambda e: self.increase_frame(len(self.jsonFrames[0])))
+            root.bind('<Left>', lambda e: self.decrease_frame(len(self.jsonFrames[0])))
 
     def to_first(self) -> None: # Go to first frame
         self.currentFrame.set(1)
@@ -1635,7 +1610,7 @@ class Main:
         # Code here is spread out to maximize speed
         if self.showAlphaVar.get(): # If show alpha is selected
             for pixel in range(int(self.res.get())**2):
-                self.canvas.itemconfig(self.pixels[pixel], fill=('black' if self.savedPixelColors.get(str(self.pixels[pixel])) else 'white'))
+                self.canvas.itemconfig(self.pixels[pixel], fill=('white' if self.savedPixelColors.get(str(self.pixels[pixel])) else 'black'))
         else:
             if self.isComplexProject.get():
                 for pixel in range(int(self.res.get())**2):
@@ -1650,7 +1625,7 @@ class Main:
                     else:
                         self.canvas.itemconfig(self.pixels[pixel], fill='white')
 
-        if self.audioFile != None:
+        if self.audioFile is not None:
             self.get_playback_pos()
 
     def load_from(self, frame: int) -> None:
@@ -1696,7 +1671,7 @@ class Main:
                     mixer.music.set_pos(self.playback)
 
         def display(char):
-            if char != None:
+            if char is not None:
                 if len(text.get()) < len(str(self.frameCount)):
                     text.set(text.get() + str(char))
             else:
@@ -1727,7 +1702,7 @@ class Main:
     def quit(self) -> None:
         if '*' in root.title(): # If the file is not saved...
             quitMode = mb.askyesnocancel(title="File Not Saved", message="Do you want to save your project?")
-            if quitMode == None: # Do nothing
+            if quitMode is None: # Do nothing
                 return
             if quitMode: # Save and quit
                 self.save(True)
@@ -1740,11 +1715,11 @@ class Main:
     def var_filter(self, var: tk.StringVar, min: int, max: int) -> None:
         try:
             var.set("".join(i for i in var.get() if i.isdigit()))
-            if min != None:
+            if min is not None:
                 if int(var.get()) < min:
                     var.set(min)
                    
-            if max != None:
+            if max is not None:
                 if int(var.get()) > max:
                     var.set(max)
         except ValueError:
@@ -1765,7 +1740,7 @@ class Main:
         self.trashResponce(sucess)
    
     def trashResponce(self, sucess: bool) -> None:
-        if sucess == None:
+        if sucess is None:
             mb.showinfo(title="Trash", message="No files found!")
         elif sucess:
             mb.showinfo(title="Trash", message="Files deleted successfully!")
@@ -1951,14 +1926,14 @@ class Main:
         def beep(): # Don't beep if user clickes off the application
             root.update()
            
-            if renderTL.focus_get() != None:
+            if renderTL.focus_get() is not None:
                 root.bell()
                
         def cancelDialog(button = None):
-            if button != None:
+            if button is not None:
                 button.config(state=tk.DISABLED)
             self.rendering = not mb.askyesno(title="Cancel Render", message="Are you sure you want to cancel the current render?")
-            if (self.rendering or self.rendering == None) and button != None:
+            if (self.rendering or self.rendering is None) and button is not None:
                 button.config(state=tk.NORMAL)
                
         fileName = f"{self.outputDirectory.get()}/{fileName}"
@@ -2121,7 +2096,9 @@ class Main:
         return list(int(color[i:i+2], 16) for i in (0, 2, 4))
 
     def open_output_dir(self) -> None:
-        output = fd.askdirectory()
+        output = fd.askdirectory(
+            initialdir=self.outputDirectory.get()
+            )
         if len(output) > 1:
             self.outputDirectory.set(output)
             root.title("Pixel-Art Animator-" + self.projectDir + '*')
@@ -2129,7 +2106,7 @@ class Main:
 
     def get_playback_pos(self) -> None:
         self.playback = max(self.framerateDelay * float(self.currentFrame.get()) - self.framerateDelay, 0.0000001)  # Get the audio position
-        if self.audioFile != None:
+        if self.audioFile is not None:
             if not mixer.music.get_busy():
                 mixer.music.play()
                 mixer.music.set_pos(self.playback)
@@ -2177,13 +2154,13 @@ class Main:
                 self.load_frame()
                 self.isPlaying = False
 
-                if self.audioFile != None:  # Restart and stop the audio
+                if self.audioFile is not None:  # Restart and stop the audio
                     mixer.music.rewind()
                     mixer.music.stop()
                 self.paused = False
             else:
                 self.paused = True
-                if self.audioFile != None:
+                if self.audioFile is not None:
                     mixer.music.pause()
 
             self.get_playback_pos()
@@ -2191,7 +2168,7 @@ class Main:
         def play_audio(): # Plays the audio, if there is any
             self.get_playback_pos()
 
-            if self.audioFile != None:
+            if self.audioFile is not None:
                 if self.paused:
                     mixer.music.unpause()
                 else:
@@ -2206,11 +2183,13 @@ class Main:
             play_audio()
 
             time.sleep(self.framerateDelay)
+            
+            frameCount = len(self.jsonFrames[0])
 
         while self.isPlaying:
             time1 = timeit.default_timer()
             
-            self.increase_frame()
+            self.increase_frame(frameCount)
             root.update()
             
             if not isLoop:
@@ -2218,7 +2197,7 @@ class Main:
                     end()
                     return
                 
-            pause.milliseconds(max((self.framerateDelay) - (timeit.default_timer() - time1), 0) * 999) # 999 instead of 1000, just cause.
+            pause.milliseconds(max((self.framerateDelay) - (timeit.default_timer() - time1), 0) * (1000 + DELAY_ADJUST))
             
         end() # Runs as soon as we exit the loop (cause, you know, it ended.)
 
@@ -2229,11 +2208,11 @@ class Main:
         else:
             self.playButton.config(command=lambda: self.play_init(False))
            
-    def scale(self, val: float, src: tuple, dst: tuple) -> float: # Yoinked strait from Stack Overflow (thanks 2010 Glenn Maynard)
-        """
-        Scale the given value from the scale of src to the scale of dst.
-        """
-        return ((val - src[0]) / (src[1]-src[0])) * (dst[1]-dst[0]) + dst[0]
+    # def scale(self, val: float, src: tuple, dst: tuple) -> float: # Yoinked strait from Stack Overflow (thanks 2010 Glenn Maynard)
+    #     """
+    #     Scale the given value from the scale of src to the scale of dst.
+    #     """
+    #     return ((val - src[0]) / (src[1]-src[0])) * (dst[1]-dst[0]) + dst[0]
 
     def delay(self, delay: int) -> None:
         self.framerate = int(delay)

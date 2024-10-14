@@ -2,3 +2,4 @@ tk
 pygame
 mutagen
 pillow
+pause
